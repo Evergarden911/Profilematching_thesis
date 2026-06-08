@@ -1,0 +1,154 @@
+<div class="modal-backdrop open" id="modal-interview-backdrop">
+  <div class="modal" style="max-width: 500px; background: white; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden;">
+    
+    <div class="modal-header" style="padding: 20px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
+      <div>
+        <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #0f172a;">Asesmen Kompetensi (Gate B)</h3>
+        <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">Masukkan skor aktual 0 - 100 per kriteria</p>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="App.closeModal()" style="padding: 4px; color: #64748b; background: transparent; border: none; cursor: pointer;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="modal-body" style="padding: 24px;">
+      <div id="loading-criteria" style="text-align: center; color: #64748b; font-size: 13px;">
+        Memuat parameter kriteria divisi target...
+      </div>
+      <div id="criteria-form-container" style="display: none; flex-direction: column; gap: 16px;">
+        </div>
+      
+      <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+      
+      <div>
+        <label style="display: block; font-size: 13px; font-weight: 600; color: #ef4444; margin-bottom: 6px;">Opsi: Gagalkan Kandidat</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="fail-notes" placeholder="Alasan menggagalkan (jika ada)..." style="flex: 1; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none;">
+          <button onclick="InterviewModal.failCandidate()" style="padding: 8px 16px; border: none; border-radius: 6px; background: #ef4444; color: white; font-weight: 500; cursor: pointer;">Gugurkan</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer" style="padding: 16px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 12px; background: white;">
+      <button class="btn btn-outline" onclick="App.closeModal()" style="padding: 8px 16px; border: 1px solid #cbd5e1; border-radius: 6px; background: white; color: #334155; font-weight: 500; cursor: pointer;">Batal</button>
+      <button id="btn-submit-scores" class="btn btn-primary" onclick="InterviewModal.submitScores()" style="padding: 8px 16px; border: none; border-radius: 6px; background: #0f172a; color: white; font-weight: 500; cursor: pointer;">Kunci Nilai & Loloskan</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const InterviewModal = {
+  gateId: null,
+  criteriaList: [],
+
+  async init() {
+    // Menangkap data yang dikirim dari HTML utama (App.loadModal)
+    const context = window.activeModalData;
+    if (!context || !context.gateId || !context.targetDivId) {
+      App.showToast("Data referensi gerbang tidak valid.", "error");
+      App.closeModal();
+      return;
+    }
+    this.gateId = context.gateId;
+    
+    // Fetch kriteria berdasarkan target divisi
+    try {
+      const response = await fetch(`/api/criteria?division_id=${context.targetDivId}`);
+      if (!response.ok) throw new Error("Gagal memuat kriteria divisi.");
+      this.criteriaList = await response.json();
+      this.renderForm();
+    } catch (err) {
+      document.getElementById('loading-criteria').textContent = "Terjadi kesalahan saat memuat kriteria.";
+      console.error(err);
+    }
+  },
+
+  renderForm() {
+    document.getElementById('loading-criteria').style.display = 'none';
+    const container = document.getElementById('criteria-form-container');
+    container.style.display = 'flex';
+    container.innerHTML = '';
+
+    if (this.criteriaList.length === 0) {
+      container.innerHTML = '<p style="color: #ef4444; font-size: 13px;">Divisi target tidak memiliki parameter kriteria aktif. Tidak bisa melakukan asesmen.</p>';
+      document.getElementById('btn-submit-scores').disabled = true;
+      return;
+    }
+
+    this.criteriaList.forEach(crit => {
+      const div = document.createElement('div');
+      div.innerHTML = `
+        <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
+          ${crit.name} <span style="font-weight: 400; color: #64748b;">(${crit.factor_type.toUpperCase()})</span>
+        </label>
+        <input type="number" class="score-input" data-criteria-id="${crit.id}" min="0" max="100" placeholder="Skor 0 - 100" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none;">
+      `;
+      container.appendChild(div);
+    });
+  },
+
+  async submitScores() {
+    const inputs = document.querySelectorAll('.score-input');
+    const scores = [];
+    let isValid = true;
+
+    inputs.forEach(input => {
+      const val = parseFloat(input.value);
+      if (isNaN(val) || val < 0 || val > 100) isValid = false;
+      scores.push({
+        criteria_id: parseInt(input.getAttribute('data-criteria-id')),
+        raw_score: val
+      });
+    });
+
+    if (!isValid) {
+      App.showToast("Semua nilai harus diisi dengan angka antara 0 hingga 100.", "error");
+      return;
+    }
+
+    const btn = document.getElementById('btn-submit-scores');
+    btn.disabled = true;
+    btn.textContent = 'Memproses...';
+
+    try {
+      const res = await fetch('/api/gates/interview-scores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gate_id: this.gateId, scores: scores })
+      });
+      if (!res.ok) throw new Error("Gagal menyimpan nilai wawancara.");
+      
+      App.showToast("Asesmen berhasil. Kandidat dimasukkan ke antrean Profile Matching.", "success");
+      setTimeout(() => window.location.reload(), 800);
+    } catch (err) {
+      App.showToast(err.message, "error");
+      btn.disabled = false;
+      btn.textContent = 'Kunci Nilai & Loloskan';
+    }
+  },
+
+  async failCandidate() {
+    const notes = document.getElementById('fail-notes').value;
+    if (!notes) {
+      App.showToast("Sertakan alasan pengguguran kandidat.", "error");
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/gates/fail-interview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gate_id: this.gateId, notes: notes })
+      });
+      if (!res.ok) throw new Error("Gagal mengeksekusi pengguguran.");
+      
+      App.showToast("Kandidat digugurkan dari proses mutasi.", "success");
+      setTimeout(() => window.location.reload(), 800);
+    } catch (err) {
+      App.showToast(err.message, "error");
+    }
+  }
+};
+
+InterviewModal.init();
+</script>

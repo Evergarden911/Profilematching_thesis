@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Pramita Lab — SDM DSS{% endblock %}</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/static/css/tokens.css">
+  <link rel="stylesheet" href="/static/css/layout.css">
+  <link rel="stylesheet" href="/static/css/components.css">
+  <link rel="stylesheet" href="/static/css/screens.css">
+  {% block extra_css %}{% endblock %}
+
+  <script>
+    const originalFetch = window.fetch;
+    window.fetch = async function() {
+        let [resource, config] = arguments;
+        if (config === undefined) {
+            config = {};
+        }
+        config.credentials = 'same-origin';
+        return originalFetch(resource, config);
+    };
+  </script>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'DM Sans', sans-serif;">
+
+  <div id="app-shell" class="app-shell">
+    
+    <aside class="sidebar">
+      <div class="sidebar-logo" style="background: #ffffff; padding: 12px; border-radius: var(--radius-sm); margin: 16px 14px; text-align: center;">
+        <img src="/static/images/logo.png" alt="Pramita Lab" style="max-width: 100%; max-height: 48px; object-fit: contain; display: block; margin: 0 auto;" onerror="this.style.display='none'; document.getElementById('logo-text-fallback').style.display='block';">
+        <div id="logo-text-fallback" style="display: none; background: #CC2229; color: #ffffff; padding: 8px; font-family: 'DM Serif Display', serif; font-size: 18px; font-weight: bold; border-radius: 4px; letter-spacing: 0.5px;">
+          PRAMITA <span style="font-family: 'DM Sans', sans-serif; font-style: italic; font-weight: normal;">Lab</span>
+        </div>
+        <div class="logo-sub" style="color: var(--ink-60); font-size: 10.5px; margin-top: 6px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">SDM Decision Support</div>
+      </div>
+      
+      <div class="sidebar-role">
+        <span class="role-pill">
+          Sesi Aktif: 
+          {% if current_user %}
+            {% set u_role = current_user.role.value if current_user and current_user.role.value is defined else (current_user.role | string if current_user else 'guest') %}
+            {% if u_role == 'kepala_hrd' %}HRD
+            {% elif u_role == 'kepala_cabang' %}Cabang
+            {% elif u_role == 'kepala_divisi' %}Divisi
+            {% else %}{{ u_role }}
+            {% endif %}
+          {% else %}
+            Guest
+          {% endif %}
+        </span>
+      </div>
+
+      <nav class="sidebar-nav">
+        {% set u_role = current_user.role.value if current_user and current_user.role.value is defined else (current_user.role | string if current_user else 'guest') %}
+
+        <a href="/dashboard" class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+          Panel Utama
+        </a>
+
+        {% if u_role in ['kepala_hrd', 'kepala_cabang', 'kepala_divisi'] %}
+        <div class="nav-section-title">Operasional Staf</div>
+        <a href="/requests" class="nav-item {% if active_page == 'requests' %}active{% endif %}">
+          Pengajuan Mutasi SDM
+        </a>
+        {% endif %}
+
+        {% if u_role == 'kepala_hrd' %}
+        <div class="nav-section-title">Data Induk Sistem</div>
+        <a href="/divisions" class="nav-item {% if active_page == 'divisions' %}active{% endif %}">
+          Manajemen Divisi
+        </a>
+        <a href="/employees" class="nav-item {% if active_page == 'employees' %}active{% endif %}">
+          Data Karyawan Aktif
+        </a>
+        <a href="/criteria" class="nav-item {% if active_page == 'criteria' %}active{% endif %}">
+          Kriteria Evaluasi
+        </a>
+
+        <div class="nav-section-title">Kapasitas Kerja</div>
+        <a href="/wla" class="nav-item {% if active_page == 'wla' %}active{% endif %}">
+          Analisis Beban Kerja WLA
+        </a>
+        {% endif %}
+
+        {% if u_role in ['kepala_cabang', 'kepala_hrd'] %}
+        <div class="nav-section-title">Eksekutif & Laporan</div>
+        <a href="/results" class="nav-item {% if active_page == 'results' %}active{% endif %}">
+          Hasil Profile Matching
+        </a>
+
+        <div class="nav-section-title">Asesmen & Seleksi</div>
+        <a href="/gates" class="nav-item {% if active_page == 'gates' %}active{% endif %}">
+          Asesmen Kandidat (Gates)
+        </a>
+
+        <a href="/constraints" class="nav-item {% if active_page == 'constraints' %}active{% endif %}">
+          Manajemen Assesment
+        </a>
+        {% endif %}
+      </nav>
+
+      <div class="sidebar-footer" style="background: rgba(0, 0, 0, 0.2); border-top: 1px solid rgba(255,255,255,0.05); padding: 16px;">
+        <div class="user-row" style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+          <div class="user-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: var(--red); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: white;">
+            {{ current_user.username[:2].upper() if current_user else 'US' }}
+          </div>
+          <div class="user-info" style="flex: 1; min-width: 0;">
+            <div class="user-name" style="color: white; font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              {{ current_user.full_name if current_user else 'Pengguna Sistem' }}
+            </div>
+            <div class="user-role-text" style="color: rgba(255,255,255,0.4); font-size: 11px;">
+              {{ current_user.username if current_user else 'staf' }}
+            </div>
+          </div>
+        </div>
+        
+        <button onclick="eksekusiLogoutSesi()" class="btn" style="width: 100%; padding: 8px; background: rgba(204, 34, 41, 0.15); color: var(--red-mid); border: 1px solid rgba(204, 34, 41, 0.3); border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+          Keluar dari Sistem
+        </button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="topbar">
+        <div class="topbar-title">
+          <h1 id="topbar-title-text">{% block page_title %}Sistem{% endblock %}</h1>
+          <p id="topbar-subtitle-text">{% block page_subtitle %}Pramita Lab — Panel Utama{% endblock %}</p>
+        </div>
+        <div class="topbar-actions">
+          {% block topbar_actions %}{% endblock %}
+        </div>
+      </div>
+      
+      <div class="page-content" id="page-content">
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+
+  </div>
+
+  <div id="modal-container"></div>
+
+  <script src="/static/js/app.js"></script>
+  
+  <script>
+    async function eksekusiLogoutSesi() {
+        if (!confirm('Apakah Anda yakin ingin mengakhiri sesi dan keluar dari sistem?')) return;
+        
+        try {
+            const response = await fetch('/api/auth/logout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (!response.ok) throw new Error('Peladen gagal membersihkan token otentikasi.');
+            
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = '/';
+        } catch (error) {
+            console.error(error);
+            window.location.href = '/';
+        }
+    }
+  </script>
+  
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

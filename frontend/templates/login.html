@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pramita Lab — SDM Decision Support System</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="/static/css/tokens.css">
+    <link rel="stylesheet" href="/static/css/layout.css">
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/screens.css">
+</head>
+<body class="login-page-body" style="margin: 0; padding: 0; font-family: 'DM Sans', sans-serif; min-height: 100vh; display: flex; background-color: var(--bg-main, #f8f9fa);">
+
+    <div class="login-container" style="display: flex; width: 100%; min-height: 100vh;">
+        
+        <div class="login-left" style="flex: 1; background-color: #0f172a; color: #ffffff; padding: 64px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div class="login-brand">
+                <div class="login-brand-badge" style="margin-bottom: 16px;">
+                    <div class="login-logo-box">
+                        <span class="login-logo-text" style="font-size: 24px; font-weight: 700; letter-spacing: -0.02em;">PRAMITA <span class="login-logo-italic" style="font-family: 'DM Serif Display', serif; font-style: italic; font-weight: 400; color: #bb0a1e;">Lab</span></span>
+                    </div>
+                </div>
+                <div class="login-tagline" style="font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #94a3b8; text-transform: uppercase;">SDM Decision Support System</div>
+            </div>
+
+            <div style="margin-top: 48px; margin-bottom: auto;">
+                <h2 class="login-headline" style="font-size: 36px; font-weight: 700; line-height: 1.2; color: #f8fafc; margin-bottom: 24px;">Sistem Pendukung Keputusan<br><span style="font-family: 'DM Serif Display', serif; font-style: italic; font-weight: 400; color: #bb0a1e;">Mutasi SDM</span></h2>
+                <p class="login-desc" style="font-size: 16px; line-height: 1.6; color: #cbd5e1; max-width: 480px; margin-bottom: 40px;">Platform terpadu untuk pengelolaan permintaan mutasi dan pemindahan SDM berbasis algoritma Profile Matching.</p>
+
+                <div class="login-features" style="display: flex; flex-direction: column; gap: 16px;">
+                    <div class="login-feature" style="display: flex; align-items: center; font-size: 14px; color: #e2e8f0;">
+                        <span class="feature-dot" style="width: 6px; height: 6px; background-color: #bb0a1e; border-radius: 50%; margin-right: 12px; flex-shrink: 0;"></span>
+                        Profile Matching dengan Gap Analysis otomatis
+                    </div>
+                    <div class="login-feature" style="display: flex; align-items: center; font-size: 14px; color: #e2e8f0;">
+                        <span class="feature-dot" style="width: 6px; height: 6px; background-color: #bb0a1e; border-radius: 50%; margin-right: 12px; flex-shrink: 0;"></span>
+                        Ranking kandidat berbasis NCF &amp; NSF
+                    </div>
+                    <div class="login-feature" style="display: flex; align-items: center; font-size: 14px; color: #e2e8f0;">
+                        <span class="feature-dot" style="width: 6px; height: 6px; background-color: #bb0a1e; border-radius: 50%; margin-right: 12px; flex-shrink: 0;"></span>
+                        Manajemen kriteria dinamis per divisi
+                    </div>
+                    <div class="login-feature" style="display: flex; align-items: center; font-size: 14px; color: #e2e8f0;">
+                        <span class="feature-dot" style="width: 6px; height: 6px; background-color: #bb0a1e; border-radius: 50%; margin-right: 12px; flex-shrink: 0;"></span>
+                        Audit trail lengkap setiap keputusan
+                    </div>
+                </div>
+            </div>
+
+            <div style="font-size: 12px; color: #64748b; margin-top: 40px;">
+                &copy; 2026 Pramita Lab. Sistem Informasi Manajemen SDM.
+            </div>
+        </div>
+
+        <div class="login-right" style="flex: 1; background-color: #ffffff; padding: 64px; display: flex; align-items: center; justify-content: center;">
+            <div class="login-form-box" style="width: 100%; max-width: 400px;">
+                <h1 class="login-form-title" style="font-size: 28px; font-weight: 700; color: #0f172a; margin: 0 0 8px 0;">Masuk</h1>
+                <p class="login-form-sub" style="font-size: 14px; color: #64748b; margin: 0 0 32px 0;">Pilih peran dan masukkan kredensial Anda.</p>
+
+                <div class="login-role-selector" style="display: flex; gap: 12px; margin-bottom: 24px;">
+                    <div class="role-option" onclick="setRole('kepala_divisi', this)" style="flex: 1; padding: 16px 8px; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center; cursor: pointer; font-size: 12px; font-weight: 500; color: #64748b; transition: all 0.2s;">
+                        <span class="role-icon" style="display: block; font-size: 20px; margin-bottom: 8px;">🏢</span>Kepala Divisi
+                    </div>
+                    <div class="role-option selected" onclick="setRole('kepala_hrd', this)" style="flex: 1; padding: 16px 8px; border: 2px solid #0f172a; border-radius: 8px; text-align: center; cursor: pointer; font-size: 12px; font-weight: 600; color: #0f172a; background-color: #f8fafc; transition: all 0.2s;">
+                        <span class="role-icon" style="display: block; font-size: 20px; margin-bottom: 8px;">👥</span>Kepala HRD
+                    </div>
+                    <div class="role-option" onclick="setRole('kepala_cabang', this)" style="flex: 1; padding: 16px 8px; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center; cursor: pointer; font-size: 12px; font-weight: 500; color: #64748b; transition: all 0.2s;">
+                        <span class="role-icon" style="display: block; font-size: 20px; margin-bottom: 8px;">🏛️</span>Kepala Cabang
+                    </div>
+                </div>
+
+                <div id="error-message" style="display: none; background-color: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 12px; border-radius: 6px; font-size: 13px; margin-bottom: 20px; font-weight: 500;"></div>
+
+                <form id="login-form" onsubmit="handleFormSubmit(event)">
+                    <input type="hidden" id="selected-role" name="role" value="kepala_hrd">
+
+                    <div class="login-input-group" style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">
+                        <div class="input-field-wrap" style="position: relative;">
+                            <input id="login-username" name="username" type="text" placeholder="Username" value="HRD" required style="width: 100%; padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box; background-color: #ffffff; color: #0f172a;">
+                        </div>
+                        <div class="input-field-wrap" style="position: relative;">
+                            <input id="login-password" name="password" type="password" placeholder="Password" required style="width: 100%; padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box; background-color: #ffffff; color: #0f172a;">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btn-submit" class="btn btn-primary btn-lg" style="width: 100%; padding: 14px; background-color: #0f172a; color: #ffffff; border: none; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background-color 0.2s;">
+                        Masuk ke Sistem
+                    </button>
+                </form>
+
+                <p class="login-footer-text" style="text-align: center; margin-top: 24px; font-size: 12px; color: #64748b; line-height: 1.5;">
+                    Akses hanya untuk pengguna yang telah terdaftar dalam sistem.
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function setRole(roleValue, element) {
+            document.getElementById('selected-role').value = roleValue;
+            
+            // Atur ulang visual pilihan
+            document.querySelectorAll('.role-option').forEach(opt => {
+                opt.style.border = '1px solid #e2e8f0';
+                opt.style.fontWeight = '500';
+                opt.style.color = '#64748b';
+                opt.style.backgroundColor = 'transparent';
+                opt.classList.remove('selected');
+            });
+            
+            // Aktifkan elemen yang diklik
+            element.style.border = '2px solid #0f172a';
+            element.style.fontWeight = '600';
+            element.style.color = '#0f172a';
+            element.style.backgroundColor = '#f8fafc';
+            element.classList.add('selected');
+        }
+
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+            
+            const errorDiv = document.getElementById('error-message');
+            const btnSubmit = document.getElementById('btn-submit');
+            const usernameInput = document.getElementById('login-username').value;
+            const passwordInput = document.getElementById('login-password').value;
+            
+            errorDiv.style.display = 'none';
+            errorDiv.textContent = '';
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = 'Memverifikasi...';
+
+            // Representasi data x-www-form-urlencoded untuk spesifikasi OAuth2 Password Form FastAPI
+            const details = {
+                'username': usernameInput,
+                'password': passwordInput
+            };
+
+            let formBody = [];
+            for (let property in details) {
+                let encodedKey = encodeURIComponent(property);
+                let encodedValue = encodeURIComponent(details[property]);
+                formBody.push(encodedKey + "=" + encodedValue);
+            }
+            formBody = formBody.join("&");
+
+            try {
+                const response = await fetch('/api/auth/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+                    },
+                    body: formBody
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.detail || 'Kredensial salah atau tidak terdaftar.');
+                }
+
+                const data = await response.json();
+                
+                // Menyimpan token ke Cookie agar otomatis terbawa pada request halaman berikutnya oleh browser (Arsitektur MPA)
+                document.cookie = "access_token=" + data.access_token + "; path=/; max-age=" + (60 * 30) + "; SameSite=Strict";
+                
+                // Pengalihan halaman utuh sisi server
+                window.location.href = '/dashboard';
+
+            } catch (error) {
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = 'Masuk ke Sistem';
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

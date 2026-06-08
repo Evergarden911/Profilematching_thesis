@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+
+{% block page_subtitle %}Manajemen Divisi & Sub-Divisi Operasional{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+            <h3 style="margin: 0; font-size: 20px; font-weight: 600; color: var(--ink);">Struktur Organisasi & Divisi</h3>
+            <p style="margin: 4px 0 0 0; color: var(--ink-60); font-size: 13.5px;">Kelola sub-divisi aktual, alokasi anggaran, dan parameter kriteria.</p>
+        </div>
+        <button class="btn btn-primary" onclick="openDivisionModal()">
+            + Tambah Divisi
+        </button>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>KODE</th>
+                        <th>NAMA SUB-DIVISI</th>
+                        <th>GROUP INDUK</th>
+                        <th>ANGGARAN BULANAN</th>
+                        <th style="text-align: right;">AKSI</th>
+                    </tr>
+                </thead>
+                <tbody id="divisionTableBody">
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--ink-60);">Memuat data divisi...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="divisionModal" class="modal-backdrop">
+    <div class="modal">
+        <div class="modal-header">
+            <h5 id="modalTitle" class="modal-title">Tambah Divisi Baru</h5>
+            <button onclick="closeDivisionModal()" class="modal-close" style="font-size: 20px;">&times;</button>
+        </div>
+        <form id="divisionForm">
+            <div class="modal-body">
+                <input type="hidden" id="div_id">
+                
+                <div class="form-group">
+                    <label>Kode Divisi</label>
+                    <input type="text" id="div_code" required maxlength="20" placeholder="Contoh: HEM">
+                </div>
+                
+                <div class="form-group">
+                    <label>Nama Resmi Divisi</label>
+                    <input type="text" id="div_name" required maxlength="200" placeholder="Contoh: Hematologi">
+                </div>
+                
+                <div class="form-group">
+                    <label>Rumpun Kerja Induk (Group)</label>
+                    <select id="div_group_id" required>
+                        <option value="">-- Pilih Rumpun Kerja --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Anggaran Maksimal (IDR)</label>
+                    <input type="number" id="div_budget" min="0" value="0">
+                </div>
+                
+                <div class="form-group">
+                    <label>Deskripsi</label>
+                    <textarea id="div_desc" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeDivisionModal()">Batal</button>
+                <button type="submit" id="btnSave" class="btn btn-primary">Simpan Data</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="weightsModal" class="modal-backdrop">
+    <div class="modal" style="max-width: 750px;">
+        <div class="modal-header" style="background: var(--ink); color: var(--white);">
+            <h5 class="modal-title" style="color: var(--white);">Atur Bobot Kriteria Sub-Divisi</h5>
+            <button onclick="closeWeightsModal()" class="modal-close" style="color: var(--white); font-size: 20px;">&times;</button>
+        </div>
+        <form id="weightsForm">
+            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                <input type="hidden" id="weight_div_id">
+                <p style="font-size: 13px; color: var(--ink-60); margin-top: 0; margin-bottom: 20px;">Total akumulasi untuk masing-masing kelompok kriteria wajib bernilai 1.0 (100%).</p>
+                
+                <div style="display: flex; gap: 20px;">
+                    <div style="flex: 1; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px;">
+                        <h6 style="margin: 0 0 12px 0; color: var(--red); font-weight: 600; border-bottom: 1px solid var(--border); padding-bottom: 8px;">Core Factor</h6>
+                        <div id="coreFactorsContainer"></div>
+                        <div style="text-align: right; margin-top: 16px; font-size: 13px; font-weight: 600;">
+                            Total: <span id="coreTotalLabel">0.00</span> / 1.00
+                        </div>
+                    </div>
+                    
+                    <div style="flex: 1; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px;">
+                        <h6 style="margin: 0 0 12px 0; color: var(--green); font-weight: 600; border-bottom: 1px solid var(--border); padding-bottom: 8px;">Secondary Factor</h6>
+                        <div id="secondaryFactorsContainer"></div>
+                        <div style="text-align: right; margin-top: 16px; font-size: 13px; font-weight: 600;">
+                            Total: <span id="secondaryTotalLabel">0.00</span> / 1.00
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeWeightsModal()">Batal</button>
+                <button type="submit" id="btnSaveWeights" class="btn btn-success">Terapkan Bobot</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", async () => {
+        await loadGroupsDropdown();
+        await loadDivisionTable();
+    });
+
+    // --- KONTROL MODAL KUSTOM (Menggunakan sistem kelas CSS kustom) ---
+    function openDivisionModal() {
+        document.getElementById('divisionForm').reset();
+        document.getElementById('div_id').value = '';
+        document.getElementById('modalTitle').innerText = 'Tambah Divisi Baru';
+        document.getElementById('divisionModal').classList.add('open');
+    }
+
+    function closeDivisionModal() {
+        document.getElementById('divisionModal').classList.remove('open');
+    }
+
+    function closeWeightsModal() {
+        document.getElementById('weightsModal').classList.remove('open');
+    }
+
+    // --- PEMUATAN DATA VIA API ---
+    async function loadGroupsDropdown() {
+        try {
+            const response = await fetch('/api/divisions/groups');
+            const groups = await response.json();
+            const select = document.getElementById('div_group_id');
+            groups.forEach(g => {
+                const option = document.createElement('option');
+                option.value = g.id;
+                option.textContent = `${g.code} - ${g.name}`;
+                select.appendChild(option);
+            });
+        } catch (error) { console.error(error); }
+    }
+
+    async function loadDivisionTable() {
+        const tbody = document.getElementById('divisionTableBody');
+        try {
+            const response = await fetch('/api/divisions/');
+            const divisions = await response.json();
+            
+            tbody.innerHTML = '';
+            if (divisions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">Belum ada data divisi.</td></tr>';
+                return;
+            }
+
+            divisions.forEach(d => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${d.code}</strong></td>
+                    <td>${d.name}</td>
+                    <td><span class="badge" style="background: var(--ink-10); color: var(--ink); border: 1px solid var(--border);">ID: ${d.group_id}</span></td>
+                    <td>Rp ${d.monthly_budget.toLocaleString('id-ID')}</td>
+                    <td style="text-align: right;">
+                        <button onclick="configureWeights(${d.id}, ${d.group_id})" class="btn btn-outline btn-sm" style="background: var(--ink); color: var(--white); border: none;">Bobot</button>
+                        <button onclick="editDivision(${d.id}, '${d.code}', '${d.name}', ${d.group_id}, ${d.monthly_budget}, '${d.description || ''}')" class="btn btn-outline btn-sm">Edit</button>
+                        <button onclick="deleteDivision(${d.id})" class="btn btn-outline btn-sm" style="color: var(--red); border-color: var(--red-mid);">Hapus</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        } catch (error) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--red);">Error memuat data divisi dari server.</td></tr>`;
+        }
+    }
+
+    // --- OPERASI CRUD ---
+    function editDivision(id, code, name, groupId, budget, desc) {
+        document.getElementById('div_id').value = id;
+        document.getElementById('div_code').value = code;
+        document.getElementById('div_name').value = name;
+        document.getElementById('div_group_id').value = groupId;
+        document.getElementById('div_budget').value = budget;
+        document.getElementById('div_desc').value = desc;
+        document.getElementById('modalTitle').innerText = 'Edit Parameter Divisi';
+        document.getElementById('divisionModal').classList.add('open');
+    }
+
+    document.getElementById('divisionForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('div_id').value;
+        const btn = document.getElementById('btnSave');
+        
+        const payload = {
+            code: document.getElementById('div_code').value,
+            name: document.getElementById('div_name').value,
+            group_id: parseInt(document.getElementById('div_group_id').value),
+            monthly_budget: parseFloat(document.getElementById('div_budget').value) || 0.0,
+            description: document.getElementById('div_desc').value
+        };
+
+        try {
+            btn.disabled = true;
+            btn.innerText = 'Menyimpan...';
+            const url = id ? `/api/divisions/${id}` : '/api/divisions';
+            const response = await fetch(url, {
+                method: id ? 'PATCH' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error('Peladen menolak penyimpanan data.');
+            
+            closeDivisionModal();
+            await loadDivisionTable();
+            if(window.App) App.showToast('Data divisi berhasil diperbarui.', 'success');
+        } catch (error) { alert(error.message); } 
+        finally { 
+            btn.disabled = false;
+            btn.innerText = 'Simpan Data'; 
+        }
+    });
+
+    async function deleteDivision(id) {
+        if (!confirm('Apakah Anda yakin ingin menghapus divisi ini?')) return;
+        try {
+            const response = await fetch(`/api/divisions/${id}`, { method: 'DELETE' });
+            if (!response.ok) throw new Error('Gagal menghapus data.');
+            await loadDivisionTable();
+            if(window.App) App.showToast('Divisi berhasil dihapus.', 'success');
+        } catch (error) { alert(error.message); }
+    }
+
+    // --- MANAJEMEN BOBOT KRITERIA ---
+    async function configureWeights(divisionId, groupId) {
+        document.getElementById('weight_div_id').value = divisionId;
+        const coreCont = document.getElementById('coreFactorsContainer');
+        const secCont = document.getElementById('secondaryFactorsContainer');
+        
+        try {
+            const resCriteria = await fetch(`/api/divisions/groups/${groupId}/criteria`);
+            const criteriaList = await resCriteria.json();
+            
+            const resWeights = await fetch(`/api/divisions/${divisionId}/weights`);
+            const existingWeights = resWeights.ok ? await resWeights.json() : [];
+            const weightMap = new Map(existingWeights.map(w => [w.group_criteria_id, w.weight]));
+
+            coreCont.innerHTML = ''; secCont.innerHTML = '';
+
+            criteriaList.forEach(c => {
+                const weight = weightMap.get(c.id) || 0.0;
+                const html = `
+                    <div style="background: var(--surface); padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px;">
+                        <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--ink);">${c.name}</label>
+                        <input type="number" class="weight-input" data-id="${c.id}" data-type="${c.factor_type}" 
+                               step="0.05" min="0" max="1" value="${weight}" onchange="calcWeights()"
+                               style="width: 100%; padding: 6px; border: 1px solid var(--border-mid); border-radius: var(--radius-sm);">
+                    </div>
+                `;
+                if (c.factor_type === 'core') coreCont.insertAdjacentHTML('beforeend', html);
+                else secCont.insertAdjacentHTML('beforeend', html);
+            });
+
+            document.getElementById('weightsModal').classList.add('open');
+            calcWeights();
+        } catch (error) { alert("Gagal mengambil daftar kriteria."); }
+    }
+
+    function calcWeights() {
+        let core = 0.0, sec = 0.0;
+        document.querySelectorAll('.weight-input').forEach(i => {
+            const v = parseFloat(i.value) || 0;
+            i.dataset.type === 'core' ? core += v : sec += v;
+        });
+        document.getElementById('coreTotalLabel').innerText = core.toFixed(2);
+        document.getElementById('secondaryTotalLabel').innerText = sec.toFixed(2);
+        
+        document.getElementById('coreTotalLabel').style.color = Math.abs(core - 1.0) < 1e-5 ? 'var(--green)' : 'var(--red)';
+        document.getElementById('secondaryTotalLabel').style.color = Math.abs(sec - 1.0) < 1e-5 ? 'var(--green)' : 'var(--red)';
+    }
+
+    document.getElementById('weightsForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const divId = document.getElementById('weight_div_id').value;
+        const payload = Array.from(document.querySelectorAll('.weight-input')).map(i => ({
+            division_id: parseInt(divId),
+            group_criteria_id: parseInt(i.dataset.id),
+            weight: parseFloat(i.value) || 0.0
+        }));
+
+        try {
+            const response = await fetch(`/api/divisions/${divId}/weights`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) throw new Error('Gagal menyimpan bobot. Pastikan total per kelompok bernilai tepat 1.0');
+            
+            closeWeightsModal();
+            if(window.App) App.showToast('Konfigurasi bobot berhasil disimpan.', 'success');
+        } catch (error) { alert(error.message); }
+    });
+</script>
+{% endblock %}

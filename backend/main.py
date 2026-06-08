@@ -1,0 +1,424 @@
+"""
+Main FastAPI Application (MPA / SSR Architecture)
+=================================================
+Menghubungkan seluruh router API dan bertindak sebagai mesin 
+Server-Side Rendering (SSR) menggunakan Jinja2.
+"""
+import logging
+from contextlib import asynccontextmanager
+from pathlib import Path
+from datetime import datetime
+from typing import Optional
+
+from fastapi import FastAPI, Request, Depends, HTTPException, status, Response
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text, extract
+from sqlalchemy.orm import Session, contains_eager
+
+from backend.core.config import settings
+from backend.core.database import Base, engine, get_db
+from backend.models import User, SDMRequest, RequestStatus, Employee, Division, GroupCriteria, DivisionCriteriaWeight, MatchingResult, WorkloadAnalysis, RotationGate, GateStatus
+from backend.core.security import get_current_user
+
+# Import API Routers
+from backend.routers import auth, calculation, criteria, divisions, employees, gates, sdm, wla, constraints
+
+logger = logging.getLogger(__name__)
+BASE_DIR = Path(__file__).resolve().parent.parent
+FRONTEND_DIR = BASE_DIR / "frontend"
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    with engine.begin() as conn:
+        conn.execute(text("SELECT 1"))
+    logger.info("Database connection OK")
+    if settings.DB_INIT_ON_STARTUP:
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables initialized (create_all)")
+    yield
+
+app = FastAPI(title="Pramita Lab DSS", lifespan=lifespan)
+
+# ---------------------------------------------------------------------------
+# KONFIGURASI ASET STATIS & JINJA2 TEMPLATES
+# ---------------------------------------------------------------------------
+app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR / "static")), name="static")
+
+modals_path = FRONTEND_DIR / "modals"
+if modals_path.exists():
+    app.mount("/modals", StaticFiles(directory=str(modals_path)), name="modals")
+
+templates = Jinja2Templates(directory=str(FRONTEND_DIR / "templates"))
+
+# ---------------------------------------------------------------------------
+# API ROUTERS (Digunakan oleh fetch() untuk eksekusi aksi spesifik/modal)
+# ---------------------------------------------------------------------------
+app.include_router(auth.router)
+app.include_router(employees.router)
+app.include_router(criteria.router)
+app.include_router(sdm.router)
+app.include_router(calculation.router)
+app.include_router(divisions.router)
+app.include_router(gates.router)
+app.include_router(wla.router)
+app.include_router(constraints.router)
+
+
+# ---------------------------------------------------------------------------
+# WEB VIEW ROUTES (Mesin Pembuat Halaman HTML Jinja2)
+# ---------------------------------------------------------------------------
+
+def get_current_user_from_cookie(request: Request, db: Session):
+    """
+    Mengekstrak token JWT secara langsung dari Cookie menggunakan fungsi keamanan utama.
+    """
+    try:
+        return get_current_user(request, db)
+    except HTTPException:
+        return None
+
+@app.get("/", response_class=HTMLResponse)
+async def view_login(request: Request):
+    if request.cookies.get("access_token"):
+        return RedirectResponse(url="/dashboard", status_code=302)
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@app.get("/login")
+async def view_login(request: Request):
+    if request.cookies.get("access_token"):
+        return RedirectResponse(url="/dashboard", status_code=302)
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@app.get("/logout")
+async def logout(response: Response):
+    # Menghapus cookie otentikasi
+    response.delete_cookie(key="access_token")
+    return RedirectResponse(url="/", status_code=302)
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def view_dashboard(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user_from_cookie(request, db)
+    if not user: return RedirectResponse(url="/", status_code=302)
+
+    now = datetime.now()
+    
+    # Deteksi WLA Kritis untuk notifikasi proaktif
+    critical_wla_count = db.query(WorkloadAnalysis).filter(
+        WorkloadAnalysis.is_understaffed == True,
+        WorkloadAnalysis.period == now.strftime("%Y-%m")
+    ).count()
+
+    stats = {
+        "total_requests": db.query(SDMRequest).count(),
+        "pending_requests": db.query(SDMRequest).filter(SDMRequest.status == RequestStatus.pending).count(),
+        "completed_requests": db.query(SDMRequest).filter(SDMRequest.status == RequestStatus.matched).count(),
+        "active_employees": db.query(Employee).filter(Employee.is_active == True).count(),
+        "critical_wla_divisions": critical_wla_count,
+        "monthly_delta": db.query(SDMRequest).filter(
+            extract('month', SDMRequest.created_at) == now.month,
+            extract('year', SDMRequest.created_at) == now.year
+        ).count()
+    }
+    
+    recent_reqs = db.query(SDMRequest).order_by(SDMRequest.created_at.desc()).limit(5).all()
+
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request,
+        "current_user": user,
+        "active_page": "dashboard",
+        "stats": stats,
+        "recent_requests": recent_reqs,
+        "current_date": now.strftime("%A, %d %B %Y")
+    })
+
+@app.get("/employees", response_class=HTMLResponse)
+async def view_employees(
+    request: Request, 
+    search: Optional[str] = None,
+    division: Optional[str] = None,
+    role: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    user = get_current_user_from_cookie(request, db)
+    if not user: return RedirectResponse(url="/", status_code=302)
+
+    query = db.query(Employee).options(contains_eager(Employee.division)).join(Division)
+    if search:
+        query = query.filter(Employee.full_name.ilike(f"%{search}%"))
+    if division:
+        query = query.filter(Division.code == division)
+    if role:
+        query = query.filter(Employee.position == role)
+        
+    emps = query.all()
+    divs = db.query(Division).all()
+
+    return templates.TemplateResponse("employees.html", {
+        "request": request,
+        "current_user": user,
+        "active_page": "employees",
+        "employees_data": emps,
+        "divisions_list": divs,
+        "search_query": search,
+        "current_division": division,
+        "current_role": role
+    })
+
+@app.get("/requests", response_class=HTMLResponse)
+async def view_requests(
+    request: Request, 
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    user = get_current_user_from_cookie(request, db)
+    if not user: return RedirectResponse(url="/", status_code=302)
+
+    query = db.query(SDMRequest)
+    if status and status != 'all':
+        query = query.filter(SDMRequest.status == status)
+        
+    reqs = query.order_by(SDMRequest.created_at.desc()).all()
+
+    return templates.TemplateResponse("requests.html", {
+        "request": request,
+        "current_user": user,
+        "active_page": "requests",
+        "requests": reqs,
+        "current_filter": status,
+        "search_query": search
+    })
+
+@app.get("/results/{request_id}", response_class=HTMLResponse)
+async def view_results(
+    request_id: int,
+    request: Request, 
+    db: Session = Depends(get_db)
+):
+    user = get_current_user_from_cookie(request, db)
+    if not user: return RedirectResponse(url="/", status_code=302)
+    
+    req_data = db.query(SDMRequest).filter(SDMRequest.id == request_id).first()
+    if not req_data:
+        raise HTTPException(status_code=404, detail="Request tidak ditemukan")
+
+    candidates = (
+        db.query(MatchingResult)
+        .filter(MatchingResult.sdm_request_id == request_id)
+        .options(contains_eager(MatchingResult.employee).contains_eager(Employee.division))
+        .join(Employee)
+        .join(Division)
+        .order_by(MatchingResult.rank)
+        .all()
+    )
+
+    # Transformasi data untuk mempermudah konsumsi Jinja2
+    formatted_candidates = []
+    for cand in candidates:
+        formatted_candidates.append({
+            "employee_name": cand.employee.full_name,
+            "employee_code": cand.employee.employee_code,
+            "employee_role": cand.employee.position,
+            "origin_division": cand.employee.division.name,
+            "origin_division_code": cand.employee.division.code,
+            "ncf_score": cand.ncf_score,
+            "nsf_score": cand.nsf_score,
+            "final_score": cand.final_score
+        })
+
+    return templates.TemplateResponse("results.html", {
+        "request": request,
+        "current_user": user,
+        "active_page": "requests",
+        "request_data": {
+            "code": f"REQ-{req_data.id:04d}",
+            "target_division_name": req_data.target_division.name if req_data.target_division else "Unknown"
+        },
+        "candidates": formatted_candidates,
+        "calculated_at": candidates[0].computed_at.strftime('%d %b %Y, %H:%M') if candidates else "Belum dikalkulasi",
+        "ncf_weight": 60,
+        "nsf_weight": 40,
+        "total_criteria": len(req_data.target_division.criteria) if req_data.target_division else 0
+    })
+
+@app.get("/criteria", response_class=HTMLResponse)
+async def view_criteria(
+    request: Request, 
+    division: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    user = get_current_user_from_cookie(request, db)
+    if not user: return RedirectResponse(url="/", status_code=302)
+
+    divs = db.query(Division).all()
+    criteria_list = []
+    ncf_total = 0.0
+    nsf_total = 0.0
+
+    if division:
+        # Melakukan query ke arsitektur Sub-Divisi yang baru
+        division_weights = (
+            db.query(DivisionCriteriaWeight)
+            .join(Division)
+            .join(GroupCriteria)
+            .filter(Division.code == division)
+            .options(contains_eager(DivisionCriteriaWeight.group_criteria))
+            .all()
+        )
+
+        for dw in division_weights:
+            gc = dw.group_criteria
+            # Memformat data untuk Template Jinja2
+            criteria_list.append({
+                "name": gc.name,
+                "factor_type": gc.factor_type,
+                "weight": dw.weight
+            })
+            
+            if gc.factor_type.value == 'core': 
+                ncf_total += dw.weight
+            else: 
+                nsf_total += dw.weight
+
+    return templates.TemplateResponse("criteria.html", {
+        "request": request,
+        "current_user": user,
+        "active_page": "criteria",
+        "divisions_list": divs,
+        "criteria_data": criteria_list,
+        "current_division": division,
+        "ncf_total_weight": round(ncf_total * 100),
+        "nsf_total_weight": round(nsf_total * 100)
+    })
+
+@app.get("/health")
+def health():
+    try:
+        with engine.begin() as conn: conn.execute(text("SELECT 1"))
+        return {"status": "healthy"}
+    except Exception as e:
+        return {"status": "unhealthy", "detail": str(e)}
+    
+    
+@app.get("/gates", response_class=HTMLResponse)
+async def view_gates(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    user = get_current_user_from_cookie(request, db)
+    if not user: return RedirectResponse(url="/", status_code=302)
+
+    # Menarik daftar kandidat yang tertahan karena mutasi lintas fungsi
+    pending_gates = (
+        db.query(RotationGate)
+        .join(Employee)
+        .join(SDMRequest)
+        .filter(RotationGate.interview_gate_status == GateStatus.interview_pending)
+        .options(contains_eager(RotationGate.employee), contains_eager(RotationGate.sdm_request))
+        .order_by(RotationGate.updated_at.desc())
+        .all()
+    )
+
+    return templates.TemplateResponse("gates.html", {
+        "request": request,
+        "current_user": user,
+        "active_page": "gates", # Untuk indikator menu aktif di sidebar
+        "pending_gates": pending_gates
+    })
+    
+@app.get("/divisions", response_class=HTMLResponse)
+async def view_divisions(request: Request, db: Session = Depends(get_db)):
+    # Asumsi Anda menggunakan fungsi get_current_user_from_cookie seperti pada rute lain
+    user = get_current_user_from_cookie(request, db)
+    if not user: return RedirectResponse(url="/", status_code=302)
+    return templates.TemplateResponse("divisions.html", {
+        "request": request, 
+        "current_user": user, 
+        "active_page": "divisions"
+    })
+
+@app.get("/wla", response_class=HTMLResponse)
+async def view_wla(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user_from_cookie(request, db)
+    if not user: return RedirectResponse(url="/", status_code=302)
+    return templates.TemplateResponse("wla.html", {
+        "request": request, 
+        "current_user": user, 
+        "active_page": "wla"
+    })
+
+@app.get("/results", response_class=HTMLResponse)
+async def view_results(
+    request: Request, 
+    request_id: Optional[int] = None, 
+    db: Session = Depends(get_db)
+):
+    user = get_current_user_from_cookie(request, db)
+    if not user: return RedirectResponse(url="/", status_code=302)
+
+    request_data = {}
+    candidates = []
+
+    if request_id:
+        # Menarik data pengajuan
+        sdm_req = db.query(SDMRequest).filter(SDMRequest.id == request_id).first()
+        if sdm_req:
+            request_data = {
+                "code": str(sdm_req.id),
+                "target_division_name": sdm_req.target_division.name if sdm_req.target_division else "Tidak Diketahui"
+            }
+
+            # Menarik hasil Profile Matching yang sudah diurutkan berdasarkan peringkat (Rank)
+            results_db = (
+                db.query(MatchingResult)
+                .filter(MatchingResult.sdm_request_id == request_id)
+                .order_by(MatchingResult.rank.asc())
+                .all()
+            )
+
+            # Memformat data untuk dikonsumsi oleh Jinja2 HTML
+            for r in results_db:
+                candidates.append({
+                    "id": r.employee.id,
+                    "name": r.employee.full_name,
+                    "employee_code": r.employee.employee_code,
+                    "ncf_score": round(r.ncf_score, 2),
+                    "nsf_score": round(r.nsf_score, 2),
+                    "final_score": round(r.final_score, 2),
+                    "rank": r.rank
+                })
+
+    return templates.TemplateResponse("results.html", {
+        "request": request, 
+        "current_user": user, 
+        "active_page": "results",
+        "request_data": request_data,
+        "candidates": candidates
+    })
+    
+@app.get("/constraints", response_class=HTMLResponse)
+async def get_constraints_page(request: Request, db: Session = Depends(get_db)):
+    """
+    Menampilkan halaman web antarmuka Matriks Kualifikasi Mutasi.
+    """
+    # Ekstraksi token atau user dari cookies/session untuk keamanan halaman
+    # Kode ini mengasumsikan Anda menggunakan get_current_user untuk otentikasi halaman web
+    try:
+        from backend.core.security import get_current_user
+        # Tergantung arsitektur otentikasi halaman Anda, sesuaikan dependensi user di bawah ini:
+        current_user = get_current_user(request, db) 
+        
+        if current_user.role.value not in ["kepala_hrd", "kepala_cabang"]:
+            raise HTTPException(status_code=403, detail="Hak akses ditolak.")
+            
+        # Merender berkas constraints.html ke peramban
+        return templates.TemplateResponse(
+            "constraints.html", 
+            {"request": request, "current_user": current_user}
+        )
+    except Exception:
+        # Jika belum login atau token kedaluwarsa, arahkan kembali ke halaman login utama
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/login", status_code=303)

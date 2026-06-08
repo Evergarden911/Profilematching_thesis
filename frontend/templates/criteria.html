@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block page_subtitle %}Manajemen Kriteria Evaluasi{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+            <h3 style="margin: 0; font-size: 20px; font-weight: 600; color: var(--ink);">Kriteria & Parameter Evaluasi</h3>
+            <p style="margin: 4px 0 0 0; color: var(--ink-60); font-size: 13.5px;">Kelola target nilai dan jenis faktor (Core/Secondary) untuk setiap rumpun divisi.</p>
+        </div>
+        <button class="btn btn-primary" id="btnAddCriteria" onclick="openCriteriaModal()" disabled>
+            + Tambah Kriteria
+        </button>
+    </div>
+
+    <div style="margin-bottom: 24px; background: var(--white); padding: 20px; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);">
+        <label style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 10px;">Pilih Rumpun Divisi (Group):</label>
+        <select id="groupSelect" onchange="loadCriteria()" style="width: 100%; max-width: 400px; padding: 10px 12px; border: 1px solid var(--border-mid); border-radius: var(--radius-sm); font-size: 13.5px; outline: none; background-color: var(--surface);">
+            <option value="">-- Memuat Rumpun Divisi... --</option>
+        </select>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>NAMA PARAMETER</th>
+                        <th>TARGET NILAI (1-5)</th>
+                        <th>JENIS FAKTOR</th>
+                        <th>STATUS</th>
+                    </tr>
+                </thead>
+                <tbody id="criteriaTableBody">
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: var(--ink-60);">Pilih rumpun divisi terlebih dahulu.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="criteriaModal" class="modal-backdrop">
+    <div class="modal">
+        <div class="modal-header">
+            <h5 class="modal-title" id="modalTitle">Tambah Kriteria Baru</h5>
+            <button type="button" onclick="closeCriteriaModal()" class="modal-close" style="font-size: 20px;">&times;</button>
+        </div>
+        <form id="criteriaForm">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Nama Kriteria</label>
+                    <input type="text" id="crit_name" required maxlength="200" placeholder="Contoh: Kedisiplinan & Ketelitian">
+                </div>
+                
+                <div style="display: flex; gap: 16px; margin-bottom: 14px;">
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label>Target Ideal</label>
+                        <input type="number" id="crit_target" required min="1" max="5" step="0.1" placeholder="Skala 1-5">
+                    </div>
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label>Jenis Faktor</label>
+                        <select id="crit_factor" required>
+                            <option value="core">Core Factor (Utama)</option>
+                            <option value="secondary">Secondary Factor (Pendukung)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Deskripsi (Opsional)</label>
+                    <textarea id="crit_desc" rows="2" placeholder="Penjelasan singkat mengenai kriteria penilaian ini..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeCriteriaModal()">Batal</button>
+                <button type="submit" class="btn btn-primary" id="btnSave">Simpan Kriteria</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", async () => {
+        await loadGroups();
+    });
+
+    async function loadGroups() {
+        try {
+            const res = await fetch('/api/divisions/groups');
+            const groups = await res.json();
+            const select = document.getElementById('groupSelect');
+            select.innerHTML = '<option value="">-- Pilih Rumpun Divisi --</option>';
+            
+            groups.forEach(g => {
+                const opt = document.createElement('option');
+                opt.value = g.id;
+                opt.textContent = `${g.code} - ${g.name}`;
+                select.appendChild(opt);
+            });
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async function loadCriteria() {
+        const groupId = document.getElementById('groupSelect').value;
+        const tbody = document.getElementById('criteriaTableBody');
+        const btnAdd = document.getElementById('btnAddCriteria');
+        
+        if (!groupId) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--ink-60);">Pilih rumpun divisi terlebih dahulu.</td></tr>';
+            btnAdd.disabled = true;
+            return;
+        }
+
+        btnAdd.disabled = false;
+        try {
+            const res = await fetch(`/api/divisions/groups/${groupId}/criteria`);
+            const data = await res.json();
+            
+            tbody.innerHTML = '';
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--ink-60);">Belum ada kriteria di rumpun ini.</td></tr>';
+                return;
+            }
+
+            data.forEach(crit => {
+                const factorBadge = crit.factor_type === 'core' 
+                    ? '<span class="badge" style="background: var(--red-light); color: var(--red-dark); border: 1px solid var(--red-mid);">Core Factor</span>' 
+                    : '<span class="badge" style="background: #D1FAE5; color: #065F46; border: 1px solid rgba(16, 185, 129, 0.2);">Secondary Factor</span>';
+                    
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <strong>${crit.name}</strong><br>
+                        <small style="color: var(--ink-60);">${crit.description || ''}</small>
+                    </td>
+                    <td>
+                        <strong style="font-size: 15px; color: var(--ink);">${crit.target_value}</strong> 
+                        <span style="color: var(--ink-60);">/ 5.0</span>
+                    </td>
+                    <td>${factorBadge}</td>
+                    <td><span class="badge" style="background: var(--ink-10); color: var(--ink-80);">Aktif</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+        } catch (error) {
+            console.error(error);
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--red);">Gagal memuat kriteria dari server.</td></tr>`;
+        }
+    }
+
+    function openCriteriaModal() {
+        document.getElementById('criteriaForm').reset();
+        document.getElementById('criteriaModal').classList.add('open');
+    }
+
+    function closeCriteriaModal() {
+        document.getElementById('criteriaModal').classList.remove('open');
+    }
+
+    document.getElementById('criteriaForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const groupId = document.getElementById('groupSelect').value;
+        const btnSave = document.getElementById('btnSave');
+        
+        const payload = {
+            group_id: parseInt(groupId),
+            name: document.getElementById('crit_name').value.trim(),
+            target_value: parseFloat(document.getElementById('crit_target').value),
+            factor_type: document.getElementById('crit_factor').value,
+            description: document.getElementById('crit_desc').value.trim()
+        };
+        
+        try {
+            btnSave.disabled = true;
+            btnSave.innerText = 'Menyimpan...';
+
+            const response = await fetch(`/api/divisions/groups/${groupId}/criteria`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error('Gagal menyimpan kriteria ke server.');
+
+            if(window.App) App.showToast('Kriteria berhasil ditambahkan!', 'success');
+            closeCriteriaModal();
+            await loadCriteria(); 
+        } catch (error) {
+            console.error(error);
+            if(window.App) App.showToast(error.message, 'error');
+            else alert(error.message);
+        } finally {
+            btnSave.disabled = false;
+            btnSave.innerText = 'Simpan Kriteria';
+        }
+    });
+</script>
+{% endblock %}

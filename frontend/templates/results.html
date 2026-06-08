@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Hasil Profile Matching | Pramita Lab{% endblock %}
+
+{% block page_title %}Ranking Kandidat{% endblock %}
+{% block page_subtitle %}Divisi {{ request_data.target_division_name | default('Tidak Diketahui') }} · ID Pengajuan #{{ request_data.code | default('---') }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="/requests" class="btn btn-outline btn-sm">Kembali ke Daftar</a>
+<button class="btn btn-primary btn-sm" onclick="window.print()">Cetak Laporan</button>
+{% endblock %}
+
+{% block content %}
+<div class="result-header" style="background: #0f172a; color: white; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
+  <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px;">
+    <div>
+      <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600;">Laporan Evaluasi Profile Matching</h2>
+    </div>
+  </div>
+</div>
+
+<div id="top-candidates-container" style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px;">
+  {% for cand in candidates[:3] %}
+  <div class="candidate-card" style="display: flex; align-items: center; background: white; border: 1px solid {% if loop.index == 1 %}#38bdf8{% else %}#e2e8f0{% endif %}; border-radius: 8px; padding: 20px;">
+    
+    <div style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 20px; font-weight: 700; margin-right: 20px; {% if loop.index == 1 %}background: #fbbf24; color: white;{% else %}background: #e2e8f0;{% endif %}">
+      {{ loop.index }}
+    </div>
+    
+    <div style="flex: 1;">
+      <div style="font-size: 16px; font-weight: 600; color: #0f172a;">{{ cand.employee_name }}</div>
+      <div style="font-size: 13px; color: #64748b;">{{ cand.employee_code }}</div>
+    </div>
+    
+    <div style="padding-left: 20px; text-align: right;">
+      <div style="font-size: 32px; font-weight: 700; color: #0f172a;">{{ "%.2f"|format(cand.final_score) }}</div>
+      
+      {% if loop.index == 1 %}
+      <button onclick="ajukanKaryawan('{{ request_data.code }}', {{ cand.id }})" 
+              class="btn btn-success mt-2 w-100" 
+              style="padding: 8px; border-radius: 4px; font-weight: 600;">
+        Ajukan Karyawan Ini
+      </button>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+async function ajukanKaryawan(requestId, employeeId) {
+    if (!confirm('Yakin ingin mengajukan kandidat ini ke Kepala Cabang?')) return;
+    
+    try {
+        const response = await fetch(`/api/sdm/requests/${requestId}/approve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ approved_employee_id: parseInt(employeeId) })
+        });
+
+        if (!response.ok) throw new Error('Gagal memproses pengajuan.');
+        
+        alert('Karyawan berhasil diajukan!');
+        location.reload(); 
+    } catch (error) {
+        alert(error.message);
+    }
+}
+</script>
+{% endblock %}

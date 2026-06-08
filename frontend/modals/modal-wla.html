@@ -1,0 +1,105 @@
+<div class="modal-backdrop open" id="modal-wla-backdrop">
+  <div class="modal" style="max-width: 500px; background: white; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0;">
+    <div class="modal-header" style="padding: 20px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
+      <div>
+        <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #0f172a;">Input Workload Analysis (WLA)</h3>
+        <p style="margin: 4px 0 0 0; font-size: 12px; color: #64748b;">Standar kapasitas: headcount &times; 160 jam/bulan</p>
+      </div>
+      <button onclick="App.closeModal()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; color: #64748b;">&times;</button>
+    </div>
+    <form id="wlaPostForm" onsubmit="WlaModal.submit(event)">
+      <div class="modal-body" style="padding: 24px;">
+        
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #334155;">Divisi Target Evaluasi</label>
+          <select id="wla-division-id" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box;">
+            <option value="">-- Pilih Divisi --</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #334155;">Periode Analisis</label>
+          <input type="text" id="wla-period" required placeholder="Contoh: 2026-05" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box;">
+        </div>
+
+        <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+          <div style="flex: 1;">
+            <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #334155;">Total Jam Kerja Riil</label>
+            <input type="number" id="wla-hours" required min="1" placeholder="Jam operasional" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box;">
+          </div>
+          <div style="flex: 1;">
+            <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #334155;">Headcount Aktif (Staf)</label>
+            <input type="number" id="wla-headcount" required min="1" placeholder="Jumlah orang" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box;">
+          </div>
+        </div>
+
+        <div style="margin-bottom: 8px;">
+          <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #334155;">Catatan Analisis</label>
+          <textarea id="wla-notes" rows="2" placeholder="Catatan opsional..." style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box;"></textarea>
+        </div>
+
+      </div>
+      <div class="modal-footer" style="padding: 16px 24px; border-top: 1px solid #e2e8f0; text-align: right; background: #f8fafc;">
+        <button type="button" onclick="App.closeModal()" style="padding: 10px 18px; background: white; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; font-size: 13px; margin-right: 8px;">Batal</button>
+        <button type="submit" id="btnSubmitWla" style="padding: 10px 18px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px;">Verifikasi & Simpan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  var WlaModal = {
+    async init() {
+      try {
+        const response = await fetch('/api/divisions');
+        if (response.ok) {
+          const divisions = await response.json();
+          const select = document.getElementById('wla-division-id');
+          divisions.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.id;
+            opt.textContent = `${d.code} - ${d.name}`;
+            select.appendChild(opt);
+          });
+        }
+      } catch (e) { console.error(e); }
+    },
+
+    async submit(event) {
+      event.preventDefault();
+      const btn = document.getElementById('btnSubmitWla');
+      btn.disabled = true;
+      btn.innerText = 'Menyimpan...';
+
+      const payload = {
+        division_id: parseInt(document.getElementById('wla-division-id').value),
+        period: document.getElementById('wla-period').value.trim(),
+        total_workload_hours: parseFloat(document.getElementById('wla-hours').value),
+        headcount: parseInt(document.getElementById('wla-headcount').value),
+        notes: document.getElementById('wla-notes').value.trim() || null
+      };
+
+      try {
+        const response = await fetch('/api/wla/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.detail || 'Terjadi penolakan input dari server.');
+        }
+
+        App.closeModal();
+        window.location.reload();
+      } catch (error) {
+        alert(error.message);
+        btn.disabled = false;
+        btn.innerText = 'Verifikasi & Simpan';
+      }
+    }
+  };
+
+  WlaModal.init();
+</script>

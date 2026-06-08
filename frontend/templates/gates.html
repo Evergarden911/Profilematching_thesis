@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+  <h3>Daftar Asesmen Kandidat</h3>
+  <table style="width: 100%; border-collapse: collapse;">
+    <thead>
+      <tr style="border-bottom: 2px solid #eee;">
+        <th style="padding: 12px;">KANDIDAT</th>
+        <th style="padding: 12px;">ID PENGAJUAN</th>
+        <th style="padding: 12px;">STATUS</th>
+        <th style="padding: 12px; text-align: right;">AKSI</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for gate in pending_gates %}
+      <tr>
+        <td style="padding: 12px;">{{ gate.employee.full_name }}</td>
+        <td style="padding: 12px;">#SDM-{{ gate.sdm_request.id }}</td>
+        <td style="padding: 12px;">
+            <span class="badge" style="background: #fef3c7; color: #92400e;">Menunggu Wawancara</span>
+        </td>
+        <td style="padding: 12px; text-align: right;">
+          <button class="btn btn-primary btn-sm" onclick="bukaModalInterview({{ gate.id }}, {{ gate.sdm_request.target_division_id }})">
+            Input Nilai
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div id="modalInterview" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:white; padding:20px; border-radius:8px; width:400px;">
+        <h3>Input Nilai Kompetensi</h3>
+        <div id="criteriaList"></div>
+        <button onclick="simpanNilai()" class="btn btn-primary">Simpan Nilai</button>
+        <button onclick="document.getElementById('modalInterview').style.display='none'" class="btn">Batal</button>
+    </div>
+</div>
+
+<script>
+    let currentGateId = null;
+
+    async function bukaModalInterview(gateId, divId) {
+        currentGateId = gateId;
+        // Panggil API untuk ambil kriteria berdasarkan divisi target
+        const res = await fetch(`/api/divisions/${divId}/criteria`);
+        const criteria = await res.json();
+        
+        const container = document.getElementById('criteriaList');
+        container.innerHTML = criteria.map(c => `
+            <div style="margin-bottom:10px;">
+                <label>${c.name}</label>
+                <input type="number" class="score-input" data-id="${c.id}" min="0" max="100" placeholder="0-100">
+            </div>
+        `).join('');
+        
+        document.getElementById('modalInterview').style.display = 'flex';
+    }
+
+    async function simpanNilai() {
+        const inputs = document.querySelectorAll('.score-input');
+        const scores = Array.from(inputs).map(i => ({
+            criteria_id: parseInt(i.dataset.id),
+            raw_score: parseFloat(i.value) || 0
+        }));
+
+        const res = await fetch('/api/gates/interview-scores', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ gate_id: currentGateId, scores: scores })
+        });
+
+        if(res.ok) {
+            alert('Nilai berhasil disimpan!');
+            location.reload();
+        } else {
+            alert('Gagal menyimpan nilai.');
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block page_title %}Matriks Kualifikasi Mutasi{% endblock %}
+{% block page_subtitle %}Manajemen aturan pendidikan dan asesmen Gate A untuk perpindahan divisi{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+            <h3 style="margin: 0; font-size: 20px; font-weight: 600; color: var(--ink);">Aturan Gerbang Evaluasi Awal</h3>
+            <p style="margin: 4px 0 0 0; color: var(--ink-60); font-size: 13.5px;">Tentukan jurusan yang diblokir, diizinkan, dan apakah perlu wawancara lintas divisi.</p>
+        </div>
+        {% set role_str = current_user.role.value if current_user and current_user.role.value is defined else (current_user.role | string if current_user else 'guest') %}
+        
+        {% if role_str == 'kepala_hrd' %}
+        <button class="btn btn-primary" onclick="openConstraintModal()">
+            + Tambah Aturan
+        </button>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>DIVISI TARGET</th>
+                        <th>JURUSAN (LATAR BELAKANG)</th>
+                        <th>STATUS IZIN</th>
+                        <th>WAJIB ASESMEN / WAWANCARA?</th>
+                        <th style="text-align: right;">AKSI</th>
+                    </tr>
+                </thead>
+                <tbody id="constraintTableBody">
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--ink-60);">Memuat data aturan...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="modalConstraint" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 99999; align-items: center; justify-content: center; opacity: 1; visibility: visible; pointer-events: auto;">
+    <div style="background: white; padding: 24px; border-radius: 8px; width: 500px; max-width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <h3 style="margin-top: 0; color: var(--ink);">Tambah Matriks Kualifikasi Baru</h3>
+        
+        <form id="constraintForm">
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">Divisi Target</label>
+                <select id="const_division" class="form-control" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <option value="">-- Memuat Divisi --</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label style="display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 500;">
+                    <span>Jurusan / Pendidikan</span>
+                    <a href="#" onclick="tambahJurusanDinamis(event)" style="color: var(--primary); font-size: 13px; text-decoration: none; font-weight: 600;">
+                        + Tambah Jurusan Baru
+                    </a>
+                </label>
+                <select id="const_education" class="form-control" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <option value="">-- Memuat Pendidikan --</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">Tipe Izin (Status)</label>
+                <select id="const_type" class="form-control" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <option value="allowed">Diizinkan (Allowed)</option>
+                    <option value="blocked">Ditolak / Diblokir (Blocked)</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 24px; padding: 12px; background: #f8f9fa; border: 1px solid #eee; border-radius: 4px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-weight: 500; cursor: pointer;">
+                    <input type="checkbox" id="const_interview" style="width: 16px; height: 16px;">
+                    Wajib Asesmen Jika Dari Divisi Berbeda
+                </label>
+                <p style="margin: 4px 0 0 24px; font-size: 12px; color: var(--ink-60);">Aktifkan ini jika kandidat dengan jurusan ini wajib dinilai ulang jika asal divisinya berbeda dengan divisi target.</p>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                <button type="button" onclick="closeConstraintModal()" class="btn btn-outline" style="padding: 8px 16px; cursor: pointer;">Batal</button>
+                <button type="submit" id="btnSaveConst" class="btn btn-primary" style="padding: 8px 16px; cursor: pointer;">Simpan Aturan</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let roleStr = "{{ current_user.role.value if current_user and current_user.role.value is defined else (current_user.role | string if current_user else 'guest') }}";
+    
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadConstraintsTable();
+    });
+
+    async function loadConstraintsTable() {
+        try {
+            // Kita juga menarik nama dari backend untuk ditampilkan
+            const response = await fetch('/api/constraints/');
+            if (!response.ok) throw new Error('Gagal menarik data matriks kualifikasi.');
+            
+            const data = await response.json();
+            const tbody = document.getElementById('constraintTableBody');
+            
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--ink-60);">Belum ada aturan kualifikasi yang dibuat. Menerapkan Open Policy.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(row => {
+                const badgeStatus = row.constraint_type === 'allowed' 
+                    ? '<span class="badge" style="background:#dcfce7; color:#15803d;">Diizinkan</span>' 
+                    : '<span class="badge" style="background:#fee2e2; color:#b91c1c;">Diblokir</span>';
+                
+                const badgeInterview = row.requires_interview_if_not_native 
+                    ? '<span style="color: #b45309; font-weight: 500;">Ya (Wajib)</span>' 
+                    : '<span style="color: var(--ink-60);">Tidak</span>';
+                    
+                const actionBtn = roleStr === 'kepala_hrd' 
+                    ? `<button onclick="hapusConstraint(${row.id})" class="btn btn-outline btn-sm" style="color: #dc2626; border-color: #fca5a5;">Hapus</button>`
+                    : `<span style="color: var(--ink-60); font-size: 12px;">Hanya Baca</span>`;
+
+                return `
+                <tr>
+                    <td><strong>${row.division_name || 'Divisi ' + row.division_id}</strong></td>
+                    <td>${row.education_field_name || 'Jurusan ' + row.education_field_id}</td>
+                    <td>${badgeStatus}</td>
+                    <td>${badgeInterview}</td>
+                    <td style="text-align: right;">${actionBtn}</td>
+                </tr>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error(error);
+            document.getElementById('constraintTableBody').innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Galat: ${error.message}</td></tr>`;
+        }
+    }
+
+    async function openConstraintModal() {
+        document.getElementById('modalConstraint').style.display = 'flex';
+        
+        try {
+            // Paralel Fetch agar modal memuat sangat cepat
+            const [divRes, eduRes] = await Promise.all([
+                fetch('/api/divisions/', { credentials: 'same-origin' }),
+                fetch('/api/divisions/education-fields/', { credentials: 'same-origin' })
+            ]);
+
+            const divisions = await divRes.json();
+            const educations = await eduRes.json();
+
+            const divSel = document.getElementById('const_division');
+            divSel.innerHTML = '<option value="">-- Pilih Divisi Target --</option>';
+            divisions.forEach(d => divSel.innerHTML += `<option value="${d.id}">${d.name}</option>`);
+
+            const eduSel = document.getElementById('const_education');
+            eduSel.innerHTML = '<option value="">-- Pilih Jurusan --</option>';
+            educations.forEach(e => eduSel.innerHTML += `<option value="${e.id}">${e.name}</option>`);
+
+        } catch (e) {
+            console.error(e);
+            alert("Gagal memuat daftar relasi.");
+        }
+    }
+
+    function closeConstraintModal() {
+        document.getElementById('modalConstraint').style.display = 'none';
+        document.getElementById('constraintForm').reset();
+    }
+
+    document.getElementById('constraintForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const payload = {
+            division_id: parseInt(document.getElementById('const_division').value),
+            education_field_id: parseInt(document.getElementById('const_education').value),
+            constraint_type: document.getElementById('const_type').value,
+            requires_interview_if_not_native: document.getElementById('const_interview').checked
+        };
+        
+        const btn = document.getElementById('btnSaveConst');
+        try {
+            btn.disabled = true;
+            btn.innerText = 'Menyimpan...';
+
+            const response = await fetch('/api/constraints/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || 'Gagal menyimpan aturan baru.');
+            }
+
+            closeConstraintModal();
+            await loadConstraintsTable();
+            alert("Aturan kualifikasi berhasil disimpan.");
+        } catch (error) {
+            console.error(error);
+            alert(error.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = 'Simpan Aturan';
+        }
+    });
+    
+    async function hapusConstraint(id) {
+        if(!confirm('Apakah Anda yakin ingin menghapus batasan kualifikasi ini? Sistem akan kembali ke Open Policy untuk kombinasi ini.')) return;
+        
+        try {
+            const response = await fetch(`/api/constraints/${id}`, { method: 'DELETE' });
+            if (!response.ok) throw new Error('Gagal menghapus aturan.');
+            
+            await loadConstraintsTable();
+        } catch(error) {
+            console.error(error);
+            alert(error.message);
+        }
+    }
+
+    // ==========================================
+    // LOGIKA PENAMBAHAN JURUSAN DINAMIS
+    // ==========================================
+    async function tambahJurusanDinamis(e) {
+        e.preventDefault(); // Mencegah halaman refresh
+        
+        const namaJurusan = prompt("Masukkan Nama Jurusan Baru (Contoh: S1 Sistem Informasi):");
+        if (!namaJurusan || namaJurusan.trim() === "") return;
+        
+        // Membangun kode unik secara otomatis (Misal: S1 Sistem Informasi -> S1-839)
+        const kodeUrut = Math.floor(Math.random() * 1000);
+        const kodeGen = namaJurusan.substring(0, 2).toUpperCase() + "-" + kodeUrut;
+
+        try {
+            const response = await fetch('/api/constraints/education-fields', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: namaJurusan.trim(),
+                    code: kodeGen,
+                    category: "General" // Kategori default
+                })
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || "Gagal menyimpan jurusan baru.");
+            }
+            
+            alert(`SUKSES: Jurusan ${namaJurusan} berhasil ditambahkan ke dalam sistem!`);
+            
+            // Refresh ulang isi dropdown tanpa perlu menutup modal
+            const eduRes = await fetch('/api/divisions/education-fields/', { credentials: 'same-origin' });
+            const educations = await eduRes.json();
+            
+            const eduSel = document.getElementById('const_education');
+            eduSel.innerHTML = '<option value="">-- Pilih Jurusan --</option>';
+            educations.forEach(edu => eduSel.innerHTML += `<option value="${edu.id}">${edu.name}</option>`);
+            
+        } catch(error) {
+            console.error(error);
+            alert("Kesalahan Sistem: " + error.message);
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,101 @@
+<div class="modal-backdrop open">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Evaluasi Gate A — Kelayakan Pendidikan</div>
+        <div style="font-size:13px;color:var(--ink-60);margin-top:4px;">Cek apakah latar belakang pendidikan kandidat memenuhi syarat divisi target</div>
+      </div>
+      <button class="modal-close" onclick="App.closeModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>No. Permintaan SDM</label>
+          <select id="gate-request-id">
+            <option value="">Pilih permintaan...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Karyawan Kandidat</label>
+          <select id="gate-employee-id">
+            <option value="">Pilih karyawan...</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Result panel -->
+      <div id="gate-result" style="display:none;margin-top:16px;">
+        <div style="padding:16px 18px;border-radius:var(--radius-md);border:1px solid var(--border);">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-60);margin-bottom:8px;">Hasil Evaluasi</div>
+          <div id="gate-result-status" style="font-size:15px;font-weight:600;margin-bottom:6px;"></div>
+          <div id="gate-result-notes" style="font-size:13px;color:var(--ink-60);line-height:1.5;"></div>
+          <div id="gate-interview-notice" style="display:none;margin-top:12px;padding:10px 12px;background:#EDE9FE;border-radius:var(--radius-sm);font-size:12.5px;color:#5B21B6;">
+            ⚠ Kandidat perlu menjalani <strong>interview + tes</strong> (Gate B) sebelum Profile Matching. Gunakan menu "Input Nilai Interview" di halaman Rotation Gates.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="App.closeModal()">Tutup</button>
+      <button class="btn btn-primary" onclick="GateEvalModal.evaluate()">Jalankan Evaluasi</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const GateEvalModal = {
+  async init() {
+    try {
+      const [requests, employees] = await Promise.all([
+        Api.get('/api/sdm/requests'),
+        Api.get('/api/employees/'),
+      ]);
+      const rSel = document.getElementById('gate-request-id');
+      requests.forEach(r => rSel.innerHTML += `<option value="${r.id}">#SDM-${r.id} · ${r.status}</option>`);
+      const eSel = document.getElementById('gate-employee-id');
+      employees.forEach(e => eSel.innerHTML += `<option value="${e.id}">${e.full_name} (${e.employee_code})</option>`);
+    } catch(err) { console.error(err); }
+  },
+
+  async evaluate() {
+    const sdm_request_id = parseInt(document.getElementById('gate-request-id').value);
+    const employee_id    = parseInt(document.getElementById('gate-employee-id').value);
+    if (!sdm_request_id || !employee_id) {
+      App.showToast('Pilih permintaan dan karyawan terlebih dahulu.', 'error'); return;
+    }
+    try {
+      const res = await Api.post('/api/gates/evaluate-education', { sdm_request_id, employee_id });
+      this.showResult(res);
+    } catch(e) {
+      App.showToast(e.message || 'Evaluasi gagal.', 'error');
+    }
+  },
+
+  showResult(gate) {
+    document.getElementById('gate-result').style.display = 'block';
+    const statusEl = document.getElementById('gate-result-status');
+    const notesEl  = document.getElementById('gate-result-notes');
+    const intEl    = document.getElementById('gate-interview-notice');
+
+    const statusMap = {
+      passed:           { text: '✓ Gate A Lulus', color: '#065F46' },
+      failed:           { text: '✕ Gate A Gagal', color: 'var(--red)' },
+      interview_pending:{ text: '⚠ Perlu Interview', color: '#5B21B6' },
+    };
+    const s = statusMap[gate.education_gate_status] || { text: gate.education_gate_status, color: 'var(--ink)' };
+    statusEl.textContent  = s.text;
+    statusEl.style.color  = s.color;
+    notesEl.textContent   = gate.education_gate_notes || '';
+    intEl.style.display   = gate.interview_gate_status === 'interview_pending' ? 'block' : 'none';
+
+    if (gate.is_eligible_for_matching) {
+      App.showToast('Kandidat lolos — siap untuk Profile Matching.', 'success');
+    }
+    if (typeof GatesScreen !== 'undefined') GatesScreen.load();
+  }
+};
+
+GateEvalModal.init();
+</script>

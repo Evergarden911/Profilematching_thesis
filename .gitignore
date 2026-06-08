@@ -1,0 +1,104 @@
+# ── ENVIRONMENT & SECRETS ──────────────────────────────────────────────
+# Never commit these — contains DATABASE_URL and SECRET_KEY
+.env
+.env.*
+!.env.example
+
+# ── PYTHON ─────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+.eggs/
+
+# Test & coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+.pytype/
+
+# Linting
+.ruff_cache/
+
+# ── ALEMBIC ─────────────────────────────────────────────────────────────
+# Keep the versions folder but not compiled artifacts
+alembic/versions/*.pyc
+
+# ── NODE / FRONTEND ─────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn/cache
+.pnp.*
+
+# Build output
+dist/
+.next/
+out/
+
+# ── DATABASE ─────────────────────────────────────────────────────────────
+# Local SQLite (if ever used for testing)
+*.db
+*.sqlite
+*.sqlite3
+
+# pgAdmin session files
+pgadmin4.db
+
+# ── IDE & EDITORS ─────────────────────────────────────────────────────
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+
+# ── OS FILES ──────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ── LOGS ──────────────────────────────────────────────────────────────
+*.log
+logs/
+*.pid
+
+# ── UPLOADS & GENERATED FILES ─────────────────────────────────────────
+# Uncomment if you store user uploads locally
+# uploads/
+# media/
+
+# ── DOCKER ────────────────────────────────────────────────────────────
+# Keep Dockerfile and docker-compose.yml, ignore override files
+docker-compose.override.yml
+.docker/

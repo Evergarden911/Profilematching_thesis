@@ -1,0 +1,2462 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pramita Lab — SDM Decision Support System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+/* ── DESIGN TOKENS ─────────────────────────────────────────────────── */
+:root {
+  --red:        #CC2229;
+  --red-dark:   #A31B21;
+  --red-light:  #F5E5E6;
+  --red-mid:    #E8989B;
+  --ink:        #1A1A1A;
+  --ink-60:     rgba(26,26,26,0.6);
+  --ink-20:     rgba(26,26,26,0.08);
+  --ink-10:     rgba(26,26,26,0.04);
+  --white:      #FFFFFF;
+  --surface:    #FAFAF9;
+  --border:     rgba(26,26,26,0.10);
+  --border-mid: rgba(26,26,26,0.18);
+
+  --ff-display: 'DM Serif Display', Georgia, serif;
+  --ff-body:    'DM Sans', sans-serif;
+
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  16px;
+  --radius-xl:  24px;
+
+  --shadow-sm:  0 1px 3px rgba(26,26,26,0.08), 0 1px 2px rgba(26,26,26,0.04);
+  --shadow-md:  0 4px 16px rgba(26,26,26,0.10), 0 1px 4px rgba(26,26,26,0.06);
+  --shadow-lg:  0 12px 40px rgba(26,26,26,0.14), 0 4px 12px rgba(26,26,26,0.08);
+
+  --sidebar-w:  240px;
+  --topbar-h:   64px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 15px; }
+
+body {
+  font-family: var(--ff-body);
+  background: var(--surface);
+  color: var(--ink);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── SCREEN SWITCHER ───────────────────────────────────────────────── */
+.screen { display: none; }
+.screen.active { display: flex; }
+
+/* ── LAYOUT SHELL ──────────────────────────────────────────────────── */
+.app-shell {
+  min-height: 100vh;
+  width: 100%;
+  flex-direction: row;
+}
+
+/* ── SIDEBAR ────────────────────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-w);
+  min-height: 100vh;
+  background: var(--ink);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0;
+  z-index: 100;
+}
+
+.sidebar-logo {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.logo-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-badge {
+  background: var(--red);
+  color: var(--white);
+  font-family: var(--ff-display);
+  font-size: 15px;
+  font-weight: 400;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.01em;
+}
+
+.logo-sub {
+  color: rgba(255,255,255,0.5);
+  font-size: 11px;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.3;
+}
+
+.sidebar-role {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.role-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(204,34,41,0.18);
+  border: 1px solid rgba(204,34,41,0.35);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--red-mid);
+  letter-spacing: 0.04em;
+}
+
+.role-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-section-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.25);
+  padding: 12px 8px 6px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  color: rgba(255,255,255,0.55);
+  font-size: 13.5px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-decoration: none;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.nav-item:hover {
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.85);
+}
+
+.nav-item.active {
+  background: var(--red);
+  color: var(--white);
+  font-weight: 500;
+}
+
+.nav-item svg { flex-shrink: 0; opacity: 0.8; }
+.nav-item.active svg { opacity: 1; }
+
+.nav-badge {
+  margin-left: auto;
+  background: var(--red);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.nav-item.active .nav-badge {
+  background: rgba(255,255,255,0.25);
+}
+
+.sidebar-footer {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.user-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--red);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600; color: white;
+  flex-shrink: 0;
+}
+
+.user-info { flex: 1; min-width: 0; }
+.user-name {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.85);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.user-role-text {
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+}
+
+/* ── MAIN CONTENT ───────────────────────────────────────────────────── */
+.main {
+  margin-left: var(--sidebar-w);
+  flex: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── TOPBAR ─────────────────────────────────────────────────────────── */
+.topbar {
+  height: var(--topbar-h);
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.topbar-title {
+  flex: 1;
+}
+
+.topbar-title h1 {
+  font-family: var(--ff-display);
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.topbar-title p {
+  font-size: 12px;
+  color: var(--ink-60);
+  margin-top: 2px;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon-btn {
+  width: 36px; height: 36px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--white);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--ink-60);
+  transition: all 0.15s;
+  position: relative;
+}
+
+.icon-btn:hover { border-color: var(--border-mid); color: var(--ink); }
+
+.notif-dot {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--red);
+  border: 1.5px solid var(--white);
+}
+
+/* ── BUTTONS ─────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: var(--radius-sm);
+  font-family: var(--ff-body);
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--red);
+  color: var(--white);
+}
+.btn-primary:hover { background: var(--red-dark); }
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border-mid);
+  color: var(--ink);
+}
+.btn-outline:hover { border-color: var(--ink-60); background: var(--ink-10); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--red);
+  padding: 6px 10px;
+}
+.btn-ghost:hover { background: var(--red-light); }
+
+.btn-sm { padding: 6px 12px; font-size: 12.5px; }
+.btn-lg { padding: 12px 24px; font-size: 15px; }
+
+/* ── PAGE CONTENT ────────────────────────────────────────────────────── */
+.page-content {
+  padding: 32px;
+  flex: 1;
+}
+
+/* ── STAT CARDS ──────────────────────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.stat-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px;
+  height: 100%;
+  background: var(--red);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.stat-card:hover::before { opacity: 1; }
+.stat-card:hover { box-shadow: var(--shadow-md); }
+
+.stat-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-60);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stat-label svg { color: var(--red); }
+
+.stat-value {
+  font-family: var(--ff-display);
+  font-size: 36px;
+  line-height: 1;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.stat-delta {
+  font-size: 12px;
+  color: var(--ink-60);
+}
+
+.stat-delta span {
+  color: #16a34a;
+  font-weight: 500;
+}
+
+.stat-card.accent {
+  background: var(--red);
+  border-color: var(--red-dark);
+}
+
+.stat-card.accent .stat-label { color: rgba(255,255,255,0.7); }
+.stat-card.accent .stat-value { color: var(--white); }
+.stat-card.accent .stat-delta { color: rgba(255,255,255,0.6); }
+.stat-card.accent .stat-delta span { color: rgba(255,255,255,0.9); }
+
+/* ── SECTION HEADER ──────────────────────────────────────────────────── */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-family: var(--ff-display);
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+/* ── TABLE ───────────────────────────────────────────────────────────── */
+.card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.table-wrap { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead th {
+  padding: 12px 20px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-60);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--ink-10); }
+
+tbody td {
+  padding: 14px 20px;
+  font-size: 13.5px;
+  color: var(--ink);
+  vertical-align: middle;
+}
+
+/* ── STATUS BADGES ───────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.badge::before {
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.badge-pending    { background: #FEF3C7; color: #92400E; }
+.badge-forwarded  { background: #DBEAFE; color: #1E40AF; }
+.badge-matched    { background: #D1FAE5; color: #065F46; }
+.badge-approved   { background: var(--red-light); color: var(--red-dark); }
+.badge-rejected   { background: #F3F4F6; color: #374151; }
+.badge-review     { background: #EDE9FE; color: #5B21B6; }
+
+/* ── RANK BADGE ───────────────────────────────────────────────────────── */
+.rank-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rank-num {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.rank-1 { background: #FEF3C7; color: #92400E; }
+.rank-2 { background: #F3F4F6; color: #374151; }
+.rank-3 { background: #FEE2E2; color: #991B1B; }
+.rank-n { background: var(--ink-10); color: var(--ink-60); }
+
+/* ── SCORE BAR ────────────────────────────────────────────────────────── */
+.score-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.score-track {
+  flex: 1;
+  height: 4px;
+  background: var(--ink-10);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.score-fill {
+  height: 100%;
+  background: var(--red);
+  border-radius: 2px;
+}
+
+.score-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  min-width: 34px;
+  text-align: right;
+}
+
+/* ── FORM ─────────────────────────────────────────────────────────────── */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group.full { grid-column: 1 / -1; }
+
+label {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+
+input, select, textarea {
+  font-family: var(--ff-body);
+  font-size: 13.5px;
+  color: var(--ink);
+  background: var(--white);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  width: 100%;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(204,34,41,0.08);
+}
+
+textarea { resize: vertical; min-height: 80px; }
+
+.form-hint {
+  font-size: 11.5px;
+  color: var(--ink-60);
+}
+
+/* ── MODAL BACKDROP ───────────────────────────────────────────────────── */
+.modal-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(26,26,26,0.45);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.modal-backdrop.open { display: flex; }
+
+.modal {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 540px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: modal-in 0.2s ease;
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-header {
+  padding: 24px 28px 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.modal-title {
+  font-family: var(--ff-display);
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.modal-close {
+  width: 32px; height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: none;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-60);
+  flex-shrink: 0;
+}
+
+.modal-close:hover { background: var(--ink-10); }
+
+.modal-body { padding: 20px 28px; }
+.modal-footer {
+  padding: 16px 28px 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+}
+
+/* ── TABS ─────────────────────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--ink-10);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  width: fit-content;
+}
+
+.tab {
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: calc(var(--radius-md) - 2px);
+  cursor: pointer;
+  color: var(--ink-60);
+  border: none;
+  background: none;
+  transition: all 0.15s;
+}
+
+.tab.active {
+  background: var(--white);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── EMPTY STATE ──────────────────────────────────────────────────────── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+  gap: 12px;
+  text-align: center;
+}
+
+.empty-icon {
+  width: 48px; height: 48px;
+  background: var(--red-light);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--red);
+  margin-bottom: 4px;
+}
+
+.empty-title {
+  font-family: var(--ff-display);
+  font-size: 18px;
+  color: var(--ink);
+}
+
+.empty-desc {
+  font-size: 13.5px;
+  color: var(--ink-60);
+  max-width: 280px;
+}
+
+/* ── PROGRESS STEPPER ─────────────────────────────────────────────────── */
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 32px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  position: relative;
+}
+
+.step:last-child { flex: 0; }
+
+.step-circle {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+  border: 2px solid var(--border-mid);
+  background: var(--white);
+  color: var(--ink-60);
+  z-index: 1;
+}
+
+.step.done .step-circle {
+  background: var(--red);
+  border-color: var(--red);
+  color: var(--white);
+}
+
+.step.active .step-circle {
+  border-color: var(--red);
+  color: var(--red);
+  box-shadow: 0 0 0 4px rgba(204,34,41,0.12);
+}
+
+.step-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-60);
+  white-space: nowrap;
+}
+
+.step.done .step-label,
+.step.active .step-label { color: var(--ink); }
+
+.step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--border-mid);
+  margin: 0 8px;
+}
+
+.step.done .step-line { background: var(--red); }
+
+/* ── DIVISI CHIP ──────────────────────────────────────────────────────── */
+.divisi-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--ink-10);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  font-family: var(--ff-body);
+}
+
+/* ── CRITERIA TABLE ───────────────────────────────────────────────────── */
+.criteria-factor {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.criteria-core      { background: #DBEAFE; color: #1E40AF; }
+.criteria-secondary { background: #EDE9FE; color: #5B21B6; }
+
+/* ── LOGIN SCREEN ─────────────────────────────────────────────────────── */
+#screen-login {
+  min-height: 100vh;
+  background: var(--surface);
+  display: flex;
+  align-items: stretch;
+}
+
+.login-left {
+  width: 420px;
+  flex-shrink: 0;
+  background: var(--ink);
+  display: flex;
+  flex-direction: column;
+  padding: 48px;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-left::after {
+  content: '';
+  position: absolute;
+  bottom: -80px; right: -80px;
+  width: 300px; height: 300px;
+  border-radius: 50%;
+  background: rgba(204,34,41,0.18);
+  pointer-events: none;
+}
+
+.login-brand { margin-bottom: auto; }
+
+.login-brand-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 32px;
+}
+
+.login-logo-box {
+  background: var(--red);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+}
+
+.login-logo-text {
+  font-family: var(--ff-display);
+  font-size: 18px;
+  color: var(--white);
+  letter-spacing: 0.01em;
+}
+
+.login-logo-italic {
+  font-style: italic;
+}
+
+.login-tagline {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.login-headline {
+  font-family: var(--ff-display);
+  font-size: 32px;
+  line-height: 1.2;
+  color: var(--white);
+  margin-bottom: 16px;
+}
+
+.login-desc {
+  font-size: 14px;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.7;
+  margin-bottom: 40px;
+}
+
+.login-features {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.login-feature {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.6);
+}
+
+.feature-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+  flex-shrink: 0;
+}
+
+.login-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+}
+
+.login-form-box {
+  width: 100%;
+  max-width: 380px;
+}
+
+.login-form-title {
+  font-family: var(--ff-display);
+  font-size: 28px;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.login-form-sub {
+  font-size: 13.5px;
+  color: var(--ink-60);
+  margin-bottom: 32px;
+}
+
+.login-role-selector {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.role-option {
+  border: 1.5px solid var(--border-mid);
+  border-radius: var(--radius-md);
+  padding: 10px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-60);
+  background: var(--white);
+}
+
+.role-option:hover { border-color: var(--red-mid); color: var(--ink); }
+
+.role-option.selected {
+  border-color: var(--red);
+  background: var(--red-light);
+  color: var(--red-dark);
+}
+
+.role-option .role-icon {
+  font-size: 18px;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.login-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.input-field-wrap {
+  position: relative;
+}
+
+.input-field-wrap input {
+  padding-left: 38px;
+}
+
+.input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-60);
+  pointer-events: none;
+}
+
+.login-footer-text {
+  font-size: 12px;
+  color: var(--ink-60);
+  text-align: center;
+  margin-top: 20px;
+}
+
+/* ── DETAIL PANEL ─────────────────────────────────────────────────────── */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}
+
+.info-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 16px;
+}
+
+.info-row:last-child { border-bottom: none; }
+
+.info-key {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-60);
+  min-width: 120px;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.info-val {
+  font-size: 13.5px;
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+/* ── TIMELINE ─────────────────────────────────────────────────────────── */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 14px;
+  padding-bottom: 20px;
+  position: relative;
+}
+
+.timeline-item:last-child { padding-bottom: 0; }
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: 28px;
+  bottom: 0;
+  width: 1.5px;
+  background: var(--border);
+}
+
+.timeline-item:last-child::before { display: none; }
+
+.timeline-dot {
+  width: 29px; height: 29px;
+  border-radius: 50%;
+  border: 2px solid var(--border-mid);
+  background: var(--white);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.timeline-dot.red {
+  background: var(--red);
+  border-color: var(--red);
+  color: var(--white);
+}
+
+.timeline-dot.green {
+  background: #D1FAE5;
+  border-color: #6EE7B7;
+  color: #065F46;
+}
+
+.timeline-content {
+  padding: 4px 0;
+}
+.timeline-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.3;
+}
+
+.timeline-meta {
+  font-size: 11.5px;
+  color: var(--ink-60);
+  margin-top: 2px;
+}
+
+/* ── BREADCRUMB ───────────────────────────────────────────────────────── */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-60);
+  margin-bottom: 20px;
+}
+
+.breadcrumb a {
+  color: var(--red);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.breadcrumb a:hover { text-decoration: underline; }
+
+/* ── CRITERIA MANAGER ─────────────────────────────────────────────────── */
+.weight-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.weight-bar {
+  width: 60px;
+  height: 4px;
+  background: var(--ink-10);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.weight-fill {
+  height: 100%;
+  background: var(--red);
+  border-radius: 2px;
+}
+
+/* ── FILTER ROW ───────────────────────────────────────────────────────── */
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+  max-width: 320px;
+}
+
+.search-wrap input {
+  padding-left: 36px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-60);
+  pointer-events: none;
+}
+
+select.filter-select {
+  width: auto;
+  min-width: 130px;
+  padding: 8px 28px 8px 10px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231a1a1a' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+/* ── MATCHING RESULT ──────────────────────────────────────────────────── */
+.result-header {
+  background: linear-gradient(135deg, var(--ink) 0%, #2D2D2D 100%);
+  border-radius: var(--radius-lg);
+  padding: 28px 32px;
+  color: var(--white);
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.result-header::after {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: rgba(204,34,41,0.15);
+  pointer-events: none;
+}
+
+.result-header h2 {
+  font-family: var(--ff-display);
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+
+.result-header p {
+  font-size: 13.5px;
+  color: rgba(255,255,255,0.55);
+}
+
+.result-meta {
+  display: flex;
+  gap: 24px;
+  margin-top: 20px;
+}
+
+.result-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.result-meta-label {
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.result-meta-value {
+  font-size: 20px;
+  font-family: var(--ff-display);
+  color: var(--white);
+}
+
+/* ── TOP CANDIDATE CARD ───────────────────────────────────────────────── */
+.candidate-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: box-shadow 0.15s;
+}
+
+.candidate-card:hover { box-shadow: var(--shadow-md); }
+
+.candidate-card.top {
+  border-color: var(--red-mid);
+  background: linear-gradient(135deg, var(--white) 0%, #FFF5F5 100%);
+}
+
+.candidate-rank-badge {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--ff-display);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.rank-gold   { background: #FEF3C7; color: #92400E; }
+.rank-silver { background: #F3F4F6; color: #374151; }
+.rank-bronze { background: #FDE8E8; color: #991B1B; }
+
+.candidate-info { flex: 1; min-width: 0; }
+.candidate-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.candidate-pos {
+  font-size: 12.5px;
+  color: var(--ink-60);
+}
+
+.candidate-score-block {
+  text-align: right;
+}
+
+.candidate-final-score {
+  font-family: var(--ff-display);
+  font-size: 28px;
+  color: var(--red);
+  line-height: 1;
+}
+
+.candidate-score-label {
+  font-size: 11px;
+  color: var(--ink-60);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.candidate-sub-scores {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+  justify-content: flex-end;
+}
+
+.sub-score {
+  font-size: 11.5px;
+  color: var(--ink-60);
+}
+
+.sub-score strong { color: var(--ink); }
+
+/* ── TOAST ─────────────────────────────────────────────────────────── */
+.toast-container {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toast {
+  background: var(--ink);
+  color: var(--white);
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13.5px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: toast-in 0.2s ease;
+  min-width: 240px;
+}
+
+.toast.success { border-left: 3px solid #22c55e; }
+.toast.error   { border-left: 3px solid var(--red); }
+.toast.info    { border-left: 3px solid #3b82f6; }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── RESPONSIVE NOTE ──────────────────────────────────────────────────── */
+.figma-note {
+  background: var(--red-light);
+  border: 1px solid var(--red-mid);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  font-size: 12.5px;
+  color: var(--red-dark);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────── */
+/*  SCREEN NAV (dev only — not part of final UI)                           */
+/* ─────────────────────────────────────────────────────────────────────── */
+.dev-switcher {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 999;
+  background: var(--ink);
+  border-radius: 30px;
+  padding: 6px;
+  display: flex;
+  gap: 4px;
+  box-shadow: var(--shadow-lg);
+}
+
+.dev-btn {
+  padding: 6px 14px;
+  border-radius: 24px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.55);
+  font-family: var(--ff-body);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.dev-btn:hover { color: rgba(255,255,255,0.85); }
+.dev-btn.active { background: var(--red); color: var(--white); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  SCREEN 1 — LOGIN                                                   -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div id="screen-login" class="screen active" style="min-height:100vh; display:flex;">
+  <div class="login-left">
+    <div class="login-brand">
+      <div class="login-brand-badge">
+        <div class="login-logo-box">
+          <span class="login-logo-text">PRAMITA <span class="login-logo-italic">Lab</span></span>
+        </div>
+      </div>
+      <div class="login-tagline">SDM Decision Support System</div>
+    </div>
+
+    <div style="margin-top: 48px;">
+      <h2 class="login-headline">Sistem Pendukung Keputusan<br><em>Mutasi SDM</em></h2>
+      <p class="login-desc">Platform terpadu untuk pengelolaan permintaan mutasi dan pemindahan SDM berbasis algoritma Profile Matching.</p>
+
+      <div class="login-features">
+        <div class="login-feature"><span class="feature-dot"></span>Profile Matching dengan Gap Analysis otomatis</div>
+        <div class="login-feature"><span class="feature-dot"></span>Ranking kandidat berbasis NCF &amp; NSF</div>
+        <div class="login-feature"><span class="feature-dot"></span>Manajemen kriteria dinamis per divisi</div>
+        <div class="login-feature"><span class="feature-dot"></span>Audit trail lengkap setiap keputusan</div>
+      </div>
+    </div>
+
+    <div style="margin-top: auto; padding-top: 40px; font-size: 12px; color: rgba(255,255,255,0.25);">
+      © 2025 Pramita Lab. Sistem Informasi Manajemen SDM.
+    </div>
+  </div>
+
+  <div class="login-right">
+    <div class="login-form-box">
+      <h1 class="login-form-title">Masuk</h1>
+      <p class="login-form-sub">Pilih peran dan masukkan kredensial Anda.</p>
+
+      <div class="login-role-selector">
+        <div class="role-option selected" onclick="selectRole(this)">
+          <span class="role-icon">🏢</span>Kepala<br>Divisi
+        </div>
+        <div class="role-option" onclick="selectRole(this)">
+          <span class="role-icon">👥</span>Kepala<br>HRD
+        </div>
+        <div class="role-option" onclick="selectRole(this)">
+          <span class="role-icon">🏛️</span>Kepala<br>Cabang
+        </div>
+      </div>
+
+      <div class="login-input-group">
+        <div class="input-field-wrap">
+          <svg class="input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <input type="text" placeholder="Username" value="admin_hrd">
+        </div>
+        <div class="input-field-wrap">
+          <svg class="input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" placeholder="Password" value="••••••••">
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-lg" style="width:100%;" onclick="showScreen('dashboard')">
+        Masuk ke Sistem
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+
+      <p class="login-footer-text">Akses hanya untuk pengguna yang telah terdaftar dalam sistem.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  SCREEN 2 — DASHBOARD                                               -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div id="screen-dashboard" class="screen app-shell">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-block">
+        <div class="logo-badge">PRAMITA <em>Lab</em></div>
+      </div>
+      <div class="logo-sub" style="margin-top:6px;">SDM · DSS</div>
+    </div>
+
+    <div class="sidebar-role">
+      <div class="role-pill">
+        <div class="role-dot"></div>
+        Kepala HRD
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Utama</div>
+      <button class="nav-item active" onclick="showScreen('dashboard')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item" onclick="showScreen('requests')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Permintaan SDM
+        <span class="nav-badge">3</span>
+      </button>
+
+      <div class="nav-section-label">Manajemen</div>
+      <button class="nav-item" onclick="showScreen('employees')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Data Karyawan
+      </button>
+      <button class="nav-item" onclick="showScreen('criteria')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        Kriteria Divisi
+      </button>
+      <button class="nav-item" onclick="showScreen('results')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Hasil Matching
+      </button>
+
+      <div class="nav-section-label">Dokumen</div>
+      <button class="nav-item">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        Surat Tugas
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="user-avatar">AH</div>
+        <div class="user-info">
+          <div class="user-name">Admin HRD</div>
+          <div class="user-role-text">Kepala HRD</div>
+        </div>
+        <button class="icon-btn" style="border:none;background:transparent;color:rgba(255,255,255,0.35);" onclick="showScreen('login')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">
+        <h1>Dashboard</h1>
+        <p>Senin, 5 Mei 2025 · Selamat datang kembali</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="notif-dot"></span>
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-request')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Permintaan Baru
+        </button>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card accent">
+          <div class="stat-label">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+            Total Permintaan
+          </div>
+          <div class="stat-value">24</div>
+          <div class="stat-delta"><span>+3</span> bulan ini</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Menunggu Tindakan
+          </div>
+          <div class="stat-value">3</div>
+          <div class="stat-delta">Perlu segera diproses</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Selesai Matching
+          </div>
+          <div class="stat-value">18</div>
+          <div class="stat-delta"><span>+75%</span> tingkat keberhasilan</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            Total Karyawan Aktif
+          </div>
+          <div class="stat-value">312</div>
+          <div class="stat-delta">Di 10 divisi</div>
+        </div>
+      </div>
+
+      <!-- Two columns -->
+      <div style="display:grid; grid-template-columns: 1.6fr 1fr; gap: 20px;">
+
+        <!-- Recent requests -->
+        <div>
+          <div class="section-header">
+            <span class="section-title">Permintaan Terbaru</span>
+            <button class="btn btn-ghost btn-sm" onclick="showScreen('requests')">Lihat semua →</button>
+          </div>
+          <div class="card">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>No. Permintaan</th>
+                    <th>Divisi Target</th>
+                    <th>Kuantitas</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="cursor:pointer;" onclick="showScreen('requests')">
+                    <td><strong>#SDM-2025-024</strong><br><span style="font-size:11.5px;color:var(--ink-60);">2 jam lalu</span></td>
+                    <td><span class="divisi-chip">TIK</span> Teknologi</td>
+                    <td>2 orang</td>
+                    <td><span class="badge badge-pending">Menunggu</span></td>
+                  </tr>
+                  <tr style="cursor:pointer;" onclick="showScreen('requests')">
+                    <td><strong>#SDM-2025-023</strong><br><span style="font-size:11.5px;color:var(--ink-60);">1 hari lalu</span></td>
+                    <td><span class="divisi-chip">KEU</span> Keuangan</td>
+                    <td>1 orang</td>
+                    <td><span class="badge badge-forwarded">Diteruskan</span></td>
+                  </tr>
+                  <tr style="cursor:pointer;" onclick="showScreen('results')">
+                    <td><strong>#SDM-2025-022</strong><br><span style="font-size:11.5px;color:var(--ink-60);">3 hari lalu</span></td>
+                    <td><span class="divisi-chip">OPS</span> Operasional</td>
+                    <td>3 orang</td>
+                    <td><span class="badge badge-matched">Matched</span></td>
+                  </tr>
+                  <tr style="cursor:pointer;">
+                    <td><strong>#SDM-2025-021</strong><br><span style="font-size:11.5px;color:var(--ink-60);">5 hari lalu</span></td>
+                    <td><span class="divisi-chip">LOG</span> Logistik</td>
+                    <td>1 orang</td>
+                    <td><span class="badge badge-approved">Disetujui</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity timeline -->
+        <div>
+          <div class="section-header">
+            <span class="section-title">Aktivitas Terkini</span>
+          </div>
+          <div class="card" style="padding: 20px 24px;">
+            <div class="timeline">
+              <div class="timeline-item">
+                <div class="timeline-dot red">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </div>
+                <div class="timeline-content">
+                  <div class="timeline-label">Permintaan baru #SDM-2025-024</div>
+                  <div class="timeline-meta">Kepala Divisi TIK · 2 jam lalu</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-dot green">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div class="timeline-content">
+                  <div class="timeline-label">Matching selesai — OPS #022</div>
+                  <div class="timeline-meta">Sistem · 3 hari lalu</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-dot" style="color:var(--ink-60);">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </div>
+                <div class="timeline-content">
+                  <div class="timeline-label">Diteruskan ke Kepala Cabang #023</div>
+                  <div class="timeline-meta">Kepala HRD · 1 hari lalu</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-dot green">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div class="timeline-content">
+                  <div class="timeline-label">Surat tugas diterbitkan #021</div>
+                  <div class="timeline-meta">Kepala Cabang · 5 hari lalu</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  SCREEN 3 — PERMINTAAN SDM                                          -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div id="screen-requests" class="screen app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-block"><div class="logo-badge">PRAMITA <em>Lab</em></div></div><div class="logo-sub" style="margin-top:6px;">SDM · DSS</div></div>
+    <div class="sidebar-role"><div class="role-pill"><div class="role-dot"></div>Kepala HRD</div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Utama</div>
+      <button class="nav-item" onclick="showScreen('dashboard')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item active">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Permintaan SDM
+        <span class="nav-badge">3</span>
+      </button>
+      <div class="nav-section-label">Manajemen</div>
+      <button class="nav-item" onclick="showScreen('employees')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Data Karyawan</button>
+      <button class="nav-item" onclick="showScreen('criteria')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Kriteria Divisi</button>
+      <button class="nav-item" onclick="showScreen('results')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Hasil Matching</button>
+      <div class="nav-section-label">Dokumen</div>
+      <button class="nav-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>Surat Tugas</button>
+    </nav>
+    <div class="sidebar-footer"><div class="user-row"><div class="user-avatar">AH</div><div class="user-info"><div class="user-name">Admin HRD</div><div class="user-role-text">Kepala HRD</div></div></div></div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">
+        <h1>Permintaan SDM</h1>
+        <p>Kelola dan proses permintaan mutasi &amp; pemindahan SDM</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="notif-dot"></span></button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-request')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Permintaan Baru
+        </button>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <!-- Tabs -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+        <div class="tabs">
+          <button class="tab active">Semua (24)</button>
+          <button class="tab">Menunggu (3)</button>
+          <button class="tab">Diproses (5)</button>
+          <button class="tab">Selesai (16)</button>
+        </div>
+      </div>
+
+      <!-- Filter -->
+      <div class="filter-row">
+        <div class="search-wrap">
+          <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" placeholder="Cari permintaan...">
+        </div>
+        <select class="filter-select">
+          <option>Semua Divisi</option>
+          <option>Teknologi</option>
+          <option>Keuangan</option>
+          <option>Operasional</option>
+        </select>
+        <select class="filter-select">
+          <option>Semua Status</option>
+          <option>Menunggu</option>
+          <option>Diteruskan</option>
+          <option>Matched</option>
+        </select>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>No. Permintaan</th>
+                <th>Pemohon</th>
+                <th>Divisi Target</th>
+                <th>Kuantitas</th>
+                <th>Status</th>
+                <th>Tanggal</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>#SDM-2025-024</strong></td>
+                <td>Budi Santoso<br><span style="font-size:11.5px;color:var(--ink-60);">Kepala Divisi TIK</span></td>
+                <td><span class="divisi-chip">TIK</span> Teknologi</td>
+                <td>2 orang</td>
+                <td><span class="badge badge-pending">Menunggu</span></td>
+                <td style="font-size:12.5px;color:var(--ink-60);">5 Mei 2025</td>
+                <td>
+                  <button class="btn btn-primary btn-sm" onclick="showScreen('results')">Teruskan</button>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>#SDM-2025-023</strong></td>
+                <td>Siti Rahma<br><span style="font-size:11.5px;color:var(--ink-60);">Kepala Divisi KEU</span></td>
+                <td><span class="divisi-chip">KEU</span> Keuangan</td>
+                <td>1 orang</td>
+                <td><span class="badge badge-forwarded">Diteruskan</span></td>
+                <td style="font-size:12.5px;color:var(--ink-60);">4 Mei 2025</td>
+                <td><button class="btn btn-outline btn-sm">Detail</button></td>
+              </tr>
+              <tr>
+                <td><strong>#SDM-2025-022</strong></td>
+                <td>Andi Putra<br><span style="font-size:11.5px;color:var(--ink-60);">Kepala Divisi OPS</span></td>
+                <td><span class="divisi-chip">OPS</span> Operasional</td>
+                <td>3 orang</td>
+                <td><span class="badge badge-matched">Matched</span></td>
+                <td style="font-size:12.5px;color:var(--ink-60);">2 Mei 2025</td>
+                <td><button class="btn btn-outline btn-sm" onclick="showScreen('results')">Lihat Hasil</button></td>
+              </tr>
+              <tr>
+                <td><strong>#SDM-2025-021</strong></td>
+                <td>Dewi Kusuma<br><span style="font-size:11.5px;color:var(--ink-60);">Kepala Divisi LOG</span></td>
+                <td><span class="divisi-chip">LOG</span> Logistik</td>
+                <td>1 orang</td>
+                <td><span class="badge badge-approved">Disetujui</span></td>
+                <td style="font-size:12.5px;color:var(--ink-60);">30 Apr 2025</td>
+                <td><button class="btn btn-outline btn-sm">Surat Tugas</button></td>
+              </tr>
+              <tr>
+                <td><strong>#SDM-2025-020</strong></td>
+                <td>Reza Fauzi<br><span style="font-size:11.5px;color:var(--ink-60);">Kepala Divisi MKT</span></td>
+                <td><span class="divisi-chip">MKT</span> Pemasaran</td>
+                <td>2 orang</td>
+                <td><span class="badge badge-rejected">Ditolak</span></td>
+                <td style="font-size:12.5px;color:var(--ink-60);">28 Apr 2025</td>
+                <td><button class="btn btn-outline btn-sm">Detail</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  SCREEN 4 — HASIL MATCHING                                          -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div id="screen-results" class="screen app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-block"><div class="logo-badge">PRAMITA <em>Lab</em></div></div><div class="logo-sub" style="margin-top:6px;">SDM · DSS</div></div>
+    <div class="sidebar-role"><div class="role-pill"><div class="role-dot"></div>Kepala HRD</div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Utama</div>
+      <button class="nav-item" onclick="showScreen('dashboard')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</button>
+      <button class="nav-item" onclick="showScreen('requests')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>Permintaan SDM <span class="nav-badge">3</span></button>
+      <div class="nav-section-label">Manajemen</div>
+      <button class="nav-item" onclick="showScreen('employees')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Data Karyawan</button>
+      <button class="nav-item" onclick="showScreen('criteria')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Kriteria Divisi</button>
+      <button class="nav-item active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Hasil Matching</button>
+      <div class="nav-section-label">Dokumen</div>
+      <button class="nav-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>Surat Tugas</button>
+    </nav>
+    <div class="sidebar-footer"><div class="user-row"><div class="user-avatar">AH</div><div class="user-info"><div class="user-name">Admin HRD</div><div class="user-role-text">Kepala HRD</div></div></div></div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">
+        <h1>Hasil Profile Matching</h1>
+        <p>Permintaan #SDM-2025-022 · Divisi Operasional</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-outline btn-sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+          Ekspor PDF
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-letter')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Terbitkan Surat Tugas
+        </button>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <!-- Breadcrumb -->
+      <div class="breadcrumb">
+        <a onclick="showScreen('requests')">Permintaan SDM</a>
+        <span>›</span>
+        <span>#SDM-2025-022</span>
+        <span>›</span>
+        <span>Hasil Matching</span>
+      </div>
+
+      <!-- Result header card -->
+      <div class="result-header">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between;">
+          <div>
+            <h2>Ranking Kandidat — Divisi Operasional</h2>
+            <p>Dihitung pada 2 Mei 2025, 14:32 · 8 kandidat dievaluasi</p>
+          </div>
+          <span class="badge badge-matched" style="background:rgba(255,255,255,0.12);color:white;border:1px solid rgba(255,255,255,0.25);">Matching Selesai</span>
+        </div>
+        <div class="result-meta">
+          <div class="result-meta-item">
+            <span class="result-meta-label">Bobot Core (NCF)</span>
+            <span class="result-meta-value">60%</span>
+          </div>
+          <div class="result-meta-item">
+            <span class="result-meta-label">Bobot Secondary (NSF)</span>
+            <span class="result-meta-value">40%</span>
+          </div>
+          <div class="result-meta-item">
+            <span class="result-meta-label">Total Kriteria</span>
+            <span class="result-meta-value">5</span>
+          </div>
+          <div class="result-meta-item">
+            <span class="result-meta-label">Kandidat Terevaluasi</span>
+            <span class="result-meta-value">8</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top 3 candidates -->
+      <div class="section-header">
+        <span class="section-title">Kandidat Terrekomendasikan</span>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:24px;">
+
+        <div class="candidate-card top">
+          <div class="candidate-rank-badge rank-gold">1</div>
+          <div class="candidate-info">
+            <div class="candidate-name">Ahmad Fauzi Ramadhan</div>
+            <div class="candidate-pos">Staff Senior · Divisi Logistik · EMP-0042</div>
+          </div>
+          <div style="flex:1; padding: 0 24px;">
+            <div class="score-bar" style="margin-bottom:6px;">
+              <div class="score-track"><div class="score-fill" style="width:89%;"></div></div>
+            </div>
+            <div style="display:flex; gap:16px; font-size:12px; color:var(--ink-60);">
+              <span>NCF: <strong style="color:var(--ink);">4.45</strong></span>
+              <span>NSF: <strong style="color:var(--ink);">4.20</strong></span>
+            </div>
+          </div>
+          <div class="candidate-score-block">
+            <div class="candidate-final-score">4.35</div>
+            <div class="candidate-score-label">Skor Akhir</div>
+          </div>
+        </div>
+
+        <div class="candidate-card">
+          <div class="candidate-rank-badge rank-silver">2</div>
+          <div class="candidate-info">
+            <div class="candidate-name">Nur Indah Lestari</div>
+            <div class="candidate-pos">Staff · Divisi Pengadaan · EMP-0078</div>
+          </div>
+          <div style="flex:1; padding: 0 24px;">
+            <div class="score-bar" style="margin-bottom:6px;">
+              <div class="score-track"><div class="score-fill" style="width:80%;"></div></div>
+            </div>
+            <div style="display:flex; gap:16px; font-size:12px; color:var(--ink-60);">
+              <span>NCF: <strong style="color:var(--ink);">4.10</strong></span>
+              <span>NSF: <strong style="color:var(--ink);">3.90</strong></span>
+            </div>
+          </div>
+          <div class="candidate-score-block">
+            <div class="candidate-final-score" style="color:var(--ink); font-size:24px;">4.02</div>
+            <div class="candidate-score-label">Skor Akhir</div>
+          </div>
+        </div>
+
+        <div class="candidate-card">
+          <div class="candidate-rank-badge rank-bronze">3</div>
+          <div class="candidate-info">
+            <div class="candidate-name">Rizky Pratama</div>
+            <div class="candidate-pos">Staff · Divisi Manajemen Risiko · EMP-0055</div>
+          </div>
+          <div style="flex:1; padding: 0 24px;">
+            <div class="score-bar" style="margin-bottom:6px;">
+              <div class="score-track"><div class="score-fill" style="width:73%;"></div></div>
+            </div>
+            <div style="display:flex; gap:16px; font-size:12px; color:var(--ink-60);">
+              <span>NCF: <strong style="color:var(--ink);">3.80</strong></span>
+              <span>NSF: <strong style="color:var(--ink);">3.65</strong></span>
+            </div>
+          </div>
+          <div class="candidate-score-block">
+            <div class="candidate-final-score" style="color:var(--ink); font-size:24px;">3.74</div>
+            <div class="candidate-score-label">Skor Akhir</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Full ranking table -->
+      <div class="section-header">
+        <span class="section-title">Tabel Ranking Lengkap</span>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Karyawan</th>
+                <th>Divisi Asal</th>
+                <th>NCF Score</th>
+                <th>NSF Score</th>
+                <th>Skor Akhir</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div class="rank-cell"><span class="rank-num rank-1">1</span></div></td>
+                <td><strong>Ahmad Fauzi Ramadhan</strong><br><span style="font-size:11.5px;color:var(--ink-60);">EMP-0042</span></td>
+                <td><span class="divisi-chip">LOG</span> Logistik</td>
+                <td><div class="score-bar"><div class="score-track"><div class="score-fill" style="width:89%;"></div></div><span class="score-val">4.45</span></div></td>
+                <td><div class="score-bar"><div class="score-track"><div class="score-fill" style="width:84%;"></div></div><span class="score-val">4.20</span></div></td>
+                <td><strong style="color:var(--red);font-size:15px;">4.35</strong></td>
+              </tr>
+              <tr>
+                <td><div class="rank-cell"><span class="rank-num rank-2">2</span></div></td>
+                <td><strong>Nur Indah Lestari</strong><br><span style="font-size:11.5px;color:var(--ink-60);">EMP-0078</span></td>
+                <td><span class="divisi-chip">PGD</span> Pengadaan</td>
+                <td><div class="score-bar"><div class="score-track"><div class="score-fill" style="width:82%;"></div></div><span class="score-val">4.10</span></div></td>
+                <td><div class="score-bar"><div class="score-track"><div class="score-fill" style="width:78%;"></div></div><span class="score-val">3.90</span></div></td>
+                <td><strong style="font-size:15px;">4.02</strong></td>
+              </tr>
+              <tr>
+                <td><div class="rank-cell"><span class="rank-num rank-3">3</span></div></td>
+                <td><strong>Rizky Pratama</strong><br><span style="font-size:11.5px;color:var(--ink-60);">EMP-0055</span></td>
+                <td><span class="divisi-chip">MRS</span> Manajemen Risiko</td>
+                <td><div class="score-bar"><div class="score-track"><div class="score-fill" style="width:76%;"></div></div><span class="score-val">3.80</span></div></td>
+                <td><div class="score-bar"><div class="score-track"><div class="score-fill" style="width:73%;"></div></div><span class="score-val">3.65</span></div></td>
+                <td><strong style="font-size:15px;">3.74</strong></td>
+              </tr>
+              <tr>
+                <td><div class="rank-cell"><span class="rank-num rank-n">4</span></div></td>
+                <td><strong>Hendra Wijaya</strong><br><span style="font-size:11.5px;color:var(--ink-60);">EMP-0091</span></td>
+                <td><span class="divisi-chip">SDM</span> SDM</td>
+                <td><div class="score-bar"><div class="score-track"><div class="score-fill" style="width:70%;"></div></div><span class="score-val">3.50</span></div></td>
+                <td><div class="score-bar"><div class="score-track"><div class="score-fill" style="width:68%;"></div></div><span class="score-val">3.40</span></div></td>
+                <td><strong style="font-size:15px;">3.46</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  SCREEN 5 — KARYAWAN                                                -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div id="screen-employees" class="screen app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-block"><div class="logo-badge">PRAMITA <em>Lab</em></div></div><div class="logo-sub" style="margin-top:6px;">SDM · DSS</div></div>
+    <div class="sidebar-role"><div class="role-pill"><div class="role-dot"></div>Kepala HRD</div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Utama</div>
+      <button class="nav-item" onclick="showScreen('dashboard')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</button>
+      <button class="nav-item" onclick="showScreen('requests')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>Permintaan SDM <span class="nav-badge">3</span></button>
+      <div class="nav-section-label">Manajemen</div>
+      <button class="nav-item active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Data Karyawan</button>
+      <button class="nav-item" onclick="showScreen('criteria')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Kriteria Divisi</button>
+      <button class="nav-item" onclick="showScreen('results')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Hasil Matching</button>
+      <div class="nav-section-label">Dokumen</div>
+      <button class="nav-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>Surat Tugas</button>
+    </nav>
+    <div class="sidebar-footer"><div class="user-row"><div class="user-avatar">AH</div><div class="user-info"><div class="user-name">Admin HRD</div><div class="user-role-text">Kepala HRD</div></div></div></div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">
+        <h1>Data Karyawan</h1>
+        <p>312 karyawan aktif di 10 divisi</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-outline btn-sm">Import CSV</button>
+        <button class="btn btn-primary btn-sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Tambah Karyawan
+        </button>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div class="filter-row">
+        <div class="search-wrap">
+          <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" placeholder="Cari karyawan...">
+        </div>
+        <select class="filter-select">
+          <option>Semua Divisi</option>
+          <option>Teknologi</option>
+          <option>Keuangan</option>
+        </select>
+        <select class="filter-select">
+          <option>Semua Jabatan</option>
+          <option>Staff Senior</option>
+          <option>Staff</option>
+        </select>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Karyawan</th>
+                <th>Kode</th>
+                <th>Divisi</th>
+                <th>Jabatan</th>
+                <th>Skor Rata-rata</th>
+                <th>Status</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="user-avatar" style="width:34px;height:34px;font-size:11px;">AF</div>
+                    <div><strong>Ahmad Fauzi Ramadhan</strong><br><span style="font-size:11.5px;color:var(--ink-60);">ahmad.fauzi@pramita.co.id</span></div>
+                  </div>
+                </td>
+                <td style="font-family:monospace;font-size:12.5px;">EMP-0042</td>
+                <td><span class="divisi-chip">LOG</span> Logistik</td>
+                <td>Staff Senior</td>
+                <td><div class="score-bar"><div class="score-track"><div class="score-fill" style="width:87%;"></div></div><span class="score-val">4.35</span></div></td>
+                <td><span class="badge badge-matched">Aktif</span></td>
+                <td><button class="btn btn-ghost btn-sm">Edit</button></td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="user-avatar" style="width:34px;height:34px;font-size:11px;background:#1E40AF;">NI</div>
+                    <div><strong>Nur Indah Lestari</strong><br><span style="font-size:11.5px;color:var(--ink-60);">nur.indah@pramita.co.id</span></div>
+                  </div>
+                </td>
+                <td style="font-family:monospace;font-size:12.5px;">EMP-0078</td>
+                <td><span class="divisi-chip">PGD</span> Pengadaan</td>
+                <td>Staff</td>
+                <td><div class="score-bar"><div class="score-track"><div class="score-fill" style="width:80%;"></div></div><span class="score-val">4.02</span></div></td>
+                <td><span class="badge badge-matched">Aktif</span></td>
+                <td><button class="btn btn-ghost btn-sm">Edit</button></td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="user-avatar" style="width:34px;height:34px;font-size:11px;background:#065F46;">RP</div>
+                    <div><strong>Rizky Pratama</strong><br><span style="font-size:11.5px;color:var(--ink-60);">rizky.pratama@pramita.co.id</span></div>
+                  </div>
+                </td>
+                <td style="font-family:monospace;font-size:12.5px;">EMP-0055</td>
+                <td><span class="divisi-chip">MRS</span> Manajemen Risiko</td>
+                <td>Staff</td>
+                <td><div class="score-bar"><div class="score-track"><div class="score-fill" style="width:75%;"></div></div><span class="score-val">3.74</span></div></td>
+                <td><span class="badge badge-matched">Aktif</span></td>
+                <td><button class="btn btn-ghost btn-sm">Edit</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  SCREEN 6 — KRITERIA DIVISI                                         -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div id="screen-criteria" class="screen app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-block"><div class="logo-badge">PRAMITA <em>Lab</em></div></div><div class="logo-sub" style="margin-top:6px;">SDM · DSS</div></div>
+    <div class="sidebar-role"><div class="role-pill"><div class="role-dot"></div>Kepala HRD</div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Utama</div>
+      <button class="nav-item" onclick="showScreen('dashboard')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</button>
+      <button class="nav-item" onclick="showScreen('requests')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>Permintaan SDM <span class="nav-badge">3</span></button>
+      <div class="nav-section-label">Manajemen</div>
+      <button class="nav-item" onclick="showScreen('employees')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Data Karyawan</button>
+      <button class="nav-item active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Kriteria Divisi</button>
+      <button class="nav-item" onclick="showScreen('results')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Hasil Matching</button>
+      <div class="nav-section-label">Dokumen</div>
+      <button class="nav-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>Surat Tugas</button>
+    </nav>
+    <div class="sidebar-footer"><div class="user-row"><div class="user-avatar">AH</div><div class="user-info"><div class="user-name">Admin HRD</div><div class="user-role-text">Kepala HRD</div></div></div></div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">
+        <h1>Kriteria Divisi</h1>
+        <p>Konfigurasi bobot dan kriteria Profile Matching per divisi</p>
+      </div>
+      <div class="topbar-actions">
+        <select class="filter-select" style="font-size:13px;">
+          <option>Divisi Operasional</option>
+          <option>Divisi Teknologi</option>
+          <option>Divisi Keuangan</option>
+        </select>
+        <button class="btn btn-primary btn-sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Tambah Kriteria
+        </button>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <!-- Weight summary -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px;">
+        <div class="card" style="padding:20px 24px;">
+          <div style="font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-60);margin-bottom:12px;">Core Factor (NCF) — Bobot 60%</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:13.5px;">Kompetensi Teknis</span>
+              <div class="weight-display">
+                <div class="weight-bar"><div class="weight-fill" style="width:40%;"></div></div>
+                <span style="font-size:13px;font-weight:500;min-width:32px;text-align:right;">40%</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:13.5px;">Pengalaman Kerja</span>
+              <div class="weight-display">
+                <div class="weight-bar"><div class="weight-fill" style="width:30%;"></div></div>
+                <span style="font-size:13px;font-weight:500;min-width:32px;text-align:right;">30%</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:13.5px;">Kepemimpinan</span>
+              <div class="weight-display">
+                <div class="weight-bar"><div class="weight-fill" style="width:30%;"></div></div>
+                <span style="font-size:13px;font-weight:500;min-width:32px;text-align:right;">30%</span>
+              </div>
+            </div>
+            <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;justify-content:flex-end;">
+              <span style="font-size:13px;font-weight:600;color:var(--red);">Total: 100% ✓</span>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="padding:20px 24px;">
+          <div style="font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-60);margin-bottom:12px;">Secondary Factor (NSF) — Bobot 40%</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:13.5px;">Komunikasi</span>
+              <div class="weight-display">
+                <div class="weight-bar"><div class="weight-fill" style="width:50%;"></div></div>
+                <span style="font-size:13px;font-weight:500;min-width:32px;text-align:right;">50%</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:13.5px;">Adaptabilitas</span>
+              <div class="weight-display">
+                <div class="weight-bar"><div class="weight-fill" style="width:50%;"></div></div>
+                <span style="font-size:13px;font-weight:500;min-width:32px;text-align:right;">50%</span>
+              </div>
+            </div>
+            <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;justify-content:flex-end;">
+              <span style="font-size:13px;font-weight:600;color:var(--red);">Total: 100% ✓</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nama Kriteria</th>
+                <th>Tipe Faktor</th>
+                <th>Nilai Target</th>
+                <th>Bobot</th>
+                <th>Status</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Kompetensi Teknis</strong><br><span style="font-size:11.5px;color:var(--ink-60);">Kemampuan teknis sesuai bidang</span></td>
+                <td><span class="criteria-factor criteria-core">Core</span></td>
+                <td><span class="divisi-chip">4.0</span></td>
+                <td><div class="weight-display"><div class="weight-bar"><div class="weight-fill" style="width:40%;"></div></div><span style="font-size:12.5px;font-weight:500;">0.40</span></div></td>
+                <td><span class="badge badge-matched">Aktif</span></td>
+                <td><button class="btn btn-ghost btn-sm">Edit</button></td>
+              </tr>
+              <tr>
+                <td><strong>Pengalaman Kerja</strong><br><span style="font-size:11.5px;color:var(--ink-60);">Lama dan relevansi pengalaman</span></td>
+                <td><span class="criteria-factor criteria-core">Core</span></td>
+                <td><span class="divisi-chip">3.0</span></td>
+                <td><div class="weight-display"><div class="weight-bar"><div class="weight-fill" style="width:30%;"></div></div><span style="font-size:12.5px;font-weight:500;">0.30</span></div></td>
+                <td><span class="badge badge-matched">Aktif</span></td>
+                <td><button class="btn btn-ghost btn-sm">Edit</button></td>
+              </tr>
+              <tr>
+                <td><strong>Kepemimpinan</strong><br><span style="font-size:11.5px;color:var(--ink-60);">Kemampuan memimpin tim</span></td>
+                <td><span class="criteria-factor criteria-core">Core</span></td>
+                <td><span class="divisi-chip">3.0</span></td>
+                <td><div class="weight-display"><div class="weight-bar"><div class="weight-fill" style="width:30%;"></div></div><span style="font-size:12.5px;font-weight:500;">0.30</span></div></td>
+                <td><span class="badge badge-matched">Aktif</span></td>
+                <td><button class="btn btn-ghost btn-sm">Edit</button></td>
+              </tr>
+              <tr>
+                <td><strong>Komunikasi</strong><br><span style="font-size:11.5px;color:var(--ink-60);">Kemampuan komunikasi interpersonal</span></td>
+                <td><span class="criteria-factor criteria-secondary">Secondary</span></td>
+                <td><span class="divisi-chip">3.0</span></td>
+                <td><div class="weight-display"><div class="weight-bar"><div class="weight-fill" style="width:50%;"></div></div><span style="font-size:12.5px;font-weight:500;">0.50</span></div></td>
+                <td><span class="badge badge-matched">Aktif</span></td>
+                <td><button class="btn btn-ghost btn-sm">Edit</button></td>
+              </tr>
+              <tr>
+                <td><strong>Adaptabilitas</strong><br><span style="font-size:11.5px;color:var(--ink-60);">Kemampuan beradaptasi dengan lingkungan</span></td>
+                <td><span class="criteria-factor criteria-secondary">Secondary</span></td>
+                <td><span class="divisi-chip">3.0</span></td>
+                <td><div class="weight-display"><div class="weight-bar"><div class="weight-fill" style="width:50%;"></div></div><span style="font-size:12.5px;font-weight:500;">0.50</span></div></td>
+                <td><span class="badge badge-matched">Aktif</span></td>
+                <td><button class="btn btn-ghost btn-sm">Edit</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  MODALS                                                             -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<!-- Modal: New SDM Request -->
+<div id="modal-request" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Permintaan SDM Baru</div>
+        <div style="font-size:13px;color:var(--ink-60);margin-top:4px;">Isi form berikut untuk mengajukan permintaan mutasi</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-request')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Divisi Target</label>
+          <select>
+            <option>Pilih divisi...</option>
+            <option>Teknologi (TIK)</option>
+            <option>Keuangan (KEU)</option>
+            <option>Operasional (OPS)</option>
+            <option>Logistik (LOG)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Jumlah SDM Dibutuhkan</label>
+          <input type="number" min="1" value="1" placeholder="Jumlah orang">
+        </div>
+        <div class="form-group full">
+          <label>Alasan Permintaan</label>
+          <textarea placeholder="Jelaskan alasan dan kebutuhan SDM secara singkat..."></textarea>
+          <span class="form-hint">Minimal 10 karakter</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-request')">Batal</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-request');showToast('Permintaan berhasil diajukan','success')">Ajukan Permintaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Terbitkan Surat Tugas -->
+<div id="modal-letter" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Terbitkan Surat Tugas</div>
+        <div style="font-size:13px;color:var(--ink-60);margin-top:4px;">Kandidat: Ahmad Fauzi Ramadhan (Rank #1)</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-letter')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nomor Surat</label>
+          <input type="text" value="ST/SDM/2025/022/001" placeholder="Nomor surat tugas">
+        </div>
+        <div class="form-group">
+          <label>Tanggal Berlaku</label>
+          <input type="date" value="2025-05-12">
+        </div>
+        <div class="form-group full">
+          <label>Isi Surat Tugas</label>
+          <textarea style="min-height:120px;">Dengan ini ditetapkan bahwa Saudara Ahmad Fauzi Ramadhan (EMP-0042) dipindahtugaskan ke Divisi Operasional terhitung mulai tanggal 12 Mei 2025, berdasarkan hasil Profile Matching yang telah dilaksanakan.</textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-letter')">Batal</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-letter');showToast('Surat tugas berhasil diterbitkan','success')">Terbitkan Surat</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Dev screen switcher -->
+<div class="dev-switcher">
+  <button class="dev-btn active" onclick="showScreen('login');setActive(this)">Login</button>
+  <button class="dev-btn" onclick="showScreen('dashboard');setActive(this)">Dashboard</button>
+  <button class="dev-btn" onclick="showScreen('requests');setActive(this)">Permintaan</button>
+  <button class="dev-btn" onclick="showScreen('results');setActive(this)">Matching</button>
+  <button class="dev-btn" onclick="showScreen('employees');setActive(this)">Karyawan</button>
+  <button class="dev-btn" onclick="showScreen('criteria');setActive(this)">Kriteria</button>
+</div>
+
+<script>
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('screen-' + id);
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.dev-btn').forEach(b => {
+    const map = { login:'Login', dashboard:'Dashboard', requests:'Permintaan', results:'Matching', employees:'Karyawan', criteria:'Kriteria' };
+    b.classList.toggle('active', b.textContent.trim() === (map[id] || id));
+  });
+  window.scrollTo(0,0);
+}
+
+function setActive(btn) {
+  document.querySelectorAll('.dev-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function selectRole(el) {
+  document.querySelectorAll('.role-option').forEach(r => r.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+function showToast(msg, type = 'info') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  const icons = { success: '✓', error: '✕', info: 'ℹ' };
+  t.innerHTML = `<span style="font-size:14px;">${icons[type]}</span> ${msg}`;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+document.querySelectorAll('.modal-backdrop').forEach(b => {
+  b.addEventListener('click', e => { if (e.target === b) b.classList.remove('open'); });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,163 @@
+<div class="modal-backdrop open" id="modal-division-backdrop">
+  <div class="modal" style="max-width: 500px; background: white; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0;">
+    <div class="modal-header" style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
+      <div>
+        <div class="modal-title" style="margin: 0; font-size: 16px; font-weight: 600; color: #0f172a;" id="divisionModalTitle">Tambah Divisi Baru</div>
+      </div>
+      <button class="modal-close" onclick="App.closeModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b;">&times;</button>
+    </div>
+    <div class="modal-body" style="padding: 20px;">
+      
+      <div class="tabs" style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+        <button class="tab active" id="tabBtnDivision" onclick="DivisionModal.switchTab('division')" style="padding: 6px 12px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">Divisi Baru</button>
+        <button class="tab" id="tabBtnGroup" onclick="DivisionModal.switchTab('group')" style="padding: 6px 12px; background: #f1f5f9; color: #475569; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">Grup Rumpun Baru</button>
+      </div>
+
+      <div id="form-container-division">
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #334155;">Nama Divisi</label>
+          <input type="text" id="div-name" required placeholder="Contoh: Hematologi" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #334155;">Kode Divisi</label>
+          <input type="text" id="div-code" required placeholder="Contoh: HEM" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #334155;">Rumpun Kerja Induk (Group)</label>
+          <select id="div-group" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;">
+            <option value="">-- Hubungkan ke Rumpun --</option>
+          </select>
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #334155;">Deskripsi Fungsional</label>
+          <textarea id="div-desc" rows="2" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;"></textarea>
+        </div>
+      </div>
+
+      <div id="form-container-group" style="display: none;">
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #334155;">Nama Rumpun (Group Name)</label>
+          <input type="text" id="grp-name" placeholder="Contoh: Laboratorium" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #334155;">Kode Rumpun</label>
+          <input type="text" id="grp-code" placeholder="Contoh: LAB" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #334155;">Deskripsi Rumpun</label>
+          <textarea id="grp-desc" rows="2" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;"></textarea>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer" style="padding: 16px 20px; border-top: 1px solid #e2e8f0; text-align: right; background: #f8fafc;">
+      <button type="button" onclick="App.closeModal()" style="padding: 8px 16px; background: white; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; margin-right: 8px; font-size: 13px;">Batal</button>
+      <button type="button" id="btnSubmitModal" onclick="DivisionModal.submit()" style="padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px;">Simpan Data</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Pemisahan ruang nama (Namespace Isolation) agar tidak bertabrakan dengan variabel global halaman induk
+  var DivisionModal = {
+    currentTab: 'division',
+
+    async init() {
+      try {
+        const response = await fetch('/api/divisions/groups');
+        if (response.ok) {
+          const groups = await response.json();
+          const select = document.getElementById('div-group');
+          if (select) {
+            select.innerHTML = '<option value="">-- Hubungkan ke Rumpun --</option>';
+            groups.forEach(g => {
+              const opt = document.createElement('option');
+              opt.value = g.id;
+              opt.textContent = `${g.code} - ${g.name}`;
+              select.appendChild(opt);
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Gagal memuat daftar rumpun divisi:", error);
+      }
+    },
+
+    switchTab(tab) {
+      this.currentTab = tab;
+      const divForm = document.getElementById('form-container-division');
+      const grpForm = document.getElementById('form-container-group');
+      const btnDiv = document.getElementById('tabBtnDivision');
+      const btnGrp = document.getElementById('tabBtnGroup');
+      const title = document.getElementById('divisionModalTitle');
+
+      if (tab === 'division') {
+        divForm.style.display = 'block';
+        grpForm.style.display = 'none';
+        btnDiv.style.background = '#2563eb'; btnDiv.style.color = 'white';
+        btnGrp.style.background = '#f1f5f9'; btnGrp.style.color = '#475569';
+        title.innerText = 'Tambah Divisi Baru';
+      } else {
+        divForm.style.display = 'none';
+        grpForm.style.display = 'block';
+        btnGrp.style.background = '#2563eb'; btnGrp.style.color = 'white';
+        btnDiv.style.background = '#f1f5f9'; btnDiv.style.color = '#475569';
+        title.innerText = 'Tambah Rumpun Divisi Baru';
+      }
+    },
+
+    async submit() {
+      const btn = document.getElementById('btnSubmitModal');
+      btn.disabled = true;
+      btn.innerText = 'Memproses...';
+
+      try {
+        if (this.currentTab === 'division') {
+          const payload = {
+            name: document.getElementById('div-name').value.trim(),
+            code: document.getElementById('div-code').value.trim().toUpperCase(),
+            description: document.getElementById('div-desc').value.trim() || null,
+            monthly_budget: 0.0
+          };
+          const groupId = document.getElementById('div-group').value;
+          if (groupId) payload.group_id = parseInt(groupId);
+
+          if (!payload.name || !payload.code) throw new Error('Nama dan Kode Divisi wajib diisi.');
+
+          const res = await fetch('/api/divisions/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) throw new Error('Gagal menyimpan record divisi baru.');
+        } else {
+          const payload = {
+            name: document.getElementById('grp-name').value.trim(),
+            code: document.getElementById('grp-code').value.trim().toUpperCase(),
+            description: document.getElementById('grp-desc').value.trim() || null
+          };
+
+          if (!payload.name || !payload.code) throw new Error('Nama dan Kode Rumpun wajib diisi.');
+
+          const res = await fetch('/api/divisions/groups', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) throw new Error('Gagal menyimpan record rumpun baru.');
+        }
+
+        App.closeModal();
+        // Pendekatan Mutlak MPA: Muat ulang halaman agar Jinja2 merender data terbaru dari DB
+        window.location.reload();
+      } catch (error) {
+        alert(error.message);
+        btn.disabled = false;
+        btn.innerText = 'Simpan Data';
+      }
+    }
+  };
+
+  // Eksekusi fungsi inisialisasi sesaat setelah fragmen HTML dimasukkan ke DOM oleh app.js
+  DivisionModal.init();
+</script>

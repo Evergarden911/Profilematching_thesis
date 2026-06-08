@@ -1,0 +1,506 @@
+{% extends "base.html" %}
+
+{% block title %}Permintaan SDM | Pramita Lab{% endblock %}
+
+{% block page_title %}Permintaan SDM{% endblock %}
+{% block page_subtitle %}Manajemen pengajuan mutasi dan rotasi antar divisi operasional{% endblock %}
+
+{% block topbar_actions %}
+{% set role_str = current_user.role.value if current_user and current_user.role.value is defined else (current_user.role | string if current_user else 'guest') %}
+{% if role_str == 'kepala_divisi' %}
+<button class="btn btn-primary btn-sm" onclick="bukaModalBuat()">
+  + Permintaan Baru
+</button>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+  <div class="tabs" id="request-status-tabs">
+    <a href="/requests" class="tab {% if not current_filter or current_filter == 'all' %}active{% endif %}">Semua</a>
+    <a href="/requests?status=pending" class="tab {% if current_filter == 'pending' %}active{% endif %}">Menunggu</a>
+    <a href="/requests?status=under_review" class="tab {% if current_filter == 'under_review' %}active{% endif %}">Diproses</a>
+    <a href="/requests?status=matched" class="tab {% if current_filter == 'matched' %}active{% endif %}">Selesai</a>
+  </div>
+  
+  <div class="search-bar" style="width: 250px;">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="reqSearch" placeholder="Cari ID atau Divisi..." value="{{ search_query or '' }}">
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>NO. PERMINTAAN</th>
+          <th>PEMOHON (DIVISI ASAL)</th>
+          <th>DIVISI TARGET</th>
+          <th>KUANTITAS</th>
+          <th>STATUS</th>
+          <th>TANGGAL</th>
+          <th style="text-align: right;">AKSI</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if requests %}
+            {% for req in requests %}
+            <tr>
+              <td><strong>#SDM-{{ req.created_at.strftime('%Y') }}-{{ "%03d" | format(req.id) }}</strong></td>
+              <td>
+                  {{ req.requester.full_name if req.requester else 'Sistem' }}<br>
+                  <span style="font-size: 11px; color: var(--ink-60);">ID Divisi: {{ req.origin_division_id }}</span>
+              </td>
+              <td><span class="badge" style="background: var(--ink-10); color: var(--ink);">{{ req.target_division.name if req.target_division else 'Tidak Diketahui' }}</span></td>
+              <td>{{ req.quantity }} orang</td>
+              <td>
+                  {% set stat_val = req.status.value if req.status.value is defined else req.status | string %}
+                  {% if stat_val == 'pending' %}
+                    <span class="badge badge-pending">Menunggu</span>
+                  {% elif stat_val == 'under_review' %}
+                    <span class="badge" style="background: #E0E7FF; color: #3730A3; border: 1px solid #818CF8;">Diproses</span>
+                  {% elif stat_val == 'matched' or stat_val == 'completed' %}
+                    <span class="badge badge-matched">Selesai</span>
+                  {% else %}
+                    <span class="badge" style="background: var(--ink-10);">{{ stat_val }}</span>
+                  {% endif %}
+              </td>
+              <td style="color: var(--ink-60);">{{ req.created_at.strftime('%d %b %Y') }}</td>
+              <td style="text-align: right;">
+                  {% set stat_check = req.status.value if req.status.value is defined else req.status | string %}
+                  {% set current_role = current_user.role.value if current_user and current_user.role.value is defined else (current_user.role | string if current_user else 'guest') %}
+                  
+                  {% if stat_check == 'matched' %}
+                     <a href="/results/{{ req.id }}" class="btn btn-success btn-sm">Lihat Hasil</a>
+                  {% else %}
+                     <button onclick="bukaModalDetail({{ req.id }})" class="btn btn-outline btn-sm">Detail</button>
+                     
+                     {% if current_role == 'kepala_hrd' %}
+                         {% if stat_check == 'pending' %}
+                             <button class="btn btn-primary btn-sm" style="margin-left: 4px;" onclick="bukaModalSetujui({{ req.id }})">Setujui (Proses)</button>
+                         {% elif stat_check == 'under_review' %}
+                             <button class="btn btn-warning btn-sm" style="margin-left: 4px;" onclick="bukaModalKandidat({{ req.id }})">Ajukan Kandidat</button>
+                             <button class="btn btn-primary btn-sm" style="margin-left: 4px;" onclick="jalankanMatching({{ req.id }})">Jalankan Matching</button>
+                         {% endif %}
+                     {% endif %}
+                  {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+        {% else %}
+            <tr>
+                <td colspan="7" style="text-align: center; color: var(--ink-60);">Belum ada data permintaan mutasi SDM.</td>
+            </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL INLINE: PEMBUATAN PENGAJUAN BARU -->
+<!-- ========================================== -->
+<div id="modalBuatReq" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 99999; align-items: center; justify-content: center; opacity: 1; visibility: visible; pointer-events: auto;">
+    <div style="background: white; padding: 24px; border-radius: 8px; width: 500px; max-width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <h3 style="margin-top: 0; color: var(--ink);">Pengajuan SDM Baru</h3>
+        <p style="color: var(--ink-60); font-size: 13.5px;">Pilih divisi target dan kuantitas personel yang dibutuhkan.</p>
+        
+        <div class="form-group" style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Divisi Target</label>
+            <select id="req_target_div" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <option value="">Memuat divisi...</option>
+            </select>
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Jumlah Kebutuhan (Orang)</label>
+            <input type="number" id="req_qty" class="form-control" min="1" max="50" value="1" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 24px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Alasan Pengajuan</label>
+            <textarea id="req_reason" class="form-control" rows="4" placeholder="Jelaskan justifikasi penambahan personel..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea>
+        </div>
+        
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button onclick="tutupModalBuat()" class="btn btn-outline" style="padding: 8px 16px; cursor: pointer;">Batal</button>
+            <button onclick="simpanPengajuan()" id="btnSaveReq" class="btn btn-primary" style="padding: 8px 16px; cursor: pointer;">Ajukan Permintaan</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL INLINE: DETAIL PENGAJUAN -->
+<!-- ========================================== -->
+<div id="modalDetailReq" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 99999; align-items: center; justify-content: center; opacity: 1; visibility: visible; pointer-events: auto;">
+    <div style="background: white; padding: 24px; border-radius: 8px; width: 500px; max-width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #eee; padding-bottom: 12px;">
+            <h3 style="margin: 0; font-size: 18px; color: var(--ink);">Detail Pengajuan <span id="detail_req_id"></span></h3>
+            <button onclick="tutupModalDetail()" style="border: none; background: none; font-size: 24px; cursor: pointer; color: var(--ink-60);">&times;</button>
+        </div>
+        
+        <div id="detail_loading" style="display: block; text-align: center; padding: 20px; font-weight: 500;">Memuat data dari peladen...</div>
+        
+        <div id="detail_content" style="display: none;">
+            <div style="margin-bottom: 12px;">
+                <p style="margin: 0 0 4px 0; font-size: 12px; color: var(--ink-60);">Divisi Target</p>
+                <p style="margin: 0; font-weight: 500;" id="detail_div_target">-</p>
+            </div>
+            <div style="margin-bottom: 12px;">
+                <p style="margin: 0 0 4px 0; font-size: 12px; color: var(--ink-60);">Kuantitas Dibutuhkan</p>
+                <p style="margin: 0; font-weight: 500;"><span id="detail_qty">-</span> Orang</p>
+            </div>
+            <div style="margin-bottom: 24px;">
+                <p style="margin: 0 0 4px 0; font-size: 12px; color: var(--ink-60);">Alasan / Justifikasi</p>
+                <p style="margin: 0; font-size: 14px; background: #f8f9fa; padding: 12px; border-radius: 4px; border: 1px solid #eee;" id="detail_reason">-</p>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button onclick="tutupModalDetail()" class="btn btn-outline" style="padding: 8px 16px; cursor: pointer;">Tutup Jendela</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL INLINE: SETUJUI PENGAJUAN (HRD) -->
+<!-- ========================================== -->
+<div id="modalSetujui" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 99999; align-items: center; justify-content: center; opacity: 1; visibility: visible; pointer-events: auto;">
+    <div style="background: white; padding: 24px; border-radius: 8px; width: 450px; max-width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <h3 style="margin-top: 0; color: var(--ink);">Validasi Pengajuan <span id="setujui_req_id"></span></h3>
+        <input type="hidden" id="setujui_input_id">
+
+        <p style="color: var(--ink-60); font-size: 14px; margin-bottom: 24px;">Pilih tindakan untuk pengajuan ini. Menyetujui akan meneruskan status pengajuan ke tahap pencarian dan asesmen kandidat mutasi.</p>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button onclick="tutupModalSetujui()" class="btn btn-outline" style="padding: 8px 16px; cursor: pointer;">Batal</button>
+            <button onclick="updateRequestStatus('rejected')" class="btn btn-outline" style="padding: 8px 16px; background-color: #fef2f2; color: #dc2626; border-color: #fca5a5; cursor: pointer;">Tolak Pengajuan</button>
+            <button onclick="updateRequestStatus('under_review')" id="btnSubmitSetujui" class="btn btn-primary" style="padding: 8px 16px; cursor: pointer;">Teruskan (Setujui)</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL INLINE: PENGAJUAN KANDIDAT (HRD) -->
+<!-- ========================================== -->
+<div id="modalKandidat" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 99999; align-items: center; justify-content: center; opacity: 1; visibility: visible; pointer-events: auto;">
+    <div style="background: white; padding: 24px; border-radius: 8px; width: 500px; max-width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <h3 style="margin-top: 0; color: var(--ink);">Ajukan Kandidat Mutasi</h3>
+        <p style="color: var(--ink-60); font-size: 13.5px;">Pilih karyawan untuk dievaluasi pada Gate A (Sanksi & Pendidikan) untuk ID Pengajuan <span id="kandidat_req_id" style="font-weight: bold;"></span>.</p>
+        
+        <input type="hidden" id="input_req_id">
+
+        <div class="form-group" style="margin-bottom: 24px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Pilih Karyawan Aktif</label>
+            <select id="select_kandidat" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <option value="">Memuat daftar karyawan...</option>
+            </select>
+        </div>
+        
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button onclick="tutupModalKandidat()" class="btn btn-outline" style="padding: 8px 16px; cursor: pointer;">Batal</button>
+            <button onclick="prosesEvaluasiKandidat()" id="btnSubmitKandidat" class="btn btn-primary" style="padding: 8px 16px; cursor: pointer;">Evaluasi Kandidat</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // ==========================================
+    // LOGIKA MODAL PEMBUATAN PENGAJUAN
+    // ==========================================
+    async function bukaModalBuat() {
+        document.getElementById('modalBuatReq').style.display = 'flex';
+        
+        try {
+            const res = await fetch('/api/divisions/', { credentials: 'same-origin' });
+            if(res.ok) {
+                const divs = await res.json();
+                const select = document.getElementById('req_target_div');
+                select.innerHTML = '<option value="">-- Pilih Divisi Target --</option>';
+                divs.forEach(d => {
+                    select.innerHTML += `<option value="${d.id}">${d.name} (${d.code})</option>`;
+                });
+            }
+        } catch (e) {
+            console.error("Gagal memuat divisi", e);
+        }
+    }
+
+    function tutupModalBuat() {
+        document.getElementById('modalBuatReq').style.display = 'none';
+        document.getElementById('req_target_div').value = '';
+        document.getElementById('req_qty').value = '1';
+        document.getElementById('req_reason').value = '';
+    }
+
+    async function simpanPengajuan() {
+        const reasonText = document.getElementById('req_reason').value.trim();
+        const targetDiv = document.getElementById('req_target_div').value;
+        const qty = document.getElementById('req_qty').value;
+
+        if (!targetDiv) {
+            alert("Harap pilih divisi target.");
+            return;
+        }
+        if (reasonText.length < 10) {
+            alert("Catatan alasan permintaan terlalu singkat. Minimal 10 karakter.");
+            return;
+        }
+
+        const payload = {
+            target_division_id: parseInt(targetDiv),
+            quantity: parseInt(qty),
+            reason: reasonText 
+        };
+        
+        const btnSave = document.getElementById('btnSaveReq');
+        
+        try {
+            btnSave.disabled = true;
+            btnSave.innerText = 'Memproses...';
+
+            const response = await fetch('/api/sdm/requests', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.detail || 'Pengajuan ditolak oleh peladen.');
+            }
+
+            tutupModalBuat();
+            window.location.reload();
+        } catch (error) {
+            console.error(error);
+            alert(error.message);
+        } finally {
+            btnSave.disabled = false;
+            btnSave.innerText = 'Ajukan Permintaan';
+        }
+    }
+
+    // ==========================================
+    // LOGIKA MODAL DETAIL PENGAJUAN
+    // ==========================================
+    async function bukaModalDetail(id) {
+        document.getElementById('modalDetailReq').style.display = 'flex';
+        document.getElementById('detail_req_id').innerText = `#${id}`;
+        document.getElementById('detail_loading').style.display = 'block';
+        document.getElementById('detail_content').style.display = 'none';
+
+        try {
+            const response = await fetch(`/api/sdm/requests/${id}`, {
+                method: 'GET',
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) throw new Error('Gagal menarik detail data dari peladen.');
+            const data = await response.json();
+
+            document.getElementById('detail_div_target').innerText = data.target_division_name;
+            document.getElementById('detail_qty').innerText = data.quantity;
+            document.getElementById('detail_reason').innerText = data.reason || 'Tidak ada catatan.';
+
+            document.getElementById('detail_loading').style.display = 'none';
+            document.getElementById('detail_content').style.display = 'block';
+
+        } catch (error) {
+            console.error(error);
+            alert(error.message);
+            tutupModalDetail();
+        }
+    }
+
+    function tutupModalDetail() {
+        document.getElementById('modalDetailReq').style.display = 'none';
+    }
+
+    // ==========================================
+    // LOGIKA MODAL SETUJUI / TOLAK PENGAJUAN (HRD)
+    // ==========================================
+    async function bukaModalSetujui(reqId) {
+        document.getElementById('modalSetujui').style.display = 'flex';
+        document.getElementById('setujui_req_id').innerText = `#SDM-${reqId}`;
+        document.getElementById('setujui_input_id').value = reqId;
+    }
+
+    function tutupModalSetujui() {
+        document.getElementById('modalSetujui').style.display = 'none';
+    }
+
+    async function updateRequestStatus(newStatus) {
+        const reqId = document.getElementById('setujui_input_id').value;
+        const btn = document.getElementById('btnSubmitSetujui');
+        
+        try {
+            btn.disabled = true;
+            btn.innerText = 'Memproses...';
+
+            const res = await fetch(`/api/sdm/requests/${reqId}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus }),
+                credentials: 'same-origin'
+            });
+
+            if (!res.ok) throw new Error('Gagal memperbarui status pengajuan.');
+            
+            tutupModalSetujui();
+            window.location.reload();
+        } catch (e) {
+            console.error(e);
+            alert(e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = 'Teruskan (Setujui)';
+        }
+    }
+
+    // ==========================================
+    // LOGIKA MODAL PENGAJUAN KANDIDAT & GATES (HRD)
+    // ==========================================
+// ==========================================
+    // LOGIKA MODAL PENGAJUAN KANDIDAT & GATES (HRD)
+    // ==========================================
+    async function bukaModalKandidat(reqId) {
+        document.getElementById('modalKandidat').style.display = 'flex';
+        document.getElementById('kandidat_req_id').innerText = `#SDM-${reqId}`;
+        document.getElementById('input_req_id').value = reqId;
+
+        try {
+            // TEKNIK PARALLEL FETCH: Menarik data karyawan, divisi, dan pendidikan secara bersamaan
+            const [empRes, divRes, eduRes] = await Promise.all([
+                fetch('/api/employees/', { credentials: 'same-origin' }),
+                fetch('/api/divisions/', { credentials: 'same-origin' }),
+                fetch('/api/divisions/education-fields/', { credentials: 'same-origin' })
+            ]);
+
+            if (!empRes.ok) throw new Error("Gagal mengambil data karyawan dari peladen.");
+
+            const employees = await empRes.json();
+            const divisions = divRes.ok ? await divRes.json() : [];
+            const educations = eduRes.ok ? await eduRes.json() : [];
+
+            // MEMBUAT KAMUS DATA (Hash Map) untuk pencarian instan (O(1))
+            const divMap = {};
+            divisions.forEach(d => divMap[d.id] = d.name);
+
+            const eduMap = {};
+            educations.forEach(e => eduMap[e.id] = e.name);
+
+            const select = document.getElementById('select_kandidat');
+            select.innerHTML = '<option value="">-- Pilih Kandidat Karyawan --</option>';
+            
+            employees.forEach(emp => {
+                // Evaluasi status sanksi (Sesuai skema database)
+                const isSanctioned = emp.has_sanction === true;
+                const disabledAttr = isSanctioned ? 'disabled' : '';
+                const statusText = isSanctioned ? ' (Sanksi Aktif)' : '';
+                
+                // MENCATUT NAMA DARI KAMUS DATA BERDASARKAN ID
+                const divName = divMap[emp.division_id] || `Divisi ID: ${emp.division_id}`;
+                const eduName = eduMap[emp.education_field_id] || `Pendidikan ID: ${emp.education_field_id}`;
+                
+                // Merender Opsi Dropdown
+                select.innerHTML += `<option value="${emp.id}" ${disabledAttr}>${emp.full_name} - ${divName} [${eduName}]${statusText}</option>`;
+            });
+        } catch (e) {
+            console.error("Gagal memuat kandidat:", e);
+            alert("Kesalahan Sistem: " + e.message);
+        }
+    }
+
+    function tutupModalKandidat() {
+        document.getElementById('modalKandidat').style.display = 'none';
+        document.getElementById('select_kandidat').value = '';
+    }
+
+async function prosesEvaluasiKandidat() {
+        const empId = document.getElementById('select_kandidat').value;
+        const reqId = document.getElementById('input_req_id').value;
+
+        if (!empId) {
+            alert("Harap pilih karyawan terlebih dahulu.");
+            return;
+        }
+
+        const btn = document.getElementById('btnSubmitKandidat');
+        try {
+            btn.disabled = true;
+            btn.innerText = 'Mengevaluasi...';
+
+            const payload = {
+                sdm_request_id: parseInt(reqId),
+                employee_id: parseInt(empId)
+            };
+            
+            console.log("Mengirim payload ke Pydantic:", payload);
+
+            const response = await fetch('/api/gates/evaluate-initial', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                credentials: 'same-origin'
+            });
+
+            const data = await response.json();
+
+            // ==========================================
+            // PENANGKAP GALAT 422 PYDANTIC
+            // ==========================================
+            if (!response.ok) {
+                let errorMsg = data.detail;
+                if (Array.isArray(errorMsg)) {
+                    // Menerjemahkan JSON 422 dari FastAPI menjadi teks yang dapat dibaca manusia
+                    errorMsg = "Data ditolak oleh Pydantic (422):\n" + errorMsg.map(e => `• Kolom '${e.loc[e.loc.length-1]}': ${e.msg}`).join('\n');
+                }
+                throw new Error(errorMsg || "Gagal melakukan evaluasi.");
+            }
+
+            tutupModalKandidat();
+            
+            if (data.education_gate_status === 'interview_pending') {
+                alert(`INFO: Kandidat berhasil ditambahkan namun lintas divisi.\n\nKandidat masuk antrean asesmen. Silakan cek menu Gates untuk input konversi nilai.`);
+            } else if (data.education_gate_status === 'passed') {
+                alert(`SUKSES: Kandidat memiliki korelasi keilmuan yang valid.\n\nKandidat langsung masuk ke daftar siap Profile Matching.`);
+            } else {
+                alert(`Kandidat ditolak oleh sistem (Gate A Gagal).\nAlasan: ${data.education_gate_notes || 'Tidak memenuhi kualifikasi'}`);
+            }
+
+        } catch (error) {
+            console.error("Tertangkap:", error);
+            alert(error.message); // Akan menampilkan kolom persis yang hilang
+        } finally {
+            btn.disabled = false;
+            btn.innerText = 'Evaluasi Kandidat';
+        }
+    }
+    
+    async function jalankanMatching(reqId) {
+        if (!confirm('Peringatan: Jalankan Profile Matching hanya setelah semua kandidat menyelesaikan asesmen (Gate B). Lanjutkan?')) return;
+
+        try {
+            const res = await fetch(`/api/sdm/requests/${reqId}/run-matching`, {
+                method: 'POST',
+                credentials: 'same-origin'
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || 'Matching gagal dieksekusi.');
+            }
+
+            window.location.href = `/results?request_id=${reqId}`;
+        } catch (e) {
+            console.error(e);
+            alert(e.message);
+        }
+    }
+</script>
+{% endblock %}
