@@ -194,6 +194,26 @@ def run_matching(db: Session, request_id: int) -> list[MatchingResult]:
 
     match_results = []
     
+    ranked = rank_employees(match_results)
+    persisted = []
+    
+    for rank, resulit in ranked:
+        row = MatchingResult(
+            sdm_request_id=request_id,
+            employee_id=result.employee_id,
+            ncf_score=result.ncf_score,
+            nsf_score=result.nsf_score,
+            final_score=result.final_score,
+            rank=rank
+        )
+        
+        db.add(row)
+        persisted.append(row)
+    
+    db.commit()
+    return persisted
+    
+    
     # 3. PENYUSUNAN PARAMETER ALGORITMA DINAMIS
     for emp in employees:
         emp_scores = score_index.get(emp.id, {})
@@ -265,6 +285,7 @@ def get_matching_results(db: Session, request_id: int) -> list[MatchingResult]:
     get_sdm_request_or_404(db, request_id)
     return (
         db.query(MatchingResult)
+        .join(MatchingResult.employee)
         .filter(MatchingResult.sdm_request_id == request_id)
         .options(contains_eager(MatchingResult.employee)) # Optimasi query
         .order_by(MatchingResult.rank)

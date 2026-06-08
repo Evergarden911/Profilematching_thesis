@@ -102,3 +102,6 @@ logs/
 # Keep Dockerfile and docker-compose.yml, ignore override files
 docker-compose.override.yml
 .docker/
+
+# ── MISC ─────────────────────────────────────────────────────────────
+.md
