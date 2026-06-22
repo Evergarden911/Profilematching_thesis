@@ -60,28 +60,15 @@
         <div class="login-right" style="flex: 1; background-color: #ffffff; padding: 64px; display: flex; align-items: center; justify-content: center;">
             <div class="login-form-box" style="width: 100%; max-width: 400px;">
                 <h1 class="login-form-title" style="font-size: 28px; font-weight: 700; color: #0f172a; margin: 0 0 8px 0;">Masuk</h1>
-                <p class="login-form-sub" style="font-size: 14px; color: #64748b; margin: 0 0 32px 0;">Pilih peran dan masukkan kredensial Anda.</p>
-
-                <div class="login-role-selector" style="display: flex; gap: 12px; margin-bottom: 24px;">
-                    <div class="role-option" onclick="setRole('kepala_divisi', this)" style="flex: 1; padding: 16px 8px; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center; cursor: pointer; font-size: 12px; font-weight: 500; color: #64748b; transition: all 0.2s;">
-                        <span class="role-icon" style="display: block; font-size: 20px; margin-bottom: 8px;">🏢</span>Kepala Divisi
-                    </div>
-                    <div class="role-option selected" onclick="setRole('kepala_hrd', this)" style="flex: 1; padding: 16px 8px; border: 2px solid #0f172a; border-radius: 8px; text-align: center; cursor: pointer; font-size: 12px; font-weight: 600; color: #0f172a; background-color: #f8fafc; transition: all 0.2s;">
-                        <span class="role-icon" style="display: block; font-size: 20px; margin-bottom: 8px;">👥</span>Kepala HRD
-                    </div>
-                    <div class="role-option" onclick="setRole('kepala_cabang', this)" style="flex: 1; padding: 16px 8px; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center; cursor: pointer; font-size: 12px; font-weight: 500; color: #64748b; transition: all 0.2s;">
-                        <span class="role-icon" style="display: block; font-size: 20px; margin-bottom: 8px;">🏛️</span>Kepala Cabang
-                    </div>
-                </div>
+                <p class="login-form-sub" style="font-size: 14px; color: #64748b; margin: 0 0 32px 0;">Masukkan kredensial Anda untuk melanjutkan.</p>
 
                 <div id="error-message" style="display: none; background-color: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 12px; border-radius: 6px; font-size: 13px; margin-bottom: 20px; font-weight: 500;"></div>
 
                 <form id="login-form" onsubmit="handleFormSubmit(event)">
-                    <input type="hidden" id="selected-role" name="role" value="kepala_hrd">
 
                     <div class="login-input-group" style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">
                         <div class="input-field-wrap" style="position: relative;">
-                            <input id="login-username" name="username" type="text" placeholder="Username" value="HRD" required style="width: 100%; padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box; background-color: #ffffff; color: #0f172a;">
+                            <input id="login-username" name="username" type="text" placeholder="Username" value="" required style="width: 100%; padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box; background-color: #ffffff; color: #0f172a;">
                         </div>
                         <div class="input-field-wrap" style="position: relative;">
                             <input id="login-password" name="password" type="password" placeholder="Password" required style="width: 100%; padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box; background-color: #ffffff; color: #0f172a;">
@@ -102,26 +89,6 @@
     </div>
 
     <script>
-        function setRole(roleValue, element) {
-            document.getElementById('selected-role').value = roleValue;
-            
-            // Atur ulang visual pilihan
-            document.querySelectorAll('.role-option').forEach(opt => {
-                opt.style.border = '1px solid #e2e8f0';
-                opt.style.fontWeight = '500';
-                opt.style.color = '#64748b';
-                opt.style.backgroundColor = 'transparent';
-                opt.classList.remove('selected');
-            });
-            
-            // Aktifkan elemen yang diklik
-            element.style.border = '2px solid #0f172a';
-            element.style.fontWeight = '600';
-            element.style.color = '#0f172a';
-            element.style.backgroundColor = '#f8fafc';
-            element.classList.add('selected');
-        }
-
         async function handleFormSubmit(event) {
             event.preventDefault();
             
@@ -135,7 +102,6 @@
             btnSubmit.disabled = true;
             btnSubmit.textContent = 'Memverifikasi...';
 
-            // Representasi data x-www-form-urlencoded untuk spesifikasi OAuth2 Password Form FastAPI
             const details = {
                 'username': usernameInput,
                 'password': passwordInput
@@ -165,10 +131,8 @@
 
                 const data = await response.json();
                 
-                // Menyimpan token ke Cookie agar otomatis terbawa pada request halaman berikutnya oleh browser (Arsitektur MPA)
                 document.cookie = "access_token=" + data.access_token + "; path=/; max-age=" + (60 * 30) + "; SameSite=Strict";
                 
-                // Pengalihan halaman utuh sisi server
                 window.location.href = '/dashboard';
 
             } catch (error) {
