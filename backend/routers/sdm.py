@@ -125,7 +125,7 @@ def get_request_detail(
 def run_matching(
     request_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_role("kepala_cabang")),
+    _: User = Depends(require_role("kepala_hrd")),
 ):
     return sdm_service.run_matching(db, request_id)
 
