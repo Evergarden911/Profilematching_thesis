@@ -80,13 +80,13 @@ def get_current_user_from_cookie(request: Request, db: Session):
         return None
 
 @app.get("/", response_class=HTMLResponse)
-async def view_login(request: Request):
+async def view_login_root(request: Request):  # <-- FIXED name
     if request.cookies.get("access_token"):
         return RedirectResponse(url="/dashboard", status_code=302)
     return templates.TemplateResponse("login.html", {"request": request})
 
 @app.get("/login")
-async def view_login(request: Request):
+async def view_login_page(request: Request):  # <-- FIXED name
     if request.cookies.get("access_token"):
         return RedirectResponse(url="/dashboard", status_code=302)
     return templates.TemplateResponse("login.html", {"request": request})
@@ -192,7 +192,7 @@ async def view_requests(
     })
 
 @app.get("/results/{request_id}", response_class=HTMLResponse)
-async def view_results(
+async def view_results_detail(  # <-- FIXED BUG-02 (Nama diubah)
     request_id: int,
     request: Request, 
     db: Session = Depends(get_db)
@@ -218,6 +218,7 @@ async def view_results(
     formatted_candidates = []
     for cand in candidates:
         formatted_candidates.append({
+            "id": cand.employee.id,
             "employee_name": cand.employee.full_name,
             "employee_code": cand.employee.employee_code,
             "employee_role": cand.employee.position,
@@ -240,7 +241,9 @@ async def view_results(
         "calculated_at": candidates[0].computed_at.strftime('%d %b %Y, %H:%M') if candidates else "Belum dikalkulasi",
         "ncf_weight": 60,
         "nsf_weight": 40,
-        "total_criteria": len(req_data.target_division.criteria) if req_data.target_division else 0
+        # FIXED BUG-07: Mengubah .criteria menjadi .criteria_weights 
+        # (Model Division terhubungnya ke DivisionCriteriaWeight, bukan langsung ke GroupCriteria)
+        "total_criteria": len(req_data.target_division.criteria_weights) if req_data.target_division else 0
     })
 
 @app.get("/criteria", response_class=HTMLResponse)
@@ -350,7 +353,7 @@ async def view_wla(request: Request, db: Session = Depends(get_db)):
     })
 
 @app.get("/results", response_class=HTMLResponse)
-async def view_results(
+async def view_results_list(  # <-- FIXED BUG-02 (Nama diubah)
     request: Request, 
     request_id: Optional[int] = None, 
     db: Session = Depends(get_db)
@@ -382,7 +385,7 @@ async def view_results(
             for r in results_db:
                 candidates.append({
                     "id": r.employee.id,
-                    "name": r.employee.full_name,
+                    "employee_name": r.employee.full_name,  # <--- FIXED BUG-14 & BUG-22: Ganti 'name' ke 'employee_name'
                     "employee_code": r.employee.employee_code,
                     "ncf_score": round(r.ncf_score, 2),
                     "nsf_score": round(r.nsf_score, 2),

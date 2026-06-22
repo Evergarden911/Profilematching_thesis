@@ -158,13 +158,12 @@ def run_matching(db: Session, request_id: int) -> list[MatchingResult]:
     if not division_weights:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Sub-divisi ini belum memiliki konfigurasi bobot kriteria. HRD harus menetapkan bobot 100% terlebih dahulu.",
+            detail="Sub-divisi ini belum memiliki konfigurasi bobot kriteria. HRD harus menetapkan bobot 100% terlebih dahulu.",
         )
 
-    # Ekstrak ID Kriteria Grup untuk mencocokkan nilai karyawan
     valid_group_criteria_ids = [dw.group_criteria_id for dw in division_weights]
 
-    # 2. PENGAMBILAN KANDIDAT YANG LOLOS GERBANG (GATE A/B)
+    # 2. PENGAMBILAN KANDIDAT YANG LOLOS GERBANG
     employees: list[Employee] = (
         db.query(Employee)
         .join(RotationGate, RotationGate.employee_id == Employee.id)
@@ -174,7 +173,7 @@ def run_matching(db: Session, request_id: int) -> list[MatchingResult]:
             Employee.has_sanction == False,
             RotationGate.sdm_request_id == request_id,
             RotationGate.is_eligible_for_matching == True,
-            EmployeeScore.criteria_id.in_(valid_group_criteria_ids), # Evaluasi berdasarkan ID Kriteria Grup
+            EmployeeScore.criteria_id.in_(valid_group_criteria_ids),
         )
         .options(contains_eager(Employee.scores))
         .all()
@@ -194,34 +193,13 @@ def run_matching(db: Session, request_id: int) -> list[MatchingResult]:
 
     match_results = []
     
-    ranked = rank_employees(match_results)
-    persisted = []
-    
-    for rank, resulit in ranked:
-        row = MatchingResult(
-            sdm_request_id=request_id,
-            employee_id=result.employee_id,
-            ncf_score=result.ncf_score,
-            nsf_score=result.nsf_score,
-            final_score=result.final_score,
-            rank=rank
-        )
-        
-        db.add(row)
-        persisted.append(row)
-    
-    db.commit()
-    return persisted
-    
-    
-    # 3. PENYUSUNAN PARAMETER ALGORITMA DINAMIS
+    # 3. PENYUSUNAN PARAMETER & KOMPUTASI ALGORITMA (Dipindah ke atas!)
     for emp in employees:
         emp_scores = score_index.get(emp.id, {})
         
         inputs = []
         for dw in division_weights:
             gc = dw.group_criteria
-            # Ambil nilai aktual karyawan. Jika tidak ada nilai untuk kriteria ini, default ke 0.0
             actual_score = emp_scores.get(gc.id, 0.0) 
             
             inputs.append(
@@ -229,7 +207,7 @@ def run_matching(db: Session, request_id: int) -> list[MatchingResult]:
                     criteria_id=gc.id,
                     employee_score=actual_score,
                     target_value=gc.target_value,
-                    weight=dw.weight, # Menggunakan bobot spesifik sub-divisi, BUKAN bobot kriteria umum
+                    weight=dw.weight,
                     factor_type=gc.factor_type.value,
                 )
             )
@@ -242,6 +220,26 @@ def run_matching(db: Session, request_id: int) -> list[MatchingResult]:
             detail="Tidak ada karyawan yang memiliki nilai asesmen pada kriteria sub-divisi target ini."
         )
 
+    # 4. PERANKINGAN & PENYIMPANAN KE DATABASE
+    ranked = rank_employees(match_results)
+    persisted = []
+    
+    # FIXED: Typo 'resulit' diganti menjadi 'result'
+    for rank, result in ranked:
+        row = MatchingResult(
+            sdm_request_id=request_id,
+            employee_id=result.employee_id,
+            ncf_score=result.ncf_score,
+            nsf_score=result.nsf_score,
+            final_score=result.final_score,
+            rank=rank
+        )
+        db.add(row)
+        persisted.append(row)
+    
+    # Flush agar baris MatchingResult mendapat ID sementara di Session sebelum Gate 2 membaca DB
+    db.flush()
+
     # -----------------------------------------------------------------------
     # GATE 2: Stress-Test WLA pada 3 Kandidat Teratas (Resource Optimization)
     # -----------------------------------------------------------------------
@@ -250,31 +248,36 @@ def run_matching(db: Session, request_id: int) -> list[MatchingResult]:
 
     for rank, result in ranked[:3]:
         emp_model = db.query(Employee).get(result.employee_id)
-        gate = RotationGate(
-            sdm_request_id=request_id,
-            employee_id=result.employee_id,
-        )
-        db.add(gate)
+        
+        # FIXED: Tarik record RotationGate yang sudah ada, jangan pakai db.add(RotationGate(...)) baru!
+        gate = db.query(RotationGate).filter_by(
+            sdm_request_id=request_id, 
+            employee_id=result.employee_id
+        ).first()
+        
+        if not gate:
+            gate = RotationGate(sdm_request_id=request_id, employee_id=result.employee_id)
+            db.add(gate)
         
         try:
-            # Sistem menyimulasikan dampak WLA terhadap divisi asal kandidat jika ia ditarik
             wla_check = wla_service.simulate_rotation(db, emp_model.division_id, division_id, current_period)
             
             if wla_check.rotation_approved:
-                gate.wla_gate_status = GateStatus.passed
-                gate.wla_gate_notes = "LULUS: Rotasi tidak menyebabkan divisi asal Overload (Aman)."
+                # FIXED: Menyesuaikan nama kolom ORM (wla_gate_status tidak eksis, di model namanya passed/failed atau masuk ke notes)
+                # Catatan: Di models.py entitas RotationGate tidak punya kolom wla_gate_status terpisah.
+                # Kita simpan hasil kelulusan WLA ini ke dalam is_eligible_for_matching dan notes wawancara/edukasi atau log.
                 gate.is_eligible_for_matching = True
+                gate.interview_gate_notes = f"[WLA Lulus]: Rotasi aman. {gate.interview_gate_notes or ''}"
             else:
-                gate.wla_gate_status = GateStatus.failed
-                gate.wla_gate_notes = "GAGAL WLA: " + (wla_check.source.warning or wla_check.target.warning or "Divisi kritis jika ditinggalkan.")
                 gate.is_eligible_for_matching = False
+                gate.interview_gate_notes = f"[WLA Gagal]: Divisi asal overload. {gate.interview_gate_notes or ''}"
         except Exception as e:
-            gate.wla_gate_status = GateStatus.pending
-            gate.wla_gate_notes = f"Simulasi dibatalkan: Data WLA Divisi Asal tidak lengkap ({str(e)})."
             gate.is_eligible_for_matching = False
+            gate.interview_gate_notes = f"[WLA Error]: Simulasi gagal ({str(e)}). {gate.interview_gate_notes or ''}"
 
     sdm_request.status = RequestStatus.matched
     db.commit()
+    
     for row in persisted:
         db.refresh(row)
 
