@@ -21,7 +21,6 @@ router = APIRouter(prefix="/api/criteria", tags=["criteria"])
 def get_criteria_for_division(
     division_id: Optional[int] = None,
     db: Session = Depends(get_db),
-    # FIXED BUG-03: Menghapus tanda kurung siku [] agar terbaca sebagai *args tuple
     _: object = Depends(require_role("kepala_hrd", "kepala_cabang", "kepala_divisi")),
 ):
     if not division_id:
@@ -56,43 +55,6 @@ def get_criteria_for_division(
                 "target_value": gc.target_value,
                 "factor_type": gc.factor_type.value,
                 "weight": w.weight
-                # FIXED BUG-04: Key 'scoring_method' dihapus secara permanen 
-                # karena tidak eksis di model GroupCriteria.
-            })
-            
-    return results
-
-    # 1. Validasi Eksistensi Divisi
-    div = db.query(Division).filter(Division.id == division_id).first()
-    if not div:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            detail=f"Divisi dengan ID {division_id} tidak ditemukan."
-        )
-
-    # 2. Query Penggabungan Tabel (Join) yang Dioptimalkan
-    # Mengambil bobot spesifik divisi dan memuat GroupCriteria secara bersamaan (Eager Loading)
-    weights = (
-        db.query(DivisionCriteriaWeight)
-        .filter(DivisionCriteriaWeight.division_id == division_id)
-        .join(GroupCriteria)
-        .options(contains_eager(DivisionCriteriaWeight.group_criteria))
-        .all()
-    )
-
-    # 3. Transformasi Data untuk Front-end
-    results = []
-    for w in weights:
-        gc = w.group_criteria
-        if gc.is_active:
-            results.append({
-                "id": gc.id,
-                "name": gc.name,
-                "description": gc.description,
-                "target_value": gc.target_value,
-                "factor_type": gc.factor_type.value,
-                "weight": w.weight,
-                "scoring_method": gc.scoring_method.value
             })
             
     return results

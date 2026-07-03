@@ -1,6 +1,7 @@
 from typing import Optional
 from datetime import datetime
 from fastapi import APIRouter, Depends, status, Query, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import extract
 from sqlalchemy.orm import Session
 
@@ -19,8 +20,13 @@ from backend.services import sdm_service
 
 router = APIRouter(prefix="/api/sdm", tags=["sdm"])
 
+# Skema Pydantic khusus penambalan BUG-21
+class SDMRequestStatusPatch(BaseModel):
+    status: RequestStatus
+
+
 # ---------------------------------------------------------------------------
-# STATISTIK DASHBOARD (Dipertahankan untuk kompatibilitas API JSON)
+# STATISTIK DASHBOARD
 # ---------------------------------------------------------------------------
 @router.get("/dashboard-stats")
 def get_dashboard_stats(
@@ -48,6 +54,7 @@ def get_dashboard_stats(
         "monthly_delta": this_month
     }
 
+
 # ---------------------------------------------------------------------------
 # SDM Requests & Siklus Hidup Approval
 # ---------------------------------------------------------------------------
@@ -58,6 +65,7 @@ def create_request(
     current_user: User = Depends(require_role("kepala_divisi")),
 ):
     return sdm_service.create_sdm_request(db, payload, current_user)
+
 
 @router.get("/requests", response_model=list[SDMRequestRead])
 def list_requests(
@@ -82,6 +90,7 @@ def list_requests(
         
     return requests
 
+
 @router.post("/requests/{request_id}/forward", response_model=SDMRequestRead)
 def forward_request(
     request_id: int,
@@ -90,6 +99,7 @@ def forward_request(
     current_user: User = Depends(require_role("kepala_hrd")),
 ):
     return sdm_service.hrd_forward_request(db, request_id, payload.hrd_notes)
+
 
 @router.post("/requests/{request_id}/reject", response_model=SDMRequestRead)
 def reject_request(
@@ -100,34 +110,19 @@ def reject_request(
 ):
     return sdm_service.hrd_reject_request(db, request_id, payload.hrd_notes or "Ditolak sistem")
 
-@router.get("/{request_id}")
-def get_request_detail(
-    request_id: int,
-    db: Session = Depends(get_db),
-    # Memastikan hanya peran yang sah yang bisa melihat detail
-    _=Depends(require_role("kepala_hrd", "kepala_cabang", "kepala_divisi"))
-):
-    """Menarik satu data pengajuan spesifik untuk ditampilkan di Modal UI."""
-    request_data = db.query(SDMRequest).filter(SDMRequest.id == request_id).first()
-    
-    if not request_data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            detail=f"Data pengajuan dengan ID {request_id} tidak ditemukan."
-        )
-        
-    return request_data
 
 # ---------------------------------------------------------------------------
 # Eksekusi Profile Matching & Simulasi Gate
 # ---------------------------------------------------------------------------
+# FIXED ISSUE-01: Memperluas perimeter hak akses ke kepala_hrd dan kepala_cabang
 @router.post("/requests/{request_id}/run-matching", response_model=list[MatchingResultRead], status_code=status.HTTP_201_CREATED)
 def run_matching(
     request_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_role("kepala_hrd")),
+    _: User = Depends(require_role("kepala_hrd", "kepala_cabang")),
 ):
     return sdm_service.run_matching(db, request_id)
+
 
 @router.get("/requests/{request_id}/results", response_model=list[MatchingResultRead])
 def get_results(
@@ -137,15 +132,35 @@ def get_results(
 ):
     return sdm_service.get_matching_results(db, request_id)
 
-# Hapus response_model dari dalam kurung @router.get agar lebih fleksibel
+
+# FIXED BUG-21: Menggunakan skema Pydantic SDMRequestStatusPatch demi keamanan tipe data
+@router.patch("/requests/{request_id}/status")
+def update_request_status(
+    request_id: int,
+    payload: SDMRequestStatusPatch,
+    db: Session = Depends(get_db),
+    _=Depends(require_role("kepala_hrd", "kepala_cabang"))
+):
+    """Digunakan oleh HRD untuk menyetujui atau menolak tiket pengajuan."""
+    req = db.query(SDMRequest).filter(SDMRequest.id == request_id).first()
+    if not req: 
+        raise HTTPException(status_code=404, detail="Pengajuan tidak ditemukan")
+    
+    req.status = payload.status
+    db.commit()
+    return {"message": f"Status pengajuan berhasil diperbarui menjadi '{payload.status.value}'."}
+
+
+# FIXED BUG-11 & Rute Ganda: Disatukan menjadi satu rute kanonikal di urutan PALING BAWAH
 @router.get("/requests/{request_id}")
-def get_single_request_detail(
+def get_canonical_request_detail(
     request_id: int,
     db: Session = Depends(get_db),
     _=Depends(require_role("kepala_hrd", "kepala_cabang", "kepala_divisi"))
 ):
     """
-    Menyuplai data JSON murni untuk satu pengajuan spesifik berdasarkan ID.
+    Menyuplai dictionary lengkap (termasuk properti ORM dan custom target_division_name)
+    agar kompatibel dengan seluruh pemanggilan modal JS di frontend.
     """
     request_data = db.query(SDMRequest).filter(SDMRequest.id == request_id).first()
     
@@ -155,30 +170,16 @@ def get_single_request_detail(
             detail=f"Permintaan SDM dengan ID {request_id} tidak ditemukan dalam sistem."
         )
         
-    # Mengonversi objek ke dalam kamus (dictionary) kustom agar relasi nama divisi ikut terkirim
     return {
         "id": request_data.id,
         "target_division_id": request_data.target_division_id,
         "target_division_name": request_data.target_division.name if request_data.target_division else "Tidak Diketahui",
         "quantity": request_data.quantity,
-        "reason": request_data.reason
+        "reason": request_data.reason,
+        "status": request_data.status.value,
+        "created_at": request_data.created_at
     }
-    
-@router.patch("/requests/{request_id}/status")
-def update_request_status(
-    request_id: int,
-    payload: dict, # Menerima JSON seperti {"status": "under_review"}
-    db: Session = Depends(get_db),
-    _=Depends(require_role("kepala_hrd"))
-):
-    """Digunakan oleh HRD untuk menyetujui atau menolak tiket pengajuan."""
-    req = db.query(SDMRequest).filter(SDMRequest.id == request_id).first()
-    if not req: 
-        raise HTTPException(status_code=404, detail="Pengajuan tidak ditemukan")
-    
-    req.status = payload.get("status")
-    db.commit()
-    return {"message": "Status pengajuan berhasil diperbarui."}
+
 
 # ---------------------------------------------------------------------------
 # Eksekusi Surat Tugas
