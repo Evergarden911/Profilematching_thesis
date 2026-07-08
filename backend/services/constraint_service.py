@@ -120,12 +120,13 @@ def evaluate_education_gate(
         db.refresh(gate)
         return gate
 
+    # PERBAIKAN 1: Menggunakan employee.education.name (bukan employee.education_field.name)
+    # PERBAIKAN 2: Menghapus pengecekan constraint.notes karena kolom tersebut tidak ada di skema ORM
     if constraint.constraint_type == ConstraintType.blocked:
         gate.education_gate_status = GateStatus.failed
         gate.education_gate_notes = (
-            f"Education field '{employee.education_field.name}' is not permitted "
+            f"Education field '{employee.education.name}' is not permitted "
             f"for rotation into '{target_division.name}'."
-            + (f" Note: {constraint.notes}" if constraint.notes else "")
         )
         gate.education_checked_at = datetime.now(timezone.utc)
         gate.is_eligible_for_matching = False
@@ -135,7 +136,7 @@ def evaluate_education_gate(
 
     gate.education_gate_status = GateStatus.passed
     gate.education_gate_notes = (
-        f"Education field '{employee.education_field.name}' is permitted for '{target_division.name}'."
+        f"Education field '{employee.education.name}' is permitted for '{target_division.name}'."
     )
     gate.education_checked_at = datetime.now(timezone.utc)
     _decide_interview_requirement(
@@ -145,7 +146,6 @@ def evaluate_education_gate(
     db.commit()
     db.refresh(gate)
     return gate
-
 
 def _decide_interview_requirement(
     db: Session,
@@ -348,6 +348,7 @@ def evaluate_initial_constraints(db: Session, sdm_request_id: int, employee_id: 
             if not is_native and getattr(constraint, 'requires_interview_if_not_native', False):
                 gate.education_gate_status = "interview_pending"
                 gate.education_gate_notes = "Lolos Gate A: Wajib mengikuti asesmen lintas fungsi."
+                gate.interview_gate_status = GateStatus.interview_pending
             else:
                 gate.education_gate_status = "passed"
                 gate.education_gate_notes = "Lulus Gate A: Kualifikasi pendidikan sesuai."
@@ -357,6 +358,7 @@ def evaluate_initial_constraints(db: Session, sdm_request_id: int, employee_id: 
         if not is_native:
             gate.education_gate_status = "interview_pending"
             gate.education_gate_notes = "Lolos Gate A: Menerapkan Open Policy (Wajib Asesmen)."
+            gate.interview_gate_status = GateStatus.interview_pending
         else:
             gate.education_gate_status = "passed"
             gate.education_gate_notes = "Lulus Gate A: Menerapkan Open Policy (Internal)."

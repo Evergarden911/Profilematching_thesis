@@ -74,3 +74,29 @@
   background-color: var(--red);
   z-index: 2;
 }
+
+/* Aturan grid yang sebelumnya hilang dan menyebabkan layout rusak */
+.dashboard-layout-split {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .dashboard-layout-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Menambahkan garis vertikal pada track timeline */
+.timeline-container::after {
+  content: '';
+  position: absolute;
+  left: -7px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background-color: var(--border-mid);
+  z-index: 1;
+}

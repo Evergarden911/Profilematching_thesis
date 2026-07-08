@@ -93,6 +93,6 @@ class TransferLetterRead(BaseModel):
     issued_by_id: int
     letter_number: str
     content: str
-    issued_at: datetime
+    created_at: datetime  # Diperbaiki dari issued_at agar sesuai dengan model ORM
 
     model_config = {"from_attributes": True}

@@ -22,7 +22,7 @@ def list_wla(
 def record_wla(
     payload: WLACreate,
     db: Session = Depends(get_db),
-    _=Depends(require_role("kepala_hrd", "kepala_cabang")),
+    _=Depends(require_role("kepala_hrd", "kepala_cabang", "kepala_divisi")),
 ):
     # Parameter diekstrak eksplisit untuk memastikan pemicu pengajuan otomatis berjalan presisi
     return wla_service.record_wla(

@@ -44,9 +44,13 @@
     let currentGateId = null;
 
     async function bukaModalInterview(gateId, divId) {
-        currentGateId = gateId;
+        currentGateId = gateId;s
         // Panggil API untuk ambil kriteria berdasarkan divisi target
         const res = await fetch(`/api/divisions/${divId}/criteria`);
+        const divs = await (await fetch('/api/divisions/')).json();
++       const targetDiv = divs.find(d => d.id === divId);
++       if (!targetDiv || !targetDiv.group_id) { App.showToast('Divisi tidak memiliki rumpun kerja terkait.', 'error'); return; }
++       const res = await fetch(`/api/divisions/groups/${targetDiv.group_id}/criteria`);
         const criteria = await res.json();
         
         const container = document.getElementById('criteriaList');

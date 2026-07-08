@@ -284,3 +284,49 @@ tbody td {
   justify-content: flex-end;
   gap: 12px;
 }
+
+.badge-under_review, .badge-review {
+  background-color: #E0F2FE;
+  color: #0369A1;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.badge-rejected, .badge-failed {
+  background-color: var(--red-light);
+  color: var(--red-dark);
+  border: 1px solid rgba(204, 34, 41, 0.2);
+}
+
+/* Gate Progress Step Components */
+.gate-progress-group {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.gate-step {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  border: 1px solid transparent;
+}
+
+.gate-step--passed {
+  background-color: var(--green-light);
+  color: var(--green-dark);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.gate-step--pending {
+  background-color: var(--amber-light);
+  color: var(--amber-dark);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.gate-step--locked {
+  background-color: var(--ink-10);
+  color: var(--ink-40);
+  border-color: var(--border);
+}

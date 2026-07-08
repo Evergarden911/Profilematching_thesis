@@ -26,6 +26,7 @@ from backend.models import (
     SDMRequest,
     TransferLetter,
     User,
+    UserRole,
     GateStatus,
     RotationGate
 )
@@ -81,9 +82,9 @@ def create_sdm_request(db: Session, payload: SDMRequestCreate, requester: User) 
 
 def list_sdm_requests(db: Session, requester: User) -> list[SDMRequest]:
     q = db.query(SDMRequest)
-    if requester.role == "kepala_divisi":
+    if requester.role == UserRole.kepala_divisi:
         q = q.filter(SDMRequest.requester_id == requester.id)
-    elif requester.role == "kepala_cabang":
+    elif requester.role == UserRole.kepala_cabang:
         q = q.filter(
             SDMRequest.status.in_(
                 [RequestStatus.forwarded, RequestStatus.under_review, RequestStatus.matched]

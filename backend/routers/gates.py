@@ -35,7 +35,7 @@ def evaluate_initial_gate(
       3. Korelasi Keilmuan: Jika jurusan cocok tapi fungsi asal melompat jauh 
          (contoh: CS ke LAB), sistem memaksa status ke 'interview_pending'.
     """
-    return constraint_service.evaluate_initial_constraints(db, payload.sdm_request_id, payload.employee_id)
+    return constraint_service.evaluate_education_gate(db, payload.sdm_request_id, payload.employee_id)
 
 
 @router.post(
@@ -60,7 +60,7 @@ def submit_interview_scores(
         db=db, 
         gate_id=payload.gate_id, 
         scores=[{"criteria_id": s.criteria_id, "raw_score": s.raw_score} for s in payload.scores], 
-        issuer=current_user
+        scored_by=current_user
     )
 
 
@@ -71,4 +71,4 @@ def fail_interview_gate(
     current_user: User = Depends(require_role("kepala_hrd", "kepala_cabang")),
 ):
     """Menggagalkan kandidat secara manual pada tahap asesmen kompetensi."""
-    return constraint_service.fail_interview_gate(db, payload.gate_id, payload.notes, current_user)
+    return constraint_service.fail_interview_gate(db, payload.gate_id, payload.notes)
