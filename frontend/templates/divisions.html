@@ -6,66 +6,76 @@
 <div style="margin-bottom: 24px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <div>
-            <h3 style="margin: 0; font-size: 20px; font-weight: 600; color: var(--ink);">Struktur Organisasi & Divisi</h3>
-            <p style="margin: 4px 0 0 0; color: var(--ink-60); font-size: 13.5px;">Kelola sub-divisi aktual, alokasi anggaran, dan parameter kriteria.</p>
+            <h3 style="margin: 0; font-size: 20px; font-weight: 600; color: var(--ink);">Struktur Organisasi Laboratorium</h3>
+            <p style="margin: 4px 0 0 0; color: var(--ink-60); font-size: 13.5px;">Kelola Rumpun Kerja Induk dan Sub-Divisi Operasional di dalamnya.</p>
         </div>
-        <button class="btn btn-primary" onclick="openDivisionModal()">
-            + Tambah Divisi
+        <button class="btn btn-primary" onclick="openGroupModal()">
+            + Tambah Grup Baru
         </button>
     </div>
 
-    <div class="card">
-        <div class="table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th>KODE</th>
-                        <th>NAMA SUB-DIVISI</th>
-                        <th>GROUP INDUK</th>
-                        <th>ANGGARAN BULANAN</th>
-                        <th style="text-align: right;">AKSI</th>
-                    </tr>
-                </thead>
-                <tbody id="divisionTableBody">
-                    <tr>
-                        <td colspan="5" style="text-align: center; color: var(--ink-60);">Memuat data divisi...</td>
-                    </tr>
-                </tbody>
-            </table>
+    <div id="organigramContainer" style="display: flex; flex-direction: column; gap: 24px;">
+        <div style="text-align: center; color: var(--ink-60); padding: 40px;">Memuat struktur organisasi...</div>
+    </div>
+</div>
+
+<div id="groupModal" class="modal-backdrop">
+    <div class="modal">
+        <div class="modal-header">
+            <h5 id="groupModalTitle" class="modal-title">Tambah Grup Induk Baru</h5>
+            <button onclick="closeGroupModal()" class="modal-close" style="font-size: 20px;">&times;</button>
         </div>
+        <form id="groupForm">
+            <div class="modal-body">
+                <input type="hidden" id="group_id">
+                
+                <div class="form-group">
+                    <label>Kode Grup</label>
+                    <input type="text" id="group_code" required maxlength="20" placeholder="Contoh: MED">
+                </div>
+                
+                <div class="form-group">
+                    <label>Nama Rumpun Grup</label>
+                    <input type="text" id="group_name" required maxlength="200" placeholder="Contoh: Medis & Klinis">
+                </div>
+                
+                <div class="form-group">
+                    <label>Deskripsi Umum</label>
+                    <textarea id="group_desc" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeGroupModal()">Batal</button>
+                <button type="submit" id="btnSaveGroup" class="btn btn-primary">Simpan Grup</button>
+            </div>
+        </form>
     </div>
 </div>
 
 <div id="divisionModal" class="modal-backdrop">
     <div class="modal">
         <div class="modal-header">
-            <h5 id="modalTitle" class="modal-title">Tambah Divisi Baru</h5>
+            <h5 id="divModalTitle" class="modal-title">Tambah Sub-Divisi Baru</h5>
             <button onclick="closeDivisionModal()" class="modal-close" style="font-size: 20px;">&times;</button>
         </div>
         <form id="divisionForm">
             <div class="modal-body">
                 <input type="hidden" id="div_id">
                 
+                <input type="hidden" id="div_group_id">
+                <div class="form-group" style="margin-bottom: 16px; padding: 12px; background: var(--surface); border: 1px dashed var(--border-mid); border-radius: 4px;">
+                    <span style="font-size: 12px; color: var(--ink-60);">Menambahkan ke dalam grup:</span>
+                    <strong id="div_group_name_display" style="display: block; color: var(--ink); margin-top: 4px;">-</strong>
+                </div>
+                
                 <div class="form-group">
-                    <label>Kode Divisi</label>
+                    <label>Kode Sub-Divisi</label>
                     <input type="text" id="div_code" required maxlength="20" placeholder="Contoh: HEM">
                 </div>
                 
                 <div class="form-group">
-                    <label>Nama Resmi Divisi</label>
+                    <label>Nama Resmi Sub-Divisi</label>
                     <input type="text" id="div_name" required maxlength="200" placeholder="Contoh: Hematologi">
-                </div>
-                
-                <div class="form-group">
-                    <label>Rumpun Kerja Induk (Group)</label>
-                    <select id="div_group_id" required>
-                        <option value="">-- Pilih Rumpun Kerja --</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Anggaran Maksimal (IDR)</label>
-                    <input type="number" id="div_budget" min="0" value="0">
                 </div>
                 
                 <div class="form-group">
@@ -75,7 +85,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" onclick="closeDivisionModal()">Batal</button>
-                <button type="submit" id="btnSave" class="btn btn-primary">Simpan Data</button>
+                <button type="submit" id="btnSaveDiv" class="btn btn-primary">Simpan Sub-Divisi</button>
             </div>
         </form>
     </div>
@@ -100,7 +110,6 @@
                             Total: <span id="coreTotalLabel">0.00</span> / 1.00
                         </div>
                     </div>
-                    
                     <div style="flex: 1; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px;">
                         <h6 style="margin: 0 0 12px 0; color: var(--green); font-weight: 600; border-bottom: 1px solid var(--border); padding-bottom: 8px;">Secondary Factor</h6>
                         <div id="secondaryFactorsContainer"></div>
@@ -120,15 +129,182 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", async () => {
-        await loadGroupsDropdown();
-        await loadDivisionTable();
+        await renderOrganigram();
     });
 
-    // --- KONTROL MODAL KUSTOM (Menggunakan sistem kelas CSS kustom) ---
-    function openDivisionModal() {
+    // --- RENDER MESIN KARTU ---
+    async function renderOrganigram() {
+        const container = document.getElementById('organigramContainer');
+        
+        try {
+            const [resGroups, resDivs] = await Promise.all([
+                fetch('/api/divisions/groups'),
+                fetch('/api/divisions/')
+            ]);
+
+            const groups = await resGroups.json();
+            const divisions = await resDivs.json();
+
+            container.innerHTML = '';
+            
+            if (groups.length === 0) {
+                container.innerHTML = `<div style="text-align: center; color: var(--ink-60); padding: 40px; background: white; border-radius: 8px;">Belum ada Rumpun Grup yang terdaftar. Mulai dengan membuat grup baru.</div>`;
+                return;
+            }
+
+            groups.forEach(group => {
+                const groupDivisions = divisions.filter(d => d.group_id === group.id);
+                
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.style.marginBottom = '24px';
+                
+                // Render Header Kartu (Group Info & Actions)
+                let html = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 16px;">
+                        <div>
+                            <h4 style="margin: 0; color: var(--ink); font-size: 18px;">${group.name} <span class="badge" style="background: var(--ink-10); margin-left: 8px; font-size: 12px; border: 1px solid var(--border);">${group.code}</span></h4>
+                            <p style="margin: 6px 0 0 0; font-size: 13px; color: var(--ink-60);">${group.description || 'Tidak ada deskripsi.'}</p>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="editGroup(${group.id}, '${group.code}', '${group.name}', '${group.description || ''}')" class="btn btn-outline btn-sm">Edit Grup</button>
+                            <button onclick="deleteGroup(${group.id})" class="btn btn-outline btn-sm" style="color: var(--red); border-color: var(--red-mid);">Hapus Grup</button>
+                        </div>
+                    </div>
+                `;
+
+                // Render Sub-Division Actions
+                html += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h5 style="margin: 0; font-size: 14px; color: var(--ink);">Anggota Sub-Divisi</h5>
+                        <button onclick="openDivisionModal(${group.id}, '${group.name}')" class="btn btn-outline btn-sm" style="background: var(--surface); border-style: dashed; color: var(--ink);">+ Tambah Sub-Divisi di Sini</button>
+                    </div>
+                `;
+
+                // Render Sub-Division Table
+                if (groupDivisions.length === 0) {
+                    html += `<div style="text-align: center; padding: 20px; background: #f9fafb; border-radius: 4px; color: var(--ink-60); font-size: 13px; border: 1px dashed var(--border-mid);">Belum ada sub-divisi operasional di dalam grup ini.</div>`;
+                } else {
+                    html += `<table style="width: 100%; border-collapse: collapse; font-size: 13.5px; border: 1px solid var(--border);">
+                                <thead>
+                                    <tr style="background: #f9fafb; text-align: left; border-bottom: 2px solid var(--border);">
+                                        <th style="padding: 12px; border-right: 1px solid var(--border);">KODE</th>
+                                        <th style="padding: 12px; border-right: 1px solid var(--border);">NAMA SUB-DIVISI</th>
+                                        <th style="padding: 12px; text-align: right;">AKSI</th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+                    
+                    groupDivisions.forEach(d => {
+                        html += `
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 12px; border-right: 1px solid var(--border);"><strong>${d.code}</strong></td>
+                                <td style="padding: 12px; border-right: 1px solid var(--border);">${d.name}</td>
+                                <td style="padding: 12px; text-align: right;">
+                                    <button onclick="configureWeights(${d.id}, ${group.id})" class="btn btn-outline btn-sm" style="background: var(--ink); color: var(--white); border: none; padding: 4px 10px;">Atur Bobot</button>
+                                    <button onclick="editDivision(${d.id}, '${d.code}', '${d.name}', ${group.id}, '${group.name}', '${d.description || ''}')" class="btn btn-outline btn-sm" style="padding: 4px 10px;">Edit</button>
+                                    <button onclick="deleteDivision(${d.id})" class="btn btn-outline btn-sm" style="color: var(--red); border-color: var(--red-mid); padding: 4px 10px;">Hapus</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    html += `</tbody></table>`;
+                }
+
+                card.innerHTML = html;
+                container.appendChild(card);
+            });
+            
+        } catch (error) {
+            container.innerHTML = `<div style="color: var(--red); text-align: center; padding: 40px; background: white; border-radius: 8px;">Galat saat menyusun struktur peladen. Pastikan server aktif.</div>`;
+            console.error(error);
+        }
+    }
+
+    // --- KONTROL CRUD GRUP DIVISI ---
+    function openGroupModal() {
+        document.getElementById('groupForm').reset();
+        document.getElementById('group_id').value = '';
+        document.getElementById('groupModalTitle').innerText = 'Tambah Grup Induk Baru';
+        document.getElementById('groupModal').classList.add('open');
+    }
+
+    function editGroup(id, code, name, desc) {
+        document.getElementById('group_id').value = id;
+        document.getElementById('group_code').value = code;
+        document.getElementById('group_name').value = name;
+        document.getElementById('group_desc').value = desc;
+        document.getElementById('groupModalTitle').innerText = 'Edit Data Grup';
+        document.getElementById('groupModal').classList.add('open');
+    }
+
+    function closeGroupModal() {
+        document.getElementById('groupModal').classList.remove('open');
+    }
+
+    document.getElementById('groupForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('group_id').value;
+        const btn = document.getElementById('btnSaveGroup');
+        
+        const payload = {
+            code: document.getElementById('group_code').value,
+            name: document.getElementById('group_name').value,
+            description: document.getElementById('group_desc').value
+        };
+
+        try {
+            btn.disabled = true;
+            btn.innerText = 'Memproses...';
+            const url = id ? `/api/divisions/groups/${id}` : '/api/divisions/groups';
+            const response = await fetch(url, {
+                method: id ? 'PATCH' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error('Peladen menolak permintaan penyimpanan grup.');
+            
+            closeGroupModal();
+            await renderOrganigram();
+            if(window.App) App.showToast('Grup berhasil disimpan.', 'success');
+        } catch (error) { alert(error.message); } 
+        finally { btn.disabled = false; btn.innerText = 'Simpan Grup'; }
+    });
+
+    async function deleteGroup(id) {
+        if (!confirm('Peringatan: Menghapus grup akan gagal jika grup ini masih memiliki sub-divisi. Lanjutkan?')) return;
+        try {
+            const response = await fetch(`/api/divisions/groups/${id}`, { method: 'DELETE' });
+            if (!response.ok) throw new Error('Gagal menghapus grup. Pastikan grup sudah kosong dari sub-divisi.');
+            await renderOrganigram();
+            if(window.App) App.showToast('Grup berhasil dihapus.', 'success');
+        } catch (error) { alert(error.message); }
+    }
+
+    // --- KONTROL CRUD SUB-DIVISI (Contextual) ---
+    function openDivisionModal(groupId, groupName) {
         document.getElementById('divisionForm').reset();
         document.getElementById('div_id').value = '';
-        document.getElementById('modalTitle').innerText = 'Tambah Divisi Baru';
+        
+        // Pola Contextual: Atur ID grup tersembunyi
+        document.getElementById('div_group_id').value = groupId;
+        document.getElementById('div_group_name_display').innerText = groupName;
+        
+        document.getElementById('divModalTitle').innerText = 'Tambah Sub-Divisi Baru';
+        document.getElementById('divisionModal').classList.add('open');
+    }
+
+    function editDivision(id, code, name, groupId, groupName, desc) {
+        document.getElementById('div_id').value = id;
+        document.getElementById('div_code').value = code;
+        document.getElementById('div_name').value = name;
+        document.getElementById('div_desc').value = desc;
+        
+        document.getElementById('div_group_id').value = groupId;
+        document.getElementById('div_group_name_display').innerText = groupName;
+        
+        document.getElementById('divModalTitle').innerText = 'Edit Parameter Sub-Divisi';
         document.getElementById('divisionModal').classList.add('open');
     }
 
@@ -136,85 +312,21 @@
         document.getElementById('divisionModal').classList.remove('open');
     }
 
-    function closeWeightsModal() {
-        document.getElementById('weightsModal').classList.remove('open');
-    }
-
-    // --- PEMUATAN DATA VIA API ---
-    async function loadGroupsDropdown() {
-        try {
-            const response = await fetch('/api/divisions/groups');
-            const groups = await response.json();
-            const select = document.getElementById('div_group_id');
-            groups.forEach(g => {
-                const option = document.createElement('option');
-                option.value = g.id;
-                option.textContent = `${g.code} - ${g.name}`;
-                select.appendChild(option);
-            });
-        } catch (error) { console.error(error); }
-    }
-
-    async function loadDivisionTable() {
-        const tbody = document.getElementById('divisionTableBody');
-        try {
-            const response = await fetch('/api/divisions/');
-            const divisions = await response.json();
-            
-            tbody.innerHTML = '';
-            if (divisions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">Belum ada data divisi.</td></tr>';
-                return;
-            }
-
-            divisions.forEach(d => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td><strong>${d.code}</strong></td>
-                    <td>${d.name}</td>
-                    <td><span class="badge" style="background: var(--ink-10); color: var(--ink); border: 1px solid var(--border);">ID: ${d.group_id}</span></td>
-                    <td>Rp ${d.monthly_budget.toLocaleString('id-ID')}</td>
-                    <td style="text-align: right;">
-                        <button onclick="configureWeights(${d.id}, ${d.group_id})" class="btn btn-outline btn-sm" style="background: var(--ink); color: var(--white); border: none;">Bobot</button>
-                        <button onclick="editDivision(${d.id}, '${d.code}', '${d.name}', ${d.group_id}, ${d.monthly_budget}, '${d.description || ''}')" class="btn btn-outline btn-sm">Edit</button>
-                        <button onclick="deleteDivision(${d.id})" class="btn btn-outline btn-sm" style="color: var(--red); border-color: var(--red-mid);">Hapus</button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        } catch (error) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--red);">Error memuat data divisi dari server.</td></tr>`;
-        }
-    }
-
-    // --- OPERASI CRUD ---
-    function editDivision(id, code, name, groupId, budget, desc) {
-        document.getElementById('div_id').value = id;
-        document.getElementById('div_code').value = code;
-        document.getElementById('div_name').value = name;
-        document.getElementById('div_group_id').value = groupId;
-        document.getElementById('div_budget').value = budget;
-        document.getElementById('div_desc').value = desc;
-        document.getElementById('modalTitle').innerText = 'Edit Parameter Divisi';
-        document.getElementById('divisionModal').classList.add('open');
-    }
-
     document.getElementById('divisionForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = document.getElementById('div_id').value;
-        const btn = document.getElementById('btnSave');
+        const btn = document.getElementById('btnSaveDiv');
         
         const payload = {
             code: document.getElementById('div_code').value,
             name: document.getElementById('div_name').value,
-            group_id: parseInt(document.getElementById('div_group_id').value),
-            monthly_budget: parseFloat(document.getElementById('div_budget').value) || 0.0,
+            group_id: parseInt(document.getElementById('div_group_id').value), // Diambil dari hidden input
             description: document.getElementById('div_desc').value
         };
 
         try {
             btn.disabled = true;
-            btn.innerText = 'Menyimpan...';
+            btn.innerText = 'Memproses...';
             const url = id ? `/api/divisions/${id}` : '/api/divisions';
             const response = await fetch(url, {
                 method: id ? 'PATCH' : 'POST',
@@ -222,29 +334,26 @@
                 body: JSON.stringify(payload)
             });
 
-            if (!response.ok) throw new Error('Peladen menolak penyimpanan data.');
+            if (!response.ok) throw new Error('Peladen menolak permintaan penyimpanan sub-divisi.');
             
             closeDivisionModal();
-            await loadDivisionTable();
-            if(window.App) App.showToast('Data divisi berhasil diperbarui.', 'success');
+            await renderOrganigram();
+            if(window.App) App.showToast('Data sub-divisi berhasil diperbarui.', 'success');
         } catch (error) { alert(error.message); } 
-        finally { 
-            btn.disabled = false;
-            btn.innerText = 'Simpan Data'; 
-        }
+        finally { btn.disabled = false; btn.innerText = 'Simpan Sub-Divisi'; }
     });
 
     async function deleteDivision(id) {
-        if (!confirm('Apakah Anda yakin ingin menghapus divisi ini?')) return;
+        if (!confirm('Menghapus sub-divisi berpotensi memengaruhi data karyawan. Lanjutkan?')) return;
         try {
             const response = await fetch(`/api/divisions/${id}`, { method: 'DELETE' });
-            if (!response.ok) throw new Error('Gagal menghapus data.');
-            await loadDivisionTable();
-            if(window.App) App.showToast('Divisi berhasil dihapus.', 'success');
+            if (!response.ok) throw new Error('Gagal menghapus sub-divisi. Hubungi administrator basis data.');
+            await renderOrganigram();
+            if(window.App) App.showToast('Sub-divisi berhasil dihapus.', 'success');
         } catch (error) { alert(error.message); }
     }
 
-    // --- MANAJEMEN BOBOT KRITERIA ---
+    // --- MANAJEMEN BOBOT KRITERIA (Sama seperti sebelumnya) ---
     async function configureWeights(divisionId, groupId) {
         document.getElementById('weight_div_id').value = divisionId;
         const coreCont = document.getElementById('coreFactorsContainer');

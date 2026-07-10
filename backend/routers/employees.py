@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-
 from backend.core.database import get_db
 from backend.core.security import get_current_user, require_role
-from backend.models import Employee, EmployeeScore, GroupCriteria
-from backend.schemas.employee import EmployeeCreate, EmployeeRead, EmployeeUpdate
+from backend.models import Employee, EmployeeScore, GroupCriteria, Division
+from backend.schemas.employee import EmployeeCreate, EmployeeRead, EmployeeUpdate, EmployeeScoreCreate
 
 router = APIRouter(prefix="/api/employees", tags=["employees"])
 
@@ -53,25 +52,10 @@ def create_employee(
         base_salary=payload.base_salary,
     )
     db.add(emp)
-    db.flush()  # get emp.id before committing
-
+    db.flush()
+    
     if payload.scores:
-        requested_ids = {s.criteria_id for s in payload.scores}
-        # Single query to validate all criteria IDs at once — O(1) instead of O(N).
-        found_ids = {
-            row.id
-            for row in db.query(GroupCriteria.id).filter(GroupCriteria.id.in_(requested_ids)).all()
-        }
-        missing = requested_ids - found_ids
-        if missing:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Criteria ID(s) not found: {sorted(missing)}",
-            )
-        db.add_all(
-            EmployeeScore(employee_id=emp.id, criteria_id=s.criteria_id, score=s.score)
-            for s in payload.scores
-        )
+        _validate_and_persist_scores(db, emp.id, payload.division_id, payload.scores)
 
     db.commit()
     db.refresh(emp)
@@ -86,8 +70,24 @@ def update_employee(
     _=Depends(require_role("kepala_hrd", "kepala_cabang")),
 ):
     emp = _get_or_404(db, employee_id)
-    for field, value in payload.model_dump(exclude_none=True).items():
+    update_data = payload.model_dump(exclude_none=True)
+    
+    # GANTI: Pisahkan field 'scores' agar tidak memicu error setattr pada relasi ORM
+    new_scores = update_data.pop("scores", None)
+    
+    # Cek apakah terjadi perubahan divisi
+    target_division_id = update_data.get("division_id", emp.division_id)
+    division_changed = (target_division_id != emp.division_id)
+
+    # Update field standar (nama, posisi, divisi, dll.)
+    for field, value in update_data.items():
         setattr(emp, field, value)
+
+    # Jika divisi berubah ATAU skor dikirim ulang, sinkronisasi skor menggunakan helper
+    if division_changed or new_scores is not None:
+        scores_to_persist = payload.scores if new_scores is not None else []
+        _validate_and_persist_scores(db, emp.id, target_division_id, scores_to_persist)
+
     db.commit()
     db.refresh(emp)
     return emp
@@ -114,3 +114,48 @@ def _get_or_404(db: Session, employee_id: int) -> Employee:
     if not emp:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found")
     return emp
+
+def _validate_and_persist_scores(
+    db: Session, 
+    emp_id: int, 
+    division_id: int, 
+    scores: list[EmployeeScoreCreate]
+):
+    """
+    Validasi dan persistensi skor kriteria dengan menjaga integritas grup divisi.
+    Strategi: Delete existing scores -> Validate criteria group ownership -> Bulk insert.
+    """
+    # 1. Hapus skor lama untuk menghindari stale data saat update/mutasi divisi
+    db.query(EmployeeScore).filter(EmployeeScore.employee_id == emp_id).delete()
+    
+    if not scores:
+        return
+
+    # 2. Ambil group_id dari divisi karyawan saat ini
+    division = db.query(Division).filter(Division.id == division_id).first()
+    if not division:
+        raise HTTPException(status_code=404, detail="Divisi tidak ditemukan.")
+    
+    requested_ids = {s.criteria_id for s in scores}
+    
+    # 3. Validasi O(1): Pastikan criteria_id eksis DAN milik grup divisi yang relevan
+    valid_criteria = db.query(GroupCriteria.id).filter(
+        GroupCriteria.id.in_(requested_ids),
+        GroupCriteria.group_id == division.group_id,
+        GroupCriteria.is_active == True
+    ).all()
+    
+    valid_ids = {row.id for row in valid_criteria}
+    missing_or_invalid = requested_ids - valid_ids
+    
+    if missing_or_invalid:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Kriteria ID berikut tidak valid atau tidak milik grup divisi karyawan: {sorted(missing_or_invalid)}"
+        )
+
+    # 4. Bulk insert skor baru
+    db.add_all(
+        EmployeeScore(employee_id=emp_id, criteria_id=s.criteria_id, score=s.score)
+        for s in scores
+    )
