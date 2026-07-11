@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block page_subtitle %}Manajemen Data Karyawan{% endblock %}
+{% block page_subtitle %}Manajemen Data Karyawan & Nilai Kompetensi{% endblock %}
 
 {% block content %}
 <div style="margin-bottom: 24px;">
@@ -8,7 +8,7 @@
         <div>
             <h3 style="margin: 0; font-size: 20px; font-weight: 600; color: var(--ink);">Daftar Karyawan Aktif</h3>
             <p style="margin: 4px 0 0 0; color: var(--ink-60); font-size: 13.5px;">Kelola profil personel laboratorium,
-                penempatan sub-divisi, dan latar belakang pendidikan.</p>
+                penempatan sub-divisi, dan nilai kriteria kompetensi.</p>
         </div>
         <button class="btn btn-primary" onclick="openEmployeeModal()">
             + Tambah Karyawan
@@ -23,9 +23,9 @@
                         <th>KODE/NIK</th>
                         <th>NAMA LENGKAP</th>
                         <th>POSISI SAAT INI</th>
-                        <th>DIVISI</th>
-                        <th>STATUS SANKSI</th>
-                        <th style="text-align: right;">AKSI</th>
+                        <th>DIVISI & RUMPUN</th>
+                        <th>STATUS</th>
+                        <th style="text-align: right;">AKSI & PENILAIAN</th>
                     </tr>
                 </thead>
                 <tbody id="employeeTableBody">
@@ -38,13 +38,10 @@
     </div>
 </div>
 
-<div id="modalEmployee"
-    style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 99999; align-items: center; justify-content: center; opacity: 1; visibility: visible; pointer-events: auto;">
-    <div
-        style="background: white; padding: 24px; border-radius: 8px; width: 550px; max-width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+<div id="modalEmployee" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 99999; overflow-y: auto;">
+    <div style="background: white; padding: 24px; border-radius: 8px; width: 550px; max-width: 90%; margin: 50px auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
         <h3 id="modalEmployeeTitle" style="margin-top: 0; color: var(--ink);">Tambah Karyawan Baru</h3>
-        <p style="color: var(--ink-60); font-size: 13.5px; margin-bottom: 20px;">Silakan isi profil lengkap, status
-            sanksi, dan penempatan divisi aktual karyawan.</p>
+        <p style="color: var(--ink-60); font-size: 13.5px; margin-bottom: 20px;">Silakan isi profil lengkap, status sanksi, dan penempatan divisi aktual karyawan.</p>
 
         <form id="employeeForm">
             <input type="hidden" id="emp_id">
@@ -52,183 +49,209 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                 <div class="form-group">
                     <label style="display: block; margin-bottom: 8px; font-weight: 500;">Kode/NIK</label>
-                    <input type="text" id="emp_code" class="form-control" required placeholder="Contoh: NIK-001"
-                        style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                    <input type="text" id="emp_code" class="form-control" required placeholder="Contoh: NIK-001" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
                 </div>
                 <div class="form-group">
                     <label style="display: block; margin-bottom: 8px; font-weight: 500;">Nama Lengkap</label>
-                    <input type="text" id="emp_name" class="form-control" required placeholder="Nama sesuai identitas"
-                        style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                    <input type="text" id="emp_name" class="form-control" required placeholder="Nama sesuai identitas" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
                 </div>
             </div>
 
             <div class="form-group" style="margin-bottom: 16px;">
                 <label style="display: block; margin-bottom: 8px; font-weight: 500;">Posisi Jabatan</label>
-                <input type="text" id="emp_position" class="form-control" placeholder="Contoh: Analis Kimia"
-                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                <input type="text" id="emp_position" class="form-control" placeholder="Contoh: Analis Kimia" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
             </div>
 
             <div class="form-group" style="margin-bottom: 16px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: 500;">Penempatan Divisi Saat Ini</label>
-                <select id="emp_division" class="form-control" required
-                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">Penempatan Sub-Divisi</label>
+                <select id="emp_division" class="form-control" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                     <option value="">-- Pilih Divisi --</option>
                 </select>
             </div>
 
             <div class="form-group" style="margin-bottom: 16px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: 500;">Latar Belakang Pendidikan
-                    (Gelar/Jurusan)</label>
-                <select id="emp_education" class="form-control" required
-                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">Latar Belakang Pendidikan (Gelar/Jurusan)</label>
+                <select id="emp_education" class="form-control" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                     <option value="">-- Pilih Pendidikan --</option>
                 </select>
             </div>
 
-            <div class="form-group"
-                style="margin-bottom: 24px; padding: 12px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 4px;">
+            <div class="form-group" style="margin-bottom: 24px; padding: 12px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 4px;">
                 <label style="display: flex; align-items: center; gap: 8px; font-weight: 500; cursor: pointer;">
                     <input type="checkbox" id="emp_sanction" style="width: 16px; height: 16px;">
                     Karyawan Sedang Dalam Masa Sanksi (SP)
                 </label>
-                <p style="margin: 4px 0 0 24px; font-size: 12px; color: #b45309;">Mencentang opsi ini akan memblokir
-                    karyawan dari kelayakan mutasi pada Gate A.</p>
             </div>
 
             <div style="display: flex; justify-content: flex-end; gap: 8px;">
-                <button type="button" onclick="closeEmployeeModal()" class="btn btn-outline"
-                    style="padding: 8px 16px; cursor: pointer;">Batal</button>
-                <button type="submit" id="btnSaveEmp" class="btn btn-primary"
-                    style="padding: 8px 16px; cursor: pointer;">Simpan Data</button>
+                <button type="button" onclick="closeEmployeeModal()" class="btn btn-outline" style="padding: 8px 16px; cursor: pointer;">Batal</button>
+                <button type="submit" id="btnSaveEmp" class="btn btn-primary" style="padding: 8px 16px; cursor: pointer;">Simpan Profil</button>
             </div>
         </form>
     </div>
 </div>
+
+<div id="modalScore" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 99999; overflow-y: auto;">
+    <div style="background: white; padding: 24px; border-radius: 8px; width: 600px; max-width: 90%; margin: 50px auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <h3 style="margin-top: 0; color: var(--ink);">Pembaruan Nilai Kriteria</h3>
+        
+        <div style="background: #f8fafc; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 4px;">
+                <span style="color: var(--ink-60);">Karyawan:</span>
+                <strong id="score_emp_name" style="color: var(--ink);"></strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 13.5px;">
+                <span style="color: var(--ink-60);">Divisi / Grup:</span>
+                <strong id="score_emp_division" style="color: var(--ink);"></strong>
+            </div>
+        </div>
+
+        <form id="scoreForm" style="display: block;">
+            <input type="hidden" id="score_emp_id">
+            
+            <div id="criteriaContainer" style="max-height: 50vh; overflow-y: scroll; margin-bottom: 16px; padding-right: 8px;">
+                <div style="text-align: center; padding: 20px; color: var(--ink-60);">Memuat parameter kriteria...</div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 8px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
+                <button type="button" onclick="closeScoreModal()" class="btn btn-outline" style="padding: 8px 16px; cursor: pointer;">Batal</button>
+                <button type="submit" id="btnSaveScore" class="btn btn-success" style="padding: 8px 16px; cursor: pointer;">Simpan Nilai Terbaru</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    // --- STATE MANAGEMENT ---
     let divisionsData = [];
     let educationsData = [];
+    let globalEmployees = [];
 
-    // --- INISIALISASI HALAMAN ---
     document.addEventListener('DOMContentLoaded', async () => {
+        console.log("[INIT] Memulai pengambilan data master...");
         await fetchMasterData();
         await loadTable();
     });
 
     async function fetchMasterData() {
         try {
-            // Ambil data Divisi
             const divRes = await fetch('/api/divisions/');
             if (divRes.ok) divisionsData = await divRes.json();
-
-            // Ambil data Pendidikan
+            
             const eduRes = await fetch('/api/divisions/education-fields/');
             if (eduRes.ok) educationsData = await eduRes.json();
-        } catch (e) {
-            console.error("Gagal menarik master data:", e);
+            console.log("[INIT] Data master berhasil dimuat.");
+        } catch (e) { 
+            console.error("[ERROR] Gagal menarik master data:", e); 
         }
     }
 
+    // Perbaikan Kritis DOM Thrashing: Gabung string dulu di memori, baru injeksi 1x
     function populateSelects() {
         const divSel = document.getElementById('emp_division');
-        divSel.innerHTML = '<option value="">-- Pilih Divisi --</option>';
+        let divOptions = '<option value="">-- Pilih Divisi --</option>';
         divisionsData.forEach(d => {
-            divSel.innerHTML += `<option value="${d.id}">${d.name} (${d.code})</option>`;
+            divOptions += `<option value="${d.id}">${d.name} (${d.code})</option>`;
         });
+        divSel.innerHTML = divOptions;
 
         const eduSel = document.getElementById('emp_education');
-        eduSel.innerHTML = '<option value="">-- Pilih Pendidikan --</option>';
+        let eduOptions = '<option value="">-- Pilih Pendidikan --</option>';
         educationsData.forEach(e => {
-            eduSel.innerHTML += `<option value="${e.id}">${e.name}</option>`;
+            eduOptions += `<option value="${e.id}">${e.name}</option>`;
         });
+        eduSel.innerHTML = eduOptions;
     }
 
-    // --- PROSES RENDER TABEL ---
+    // --- RENDER TABEL ---
     async function loadTable() {
         try {
+            console.log("[TABLE] Memuat daftar karyawan...");
             const response = await fetch('/api/employees/');
-            if (!response.ok) throw new Error('Gagal mengambil data karyawan');
-
-            const data = await response.json();
+            if (!response.ok) throw new Error('Gagal mengambil data karyawan dari server');
+            
+            globalEmployees = await response.json();
             const tbody = document.getElementById('employeeTableBody');
 
-            if (data.length === 0) {
+            if (globalEmployees.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--ink-60);">Belum ada data karyawan.</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = data.map(emp => {
+            let rowsHtml = '';
+            globalEmployees.forEach(emp => {
                 const sanctionBadge = emp.has_sanction
-                    ? '<span class="badge" style="background:#fee2e2; color:#b91c1c;">Sanksi Aktif</span>'
-                    : '<span class="badge" style="background:#dcfce7; color:#15803d;">Bersih (Clear)</span>';
-
+                    ? '<span class="badge" style="background:#fee2e2; color:#b91c1c;">Sanksi (SP)</span>'
+                    : '<span class="badge" style="background:#dcfce7; color:#15803d;">Clear</span>';
+                
                 const divName = emp.division ? emp.division.name : '-';
+                const groupName = (emp.division && emp.division.group) ? emp.division.group.name : '-';
+                const hasScores = emp.scores && emp.scores.length > 0;
 
-                return `
+                rowsHtml += `
                 <tr>
                     <td><strong>${emp.employee_code}</strong></td>
                     <td>${emp.full_name}</td>
                     <td>${emp.position || '-'}</td>
-                    <td>${divName}</td>
+                    <td>
+                        <div style="font-weight: 500;">${divName}</div>
+                        <div style="font-size: 11px; color: var(--ink-60);">Rumpun: ${groupName}</div>
+                    </td>
                     <td>${sanctionBadge}</td>
-                    <td style="text-align: right;">
-                        <button onclick='editEmployee(${JSON.stringify(emp)})' class="btn btn-outline btn-sm">Edit</button>
-                        <button onclick='deleteEmployee(${emp.id})' class="btn btn-outline btn-sm" style="color: var(--red); border-color: #fca5a5; margin-left:4px;">Nonaktifkan</button>
+                    <td style="text-align: right; min-width: 180px;">
+                        <button onclick='openScoreModal(${emp.id})' class="btn btn-outline btn-sm" style="${hasScores ? 'background: #f0fdf4; border-color: #86efac; color: #166534;' : 'background: #fffbeb; border-color: #fde047; color: #854d0e;'} margin-right: 4px;">
+                            ${hasScores ? 'Edit Nilai' : '+ Input Nilai'}
+                        </button>
+                        <button onclick='editEmployee(${emp.id})' class="btn btn-outline btn-sm">Profil</button>
                     </td>
                 </tr>
                 `;
-            }).join('');
-
-        } catch (error) {
-            console.error(error);
-            document.getElementById('employeeTableBody').innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Galat: ${error.message}</td></tr>`;
+            });
+            tbody.innerHTML = rowsHtml;
+            console.log("[TABLE] Render selesai.");
+        } catch (error) { 
+            console.error(error); 
         }
     }
 
-    // --- MODAL CONTROLS ---
+    // --- KONTROL PROFIL MODAL ---
     function openEmployeeModal() {
         document.getElementById('employeeForm').reset();
         document.getElementById('emp_id').value = '';
         document.getElementById('modalEmployeeTitle').innerText = 'Tambah Karyawan Baru';
         populateSelects();
-        document.getElementById('modalEmployee').style.display = 'flex';
+        document.getElementById('modalEmployee').style.display = 'block';
     }
 
-    function editEmployee(emp) {
-        populateSelects();
-        document.getElementById('modalEmployeeTitle').innerText = 'Edit Karyawan';
+    function editEmployee(id) {
+        const emp = globalEmployees.find(e => e.id === id);
+        if(!emp) return;
 
+        populateSelects();
+        document.getElementById('modalEmployeeTitle').innerText = 'Edit Profil Karyawan';
         document.getElementById('emp_id').value = emp.id;
         document.getElementById('emp_code').value = emp.employee_code;
         document.getElementById('emp_name').value = emp.full_name;
         document.getElementById('emp_position').value = emp.position || '';
-
         document.getElementById('emp_division').value = emp.division_id || '';
         document.getElementById('emp_education').value = emp.education_field_id || '';
         document.getElementById('emp_sanction').checked = emp.has_sanction;
 
-        document.getElementById('modalEmployee').style.display = 'flex';
+        document.getElementById('modalEmployee').style.display = 'block';
     }
 
-    function closeEmployeeModal() {
-        document.getElementById('modalEmployee').style.display = 'none';
-    }
+    function closeEmployeeModal() { document.getElementById('modalEmployee').style.display = 'none'; }
 
-    // --- PROSES SIMPAN / UPDATE ---
     document.getElementById('employeeForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-
         const empId = document.getElementById('emp_id').value;
         const divId = document.getElementById('emp_division').value;
         const eduId = document.getElementById('emp_education').value;
 
-        if (!divId) { alert("Pilih Divisi Penempatan."); return; }
-        if (!eduId) { alert("Pilih Latar Belakang Pendidikan."); return; }
+        if (!divId || !eduId) { alert("Divisi dan Pendidikan wajib diisi."); return; }
 
-        // PAYLOAD BERSIH: Tidak ada lagi pengiriman field Gaji Pokok (base_salary)
         const payload = {
             employee_code: document.getElementById('emp_code').value,
             full_name: document.getElementById('emp_name').value,
@@ -244,47 +267,115 @@
 
         try {
             btnSave.disabled = true;
+            const response = await fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.detail || 'Gagal menyimpan profil.');
+            }
+            
+            closeEmployeeModal();
+            await loadTable();
+            if (window.App) App.showToast('Profil berhasil disimpan.', 'success');
+        } catch (error) { 
+            alert(error.message); 
+        } finally { 
+            btnSave.disabled = false; 
+        }
+    });
+
+    // --- KONTROL NILAI MODAL (DYNAMIC SCORES) ---
+    async function openScoreModal(id) {
+        const emp = globalEmployees.find(e => e.id === id);
+        if(!emp) return;
+
+        if (!emp.division || !emp.division.group_id) {
+            alert("Karyawan belum ditugaskan ke Sub-Divisi yang memiliki Rumpun Grup Induk.");
+            return;
+        }
+
+        document.getElementById('score_emp_id').value = emp.id;
+        document.getElementById('score_emp_name').innerText = emp.full_name;
+        document.getElementById('score_emp_division').innerText = `${emp.division.name} (${emp.division.group.name})`;
+        
+        document.getElementById('modalScore').style.display = 'block';
+        const container = document.getElementById('criteriaContainer');
+        container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--ink-60);">Mengambil data kriteria dari server...</div>';
+
+        try {
+            const response = await fetch(`/api/divisions/groups/${emp.division.group_id}/criteria`);
+            if (!response.ok) throw new Error("Gagal mengambil daftar kriteria divisi. Pastikan server aktif.");
+            const criteriaList = await response.json();
+
+            if (criteriaList.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #b45309; background: #fffbeb; border: 1px dashed #fcd34d; border-radius: 6px;">Grup divisi ini belum memiliki parameter kriteria aktif.</div>';
+                return;
+            }
+
+            const existingScores = new Map((emp.scores || []).map(s => [s.criteria_id, s.score]));
+            let html = '';
+            
+            criteriaList.forEach(c => {
+                const currentVal = existingScores.get(c.id) || 0.0;
+                html += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #e2e8f0;">
+                        <div style="flex: 1; padding-right: 16px;">
+                            <div style="font-size: 14px; font-weight: 500; color: var(--ink);">${c.name}</div>
+                            <div style="font-size: 12px; color: var(--ink-60); margin-top: 2px;">Target Optimal: ${c.target_value} | Tipe: ${c.factor_type === 'core' ? 'Core Factor' : 'Secondary Factor'}</div>
+                        </div>
+                        <div style="width: 100px;">
+                            <input type="number" class="dynamic-score-input form-control" 
+                                   data-criteria-id="${c.id}" 
+                                   step="0.1" min="0" max="5" 
+                                   value="${currentVal}" required 
+                                   style="width: 100%; text-align: right; padding: 8px;">
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+
+        } catch (error) {
+            container.innerHTML = `<div style="text-align: center; padding: 20px; color: red;">${error.message}</div>`;
+        }
+    }
+
+    function closeScoreModal() { document.getElementById('modalScore').style.display = 'none'; }
+
+    document.getElementById('scoreForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const empId = document.getElementById('score_emp_id').value;
+        const btnSave = document.getElementById('btnSaveScore');
+        
+        const scoreInputs = document.querySelectorAll('.dynamic-score-input');
+        const scoresPayload = Array.from(scoreInputs).map(input => ({
+            criteria_id: parseInt(input.getAttribute('data-criteria-id')),
+            score: parseFloat(input.value)
+        }));
+
+        try {
+            btnSave.disabled = true;
             btnSave.innerText = 'Menyimpan...';
 
-            const response = await fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+            const response = await fetch(`/api/employees/${empId}`, { 
+                method: 'PATCH', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ scores: scoresPayload }) 
             });
 
             if (!response.ok) {
                 const errData = await response.json();
-                throw new Error(errData.detail || 'Gagal menyimpan data karyawan. Pastikan relasi kunci asing valid.');
+                throw new Error(errData.detail || 'Gagal menyimpan nilai kriteria.');
             }
-
-            if (window.App) App.showToast('Data karyawan berhasil disimpan!', 'success');
-            closeEmployeeModal();
-            await loadTable();
-        } catch (error) {
-            console.error(error);
-            if (window.App) App.showToast(error.message, 'error');
-            else alert(error.message);
-        } finally {
-            btnSave.disabled = false;
-            btnSave.innerText = 'Simpan Data';
+            
+            closeScoreModal();
+            await loadTable(); 
+            if (window.App) App.showToast('Nilai kriteria berhasil diperbarui.', 'success');
+        } catch (error) { 
+            alert(error.message); 
+        } finally { 
+            btnSave.disabled = false; 
+            btnSave.innerText = 'Simpan Nilai Terbaru';
         }
     });
-
-    // --- PROSES NONAKTIFKAN RECORD (DELETE) ---
-    async function deleteEmployee(id) {
-        if (!confirm('Apakah Anda yakin ingin menonaktifkan karyawan ini?')) return;
-
-        try {
-            const response = await fetch(`/api/employees/${id}`, { method: 'DELETE' });
-            if (!response.ok) throw new Error('Gagal menonaktifkan data. Record mungkin terikat dengan transaksi mutasi aktif.');
-
-            if (window.App) App.showToast('Data karyawan berhasil dinonaktifkan.', 'success');
-            await loadTable();
-        } catch (error) {
-            console.error(error);
-            if (window.App) App.showToast(error.message, 'error');
-            else alert(error.message);
-        }
-    }
 </script>
 {% endblock %}

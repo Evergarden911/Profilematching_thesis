@@ -36,7 +36,7 @@
         <tr>
           <th>NO. PERMINTAAN</th>
           <th>PEMOHON (DIVISI ASAL)</th>
-          <th>DIVISI TARGET</th>
+          <th>DIVISI TARGET (SUB-BAGIAN)</th>
           <th>KUANTITAS</th>
           <th>STATUS</th>
           <th>TANGGAL</th>
@@ -122,7 +122,7 @@
         <div style="padding: 24px; display: flex; flex-direction: column; gap: 16px; max-height: 70vh; overflow-y: auto;">
             
             <div class="form-group">
-                <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--ink-80);">1. Divisi Target <span style="color: #DC2626;">*</span></label>
+                <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--ink-80);">1. Divisi Target (Sub-Bagian Operasional) <span style="color: #DC2626;">*</span></label>
                 <select id="req_target_div" class="form-control" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13.5px; color: var(--ink); background-color: white;">
                     <option value="">Memuat daftar divisi...</option>
                 </select>
@@ -268,14 +268,15 @@
         document.getElementById('modalBuatReq').style.display = 'flex';
         
         try {
-            // Pengambilan data divisi tunggal yang bersih tanpa redundansi endpoint
             const res = await fetch('/api/divisions/', { credentials: 'same-origin' });
             if (res.ok) {
                 const divs = await res.json();
                 const selectDiv = document.getElementById('req_target_div');
-                selectDiv.innerHTML = '<option value="">-- Pilih Divisi Target --</option>';
+                selectDiv.innerHTML = '<option value="">-- Pilih Sub-Bagian Target --</option>';
                 divs.forEach(d => {
-                    selectDiv.innerHTML += `<option value="${d.id}">${d.name} (${d.code})</option>`;
+                    // Penambahan konteks Grup agar UI lebih jelas untuk user
+                    const groupName = d.group ? d.group.name : 'Tanpa Grup';
+                    selectDiv.innerHTML += `<option value="${d.id}">${d.name} (Rumpun: ${groupName})</option>`;
                 });
             }
         } catch (e) {
@@ -302,7 +303,6 @@
         const recText = document.getElementById('req_recommendation').value.trim();
         const reasonText = document.getElementById('req_reason').value.trim();
 
-        // Validasi Sisi Klien untuk memastikan integritas data sebelum dikirim ke peladen
         if (!targetDiv) {
             alert("Harap pilih Divisi Target yang membutuhkan personel.");
             return;
@@ -316,7 +316,6 @@
             return;
         }
 
-        // Pembentukan Payload diselaraskan dengan skema SDMRequestCreate asli
         const payload = {
             target_division_id: parseInt(targetDiv),
             quantity: qtyVal,
@@ -375,7 +374,6 @@
             document.getElementById('detail_qty').innerText = data.quantity;
             document.getElementById('detail_reason').innerText = data.reason || 'Tidak ada catatan.';
 
-            // Kontrol visibilitas untuk kolom rekomendasi opsional
             const recContainer = document.getElementById('detail_rec_container');
             const recTextEl = document.getElementById('detail_recommendation');
             if (data.recommended_candidates) {

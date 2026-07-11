@@ -80,6 +80,56 @@ def create_group(payload: DivisionGroupCreate, db: Session = Depends(get_db), _=
     db.refresh(group)
     return group
 
+@router.patch("/groups/{group_id}", response_model=DivisionGroupRead)
+def update_group(
+    group_id: int, 
+    payload: DivisionGroupUpdate, 
+    db: Session = Depends(get_db), 
+    _=Depends(_hrd)
+):
+    """Memperbarui informasi nama atau deskripsi pada Grup Divisi."""
+    group = _get_group_or_404(db, group_id)
+    
+    # Validasi jika nama grup diubah, pastikan tidak duplikat dengan yang lain
+    if payload.name and payload.name != group.name:
+        if db.query(DivisionGroup).filter(DivisionGroup.name == payload.name).first():
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Nama grup sudah digunakan.")
+
+    for field, value in payload.model_dump(exclude_none=True).items():
+        setattr(group, field, value)
+    
+    db.commit()
+    db.refresh(group)
+    return group
+
+
+@router.delete("/groups/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_group(
+    group_id: int, 
+    db: Session = Depends(get_db), 
+    _=Depends(_hrd)
+):
+    """
+    Menonaktifkan Grup Divisi. 
+    Menerapkan validasi RESTRICT: Ditolak jika masih ada sub-divisi aktif di dalamnya.
+    """
+    group = _get_group_or_404(db, group_id)
+    
+    # Pencegahan pelanggaran integritas referensial (Foreign Key RESTRICT)
+    has_active_divisions = db.query(Division).filter(
+        Division.group_id == group_id, 
+        Division.is_active == True
+    ).first()
+    
+    if has_active_divisions:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Grup tidak dapat dihapus karena masih menaungi sub-divisi aktif. Pindahkan atau hapus sub-divisi terlebih dahulu."
+        )
+        
+    group.is_active = False
+    db.commit()
+
 @router.get("/groups/{group_id}/criteria", response_model=list[GroupCriteriaRead])
 def list_group_criteria(group_id: int, db: Session = Depends(get_db), _=Depends(require_role("kepala_hrd", "kepala_cabang"))):
     _get_group_or_404(db, group_id)
