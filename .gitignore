@@ -35,6 +35,8 @@ htmlcov/
 .mypy_cache/
 .dmypy.json
 .pytype/
+.ini
+.ps1
 
 # Linting
 .ruff_cache/

@@ -45,33 +45,22 @@ def create_sdm_request(db: Session, payload: SDMRequestCreate, requester: User) 
         raise HTTPException(status_code=404, detail="Divisi target tidak ditemukan.")
 
     # -----------------------------------------------------------------------
-    # GATE 1: Validasi Anggaran & Biaya (Financial Constraint)
+    # GATE 1: DINONAKTIFKAN (Intentional Auto-Pass)
+    # Constraint finansial (base_salary/monthly_budget) sengaja di luar
+    # cakupan skripsi. Fokus riset adalah Profile Matching pada kriteria
+    # kompetensi karyawan (CF/SF), bukan constraint anggaran. Kolom biaya
+    # tetap dipertahankan di skema DB untuk kompatibilitas seeder dan
+    # kemungkinan pengembangan lanjutan, tapi sudah tidak lagi memengaruhi
+    # keputusan alur SDM Request.
     # -----------------------------------------------------------------------
-    current_expenses = sum((emp.base_salary or 0.0) for emp in target_div.employees if emp.is_active)
-    
-    # Estimasi biaya menggunakan rata-rata gaji perusahaan
-    company_avg_salary = db.query(func.avg(Employee.base_salary)).filter(Employee.is_active == True).scalar() or 0.0
-    projected_additional_cost = company_avg_salary * payload.quantity
-    total_projected_expense = current_expenses + projected_additional_cost
-
-    # Jika budget diset > 0, kita lakukan validasi blokir
-    if target_div.monthly_budget > 0 and total_projected_expense > target_div.monthly_budget:
-        budget_gate = GateStatus.failed
-        budget_notes = f"DITOLAK: Proyeksi beban gaji (Rp {total_projected_expense:,.0f}) melampaui sisa anggaran maksimal divisi (Rp {target_div.monthly_budget:,.0f})."
-        req_status = RequestStatus.gate_rejected
-    else:
-        budget_gate = GateStatus.passed
-        budget_notes = f"LULUS: Anggaran aman. Estimasi Beban Baru: Rp {total_projected_expense:,.0f} / Anggaran: Rp {target_div.monthly_budget:,.0f}."
-        req_status = RequestStatus.pending
-
     request = SDMRequest(
         requester_id=requester.id,
         target_division_id=payload.target_division_id,
         quantity=payload.quantity,
         reason=payload.reason,
         status=RequestStatus.pending,
-        budget_gate_status=budget_gate,
-        budget_notes=budget_notes,
+        budget_gate_status=GateStatus.passed,
+        budget_notes="Gate anggaran dinonaktifkan.",
         is_auto_generated=payload.is_auto_generated
     )
     db.add(request)

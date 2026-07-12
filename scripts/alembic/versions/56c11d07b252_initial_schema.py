@@ -1,8 +1,8 @@
 """initial_schema
 
-Revision ID: 1600876603de
+Revision ID: 56c11d07b252
 Revises: 
-Create Date: 2026-05-21 10:54:17.769859
+Create Date: 2026-07-13 01:25:56.282294
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '1600876603de'
+revision: str = '56c11d07b252'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -25,23 +25,25 @@ def upgrade() -> None:
     sa.Column('name', sa.String(length=200), nullable=False),
     sa.Column('code', sa.String(length=20), nullable=False),
     sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('cf_weight', sa.Float(), nullable=False),
+    sa.Column('sf_weight', sa.Float(), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=True),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('code'),
     sa.UniqueConstraint('name')
     )
+    op.create_index(op.f('ix_division_groups_code'), 'division_groups', ['code'], unique=True)
     op.create_index(op.f('ix_division_groups_id'), 'division_groups', ['id'], unique=False)
     op.create_table('education_fields',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=200), nullable=False),
-    sa.Column('code', sa.String(length=50), nullable=False),
-    sa.Column('category', sa.String(length=100), nullable=True),
+    sa.Column('code', sa.String(length=20), nullable=False),
+    sa.Column('category', sa.String(length=100), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('code'),
     sa.UniqueConstraint('name')
     )
+    op.create_index(op.f('ix_education_fields_code'), 'education_fields', ['code'], unique=True)
     op.create_index(op.f('ix_education_fields_id'), 'education_fields', ['id'], unique=False)
     op.create_table('kpi_periods',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -55,15 +57,15 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=200), nullable=False),
     sa.Column('code', sa.String(length=20), nullable=False),
-    sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('group_id', sa.Integer(), nullable=True),
+    sa.Column('group_id', sa.Integer(), nullable=False),
+    sa.Column('monthly_budget', sa.Float(), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=True),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=True),
-    sa.ForeignKeyConstraint(['group_id'], ['division_groups.id'], ),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['group_id'], ['division_groups.id'], ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('code'),
     sa.UniqueConstraint('name')
     )
+    op.create_index(op.f('ix_divisions_code'), 'divisions', ['code'], unique=True)
     op.create_index(op.f('ix_divisions_id'), 'divisions', ['id'], unique=False)
     op.create_table('group_criteria',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -72,37 +74,20 @@ def upgrade() -> None:
     sa.Column('description', sa.Text(), nullable=True),
     sa.Column('target_value', sa.Float(), nullable=False),
     sa.Column('factor_type', sa.Enum('core', 'secondary', name='factortype'), nullable=False),
-    sa.Column('scoring_method', sa.Enum('gap_table', 'kpi_band', name='scoringmethod'), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=True),
-    sa.ForeignKeyConstraint(['group_id'], ['division_groups.id'], ),
+    sa.ForeignKeyConstraint(['group_id'], ['division_groups.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('group_id', 'name', name='uq_group_criteria_name')
     )
     op.create_index(op.f('ix_group_criteria_id'), 'group_criteria', ['id'], unique=False)
-    op.create_table('criteria',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('division_id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(length=200), nullable=False),
-    sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('target_value', sa.Float(), nullable=False),
-    sa.Column('weight', sa.Float(), nullable=False),
-    sa.Column('factor_type', sa.Enum('core', 'secondary', name='factortype'), nullable=False),
-    sa.Column('scoring_method', sa.Enum('gap_table', 'kpi_band', name='scoringmethod'), nullable=False),
-    sa.Column('is_active', sa.Boolean(), nullable=True),
-    sa.ForeignKeyConstraint(['division_id'], ['divisions.id'], ),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('division_id', 'name', name='uq_criteria_division_name')
-    )
-    op.create_index(op.f('ix_criteria_id'), 'criteria', ['id'], unique=False)
     op.create_table('division_constraints',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('division_id', sa.Integer(), nullable=False),
     sa.Column('education_field_id', sa.Integer(), nullable=False),
     sa.Column('constraint_type', sa.Enum('allowed', 'blocked', name='constrainttype'), nullable=False),
     sa.Column('requires_interview_if_not_native', sa.Boolean(), nullable=False),
-    sa.Column('notes', sa.Text(), nullable=True),
-    sa.ForeignKeyConstraint(['division_id'], ['divisions.id'], ),
-    sa.ForeignKeyConstraint(['education_field_id'], ['education_fields.id'], ),
+    sa.ForeignKeyConstraint(['division_id'], ['divisions.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['education_field_id'], ['education_fields.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('division_id', 'education_field_id', name='uq_div_edu_constraint')
     )
@@ -112,10 +97,10 @@ def upgrade() -> None:
     sa.Column('division_id', sa.Integer(), nullable=False),
     sa.Column('group_criteria_id', sa.Integer(), nullable=False),
     sa.Column('weight', sa.Float(), nullable=False),
-    sa.ForeignKeyConstraint(['division_id'], ['divisions.id'], ),
-    sa.ForeignKeyConstraint(['group_criteria_id'], ['group_criteria.id'], ),
+    sa.ForeignKeyConstraint(['division_id'], ['divisions.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['group_criteria_id'], ['group_criteria.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('division_id', 'group_criteria_id', name='uq_div_groupcriteria')
+    sa.UniqueConstraint('division_id', 'group_criteria_id', name='uq_div_crit_weight')
     )
     op.create_index(op.f('ix_division_criteria_weights_id'), 'division_criteria_weights', ['id'], unique=False)
     op.create_table('employees',
@@ -123,14 +108,14 @@ def upgrade() -> None:
     sa.Column('employee_code', sa.String(length=50), nullable=False),
     sa.Column('full_name', sa.String(length=200), nullable=False),
     sa.Column('division_id', sa.Integer(), nullable=False),
+    sa.Column('education_field_id', sa.Integer(), nullable=False),
     sa.Column('position', sa.String(length=150), nullable=False),
-    sa.Column('education_field_id', sa.Integer(), nullable=True),
-    sa.Column('is_active', sa.Boolean(), nullable=True),
+    sa.Column('base_salary', sa.Float(), nullable=False),
     sa.Column('has_sanction', sa.Boolean(), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=True),
-    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
-    sa.ForeignKeyConstraint(['division_id'], ['divisions.id'], ),
-    sa.ForeignKeyConstraint(['education_field_id'], ['education_fields.id'], ),
+    sa.Column('is_active', sa.Boolean(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['division_id'], ['divisions.id'], ondelete='RESTRICT'),
+    sa.ForeignKeyConstraint(['education_field_id'], ['education_fields.id'], ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_employees_employee_code'), 'employees', ['employee_code'], unique=True)
@@ -141,28 +126,27 @@ def upgrade() -> None:
     sa.Column('name', sa.String(length=200), nullable=False),
     sa.Column('weight', sa.Float(), nullable=False),
     sa.Column('direction', sa.Enum('higher_is_better', 'lower_is_better', name='kpidirection'), nullable=False),
-    sa.Column('kpi_type', sa.Enum('team', 'individual', name='kpitype'), nullable=False),
+    sa.Column('kpi_type', sa.Enum('individual', 'operational', name='kpitype'), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=True),
-    sa.ForeignKeyConstraint(['division_id'], ['divisions.id'], ),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('division_id', 'name', name='uq_kpi_division_name')
+    sa.ForeignKeyConstraint(['division_id'], ['divisions.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_kpi_indicators_id'), 'kpi_indicators', ['id'], unique=False)
     op.create_table('users',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('username', sa.String(length=100), nullable=False),
+    sa.Column('username', sa.String(length=50), nullable=False),
     sa.Column('hashed_password', sa.String(length=255), nullable=False),
     sa.Column('full_name', sa.String(length=200), nullable=False),
-    sa.Column('role', sa.Enum('kepala_hrd', 'kepala_cabang', 'kepala_divisi', name='userrole'), nullable=False),
+    sa.Column('role', sa.Enum('super_admin', 'kepala_hrd', 'kepala_cabang', 'kepala_divisi', name='userrole'), nullable=False),
     sa.Column('division_id', sa.Integer(), nullable=True),
-    sa.Column('is_active', sa.Boolean(), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=True),
-    sa.ForeignKeyConstraint(['division_id'], ['divisions.id'], ),
+    sa.Column('is_active', sa.Boolean(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['division_id'], ['divisions.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
     op.create_index(op.f('ix_users_username'), 'users', ['username'], unique=True)
-    op.create_table('workload_analysis',
+    op.create_table('workload_analyses',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('division_id', sa.Integer(), nullable=False),
     sa.Column('period', sa.String(length=7), nullable=False),
@@ -173,23 +157,21 @@ def upgrade() -> None:
     sa.Column('is_understaffed', sa.Boolean(), nullable=False),
     sa.Column('is_overstaffed', sa.Boolean(), nullable=False),
     sa.Column('notes', sa.Text(), nullable=True),
-    sa.Column('recorded_at', sa.DateTime(timezone=True), nullable=True),
-    sa.CheckConstraint('headcount > 0', name='ck_wla_headcount_positive'),
-    sa.CheckConstraint('wla_value >= 0', name='ck_wla_positive'),
-    sa.ForeignKeyConstraint(['division_id'], ['divisions.id'], ),
+    sa.Column('recorded_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['division_id'], ['divisions.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('division_id', 'period', name='uq_wla_division_period')
+    sa.UniqueConstraint('division_id', 'period', name='uq_wla_period_node')
     )
-    op.create_index(op.f('ix_workload_analysis_id'), 'workload_analysis', ['id'], unique=False)
+    op.create_index(op.f('ix_workload_analyses_id'), 'workload_analyses', ['id'], unique=False)
     op.create_table('employee_scores',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('employee_id', sa.Integer(), nullable=False),
     sa.Column('criteria_id', sa.Integer(), nullable=False),
     sa.Column('score', sa.Float(), nullable=False),
-    sa.ForeignKeyConstraint(['criteria_id'], ['criteria.id'], ),
-    sa.ForeignKeyConstraint(['employee_id'], ['employees.id'], ),
+    sa.ForeignKeyConstraint(['criteria_id'], ['group_criteria.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['employee_id'], ['employees.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('employee_id', 'criteria_id', name='uq_employee_criteria')
+    sa.UniqueConstraint('employee_id', 'criteria_id', name='uq_emp_score')
     )
     op.create_index(op.f('ix_employee_scores_id'), 'employee_scores', ['id'], unique=False)
     op.create_table('kpi_records',
@@ -197,11 +179,12 @@ def upgrade() -> None:
     sa.Column('employee_id', sa.Integer(), nullable=False),
     sa.Column('indicator_id', sa.Integer(), nullable=False),
     sa.Column('period_id', sa.Integer(), nullable=False),
-    sa.Column('achievement', sa.Float(), nullable=False),
-    sa.Column('target', sa.Float(), nullable=False),
-    sa.ForeignKeyConstraint(['employee_id'], ['employees.id'], ),
-    sa.ForeignKeyConstraint(['indicator_id'], ['kpi_indicators.id'], ),
-    sa.ForeignKeyConstraint(['period_id'], ['kpi_periods.id'], ),
+    sa.Column('raw_value', sa.Float(), nullable=False),
+    sa.Column('kpi_score', sa.Float(), nullable=False),
+    sa.Column('recorded_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['employee_id'], ['employees.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['indicator_id'], ['kpi_indicators.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['period_id'], ['kpi_periods.id'], ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('employee_id', 'indicator_id', 'period_id', name='uq_kpi_record')
     )
@@ -213,11 +196,14 @@ def upgrade() -> None:
     sa.Column('quantity', sa.Integer(), nullable=False),
     sa.Column('reason', sa.Text(), nullable=False),
     sa.Column('status', sa.Enum('pending', 'gate_check', 'interview_required', 'forwarded', 'under_review', 'matched', 'approved', 'rejected', 'gate_rejected', name='requeststatus'), nullable=False),
+    sa.Column('budget_gate_status', sa.Enum('pending', 'interview_pending', 'interview_passed', 'interview_failed', 'passed', 'failed', name='gatestatus'), nullable=False),
+    sa.Column('budget_notes', sa.Text(), nullable=True),
+    sa.Column('is_auto_generated', sa.Boolean(), nullable=False),
     sa.Column('hrd_notes', sa.Text(), nullable=True),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=True),
-    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
-    sa.ForeignKeyConstraint(['requester_id'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['target_division_id'], ['divisions.id'], ),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('updated_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['requester_id'], ['users.id'], ondelete='RESTRICT'),
+    sa.ForeignKeyConstraint(['target_division_id'], ['divisions.id'], ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_sdm_requests_id'), 'sdm_requests', ['id'], unique=False)
@@ -229,30 +215,30 @@ def upgrade() -> None:
     sa.Column('nsf_score', sa.Float(), nullable=False),
     sa.Column('final_score', sa.Float(), nullable=False),
     sa.Column('rank', sa.Integer(), nullable=False),
-    sa.Column('computed_at', sa.DateTime(timezone=True), nullable=True),
-    sa.ForeignKeyConstraint(['employee_id'], ['employees.id'], ),
-    sa.ForeignKeyConstraint(['sdm_request_id'], ['sdm_requests.id'], ),
+    sa.Column('computed_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['employee_id'], ['employees.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['sdm_request_id'], ['sdm_requests.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('sdm_request_id', 'employee_id', name='uq_result_request_employee')
+    sa.UniqueConstraint('sdm_request_id', 'employee_id', name='uq_matching_res_node')
     )
     op.create_index(op.f('ix_matching_results_id'), 'matching_results', ['id'], unique=False)
     op.create_table('rotation_gates',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('sdm_request_id', sa.Integer(), nullable=False),
     sa.Column('employee_id', sa.Integer(), nullable=False),
-    sa.Column('education_gate_status', sa.Enum('pending', 'passed', 'failed', 'interview_pending', 'interview_passed', 'interview_failed', name='gatestatus'), nullable=False),
+    sa.Column('education_gate_status', sa.Enum('pending', 'interview_pending', 'interview_passed', 'interview_failed', 'passed', 'failed', name='gatestatus'), nullable=False),
     sa.Column('education_gate_notes', sa.Text(), nullable=True),
-    sa.Column('education_checked_at', sa.DateTime(timezone=True), nullable=True),
-    sa.Column('interview_gate_status', sa.Enum('pending', 'passed', 'failed', 'interview_pending', 'interview_passed', 'interview_failed', name='gatestatus'), nullable=True),
+    sa.Column('education_checked_at', sa.DateTime(), nullable=True),
+    sa.Column('interview_gate_status', sa.Enum('pending', 'interview_pending', 'interview_passed', 'interview_failed', 'passed', 'failed', name='gatestatus'), nullable=True),
     sa.Column('interview_gate_notes', sa.Text(), nullable=True),
-    sa.Column('interview_checked_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('interview_checked_at', sa.DateTime(), nullable=True),
     sa.Column('is_eligible_for_matching', sa.Boolean(), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=True),
-    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
-    sa.ForeignKeyConstraint(['employee_id'], ['employees.id'], ),
-    sa.ForeignKeyConstraint(['sdm_request_id'], ['sdm_requests.id'], ),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('updated_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['employee_id'], ['employees.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['sdm_request_id'], ['sdm_requests.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('sdm_request_id', 'employee_id', name='uq_gate_request_employee')
+    sa.UniqueConstraint('sdm_request_id', 'employee_id', name='uq_rotation_gate_flow')
     )
     op.create_index(op.f('ix_rotation_gates_id'), 'rotation_gates', ['id'], unique=False)
     op.create_table('transfer_letters',
@@ -261,36 +247,37 @@ def upgrade() -> None:
     sa.Column('issued_by_id', sa.Integer(), nullable=False),
     sa.Column('letter_number', sa.String(length=100), nullable=False),
     sa.Column('content', sa.Text(), nullable=False),
-    sa.Column('issued_at', sa.DateTime(timezone=True), nullable=True),
-    sa.ForeignKeyConstraint(['issued_by_id'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['sdm_request_id'], ['sdm_requests.id'], ),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['issued_by_id'], ['users.id'], ondelete='RESTRICT'),
+    sa.ForeignKeyConstraint(['sdm_request_id'], ['sdm_requests.id'], ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('letter_number'),
     sa.UniqueConstraint('sdm_request_id')
     )
     op.create_index(op.f('ix_transfer_letters_id'), 'transfer_letters', ['id'], unique=False)
-    op.create_table('interview_scores',
+    op.create_table('sdm_evaluation_history',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('gate_id', sa.Integer(), nullable=False),
-    sa.Column('criteria_id', sa.Integer(), nullable=False),
-    sa.Column('raw_score', sa.Float(), nullable=False),
-    sa.Column('converted_score', sa.Float(), nullable=True),
-    sa.Column('scored_by_id', sa.Integer(), nullable=False),
-    sa.Column('scored_at', sa.DateTime(timezone=True), nullable=True),
-    sa.ForeignKeyConstraint(['criteria_id'], ['criteria.id'], ),
-    sa.ForeignKeyConstraint(['gate_id'], ['rotation_gates.id'], ),
-    sa.ForeignKeyConstraint(['scored_by_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('gate_id', 'criteria_id', name='uq_interview_criteria')
+    sa.Column('from_status', sa.String(length=50), nullable=False),
+    sa.Column('to_status', sa.String(length=50), nullable=False),
+    sa.Column('actor_id', sa.Integer(), nullable=False),
+    sa.Column('reason', sa.Text(), nullable=True),
+    sa.Column('is_manual', sa.Boolean(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.ForeignKeyConstraint(['actor_id'], ['users.id'], ondelete='RESTRICT'),
+    sa.ForeignKeyConstraint(['gate_id'], ['rotation_gates.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_interview_scores_id'), 'interview_scores', ['id'], unique=False)
+    op.create_index(op.f('ix_sdm_evaluation_history_gate_id'), 'sdm_evaluation_history', ['gate_id'], unique=False)
+    op.create_index(op.f('ix_sdm_evaluation_history_id'), 'sdm_evaluation_history', ['id'], unique=False)
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     # ### commands auto generated by Alembic - please adjust! ###
-    op.drop_index(op.f('ix_interview_scores_id'), table_name='interview_scores')
-    op.drop_table('interview_scores')
+    op.drop_index(op.f('ix_sdm_evaluation_history_id'), table_name='sdm_evaluation_history')
+    op.drop_index(op.f('ix_sdm_evaluation_history_gate_id'), table_name='sdm_evaluation_history')
+    op.drop_table('sdm_evaluation_history')
     op.drop_index(op.f('ix_transfer_letters_id'), table_name='transfer_letters')
     op.drop_table('transfer_letters')
     op.drop_index(op.f('ix_rotation_gates_id'), table_name='rotation_gates')
@@ -303,8 +290,8 @@ def downgrade() -> None:
     op.drop_table('kpi_records')
     op.drop_index(op.f('ix_employee_scores_id'), table_name='employee_scores')
     op.drop_table('employee_scores')
-    op.drop_index(op.f('ix_workload_analysis_id'), table_name='workload_analysis')
-    op.drop_table('workload_analysis')
+    op.drop_index(op.f('ix_workload_analyses_id'), table_name='workload_analyses')
+    op.drop_table('workload_analyses')
     op.drop_index(op.f('ix_users_username'), table_name='users')
     op.drop_index(op.f('ix_users_id'), table_name='users')
     op.drop_table('users')
@@ -317,16 +304,17 @@ def downgrade() -> None:
     op.drop_table('division_criteria_weights')
     op.drop_index(op.f('ix_division_constraints_id'), table_name='division_constraints')
     op.drop_table('division_constraints')
-    op.drop_index(op.f('ix_criteria_id'), table_name='criteria')
-    op.drop_table('criteria')
     op.drop_index(op.f('ix_group_criteria_id'), table_name='group_criteria')
     op.drop_table('group_criteria')
     op.drop_index(op.f('ix_divisions_id'), table_name='divisions')
+    op.drop_index(op.f('ix_divisions_code'), table_name='divisions')
     op.drop_table('divisions')
     op.drop_index(op.f('ix_kpi_periods_id'), table_name='kpi_periods')
     op.drop_table('kpi_periods')
     op.drop_index(op.f('ix_education_fields_id'), table_name='education_fields')
+    op.drop_index(op.f('ix_education_fields_code'), table_name='education_fields')
     op.drop_table('education_fields')
     op.drop_index(op.f('ix_division_groups_id'), table_name='division_groups')
+    op.drop_index(op.f('ix_division_groups_code'), table_name='division_groups')
     op.drop_table('division_groups')
     # ### end Alembic commands ###

@@ -17,7 +17,7 @@ $EnvFile = Join-Path $ProjectRoot ".env"
 $PgBin = "C:\Program Files\PostgreSQL\18\bin"
 $PgHba = "C:\Program Files\PostgreSQL\18\data\pg_hba.conf"
 $ServiceName = "postgresql-x64-18"
-$DbName = "pramita_dss"
+$DbName = "sdm_dss"
 $DbUser = "postgres"
 
 function Write-Step([string]$msg) { Write-Host "`n==> $msg" -ForegroundColor Cyan }
