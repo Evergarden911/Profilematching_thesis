@@ -63,14 +63,14 @@
           Panel Utama
         </a>
 
-        {% if u_role in ['kepala_hrd', 'kepala_cabang', 'kepala_divisi'] %}
+        {% if u_role in ['kepala_hrd', 'kepala_cabang', 'kepala_divisi', 'HRD', 'KACAB', 'KADIV'] %}
         <div class="nav-section-title">Operasional Staf</div>
         <a href="/requests" class="nav-item {% if active_page == 'requests' %}active{% endif %}">
           Pengajuan Mutasi SDM
         </a>
         {% endif %}
 
-        {% if u_role == 'kepala_hrd' %}
+        {% if u_role in ['kepala_hrd', 'HRD'] %}
         <div class="nav-section-title">Data Induk Sistem</div>
         <a href="/divisions" class="nav-item {% if active_page == 'divisions' %}active{% endif %}">
           Manajemen Divisi
@@ -88,7 +88,7 @@
         </a>
         {% endif %}
 
-        {% if u_role in ['kepala_cabang', 'kepala_hrd'] %}
+        {% if u_role in ['kepala_cabang', 'kepala_hrd', 'KACAB', 'HRD'] %}
         <div class="nav-section-title">Eksekutif & Laporan</div>
         <a href="/results" class="nav-item {% if active_page == 'results' %}active{% endif %}">
           Hasil Profile Matching
@@ -101,6 +101,14 @@
 
         <a href="/constraints" class="nav-item {% if active_page == 'constraints' %}active{% endif %}">
           Manajemen Assesment
+        </a>
+        {% endif %}
+
+        <!-- PENAMBAHAN BARU: Menu Admin Sistem Khusus HRD & Super Admin -->
+        {% if u_role in ['kepala_hrd', 'super_admin', 'HRD', 'SUPER_ADMIN'] %}
+        <div class="nav-section-title">Sistem & Keamanan</div>
+        <a href="/admin" class="nav-item {% if active_page == 'admin' %}active{% endif %}">
+          Administrasi (RBAC)
         </a>
         {% endif %}
       </nav>

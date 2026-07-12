@@ -25,9 +25,16 @@ def _now():
 # ─────────────────────────────────────────────────────────────
 
 class UserRole(str, enum.Enum):
+    # Legacy / Lowercase roles
     kepala_hrd = "kepala_hrd"
     kepala_cabang = "kepala_cabang"
     kepala_divisi = "kepala_divisi"
+    # UI Aligned / Uppercase & Super Admin roles (Untuk sinkronisasi admin.html)
+    HRD = "HRD"
+    KACAB = "KACAB"
+    KADIV = "KADIV"
+    SUPER_ADMIN = "SUPER_ADMIN"
+    super_admin = "super_admin"
 
 
 class RequestStatus(str, enum.Enum):
@@ -97,7 +104,7 @@ class User(Base):
 class DivisionGroup(Base):
     """
     Payung Rumpun Kerja Besar. Contoh: LAB untuk Laboratorium Klinik.
-    Menjadi jangkar utama pewarisan kriteria standardisasi.
+    Menjadi jangkar utama pewarisan kriteria standardisasi dan bobot CF/SF.
     """
     __tablename__ = "division_groups"
 
@@ -105,6 +112,11 @@ class DivisionGroup(Base):
     name        = Column(String(200), unique=True, nullable=False)
     code        = Column(String(20), unique=True, nullable=False, index=True)
     description = Column(Text, nullable=True)
+    
+    # IMPROVEMENT: Bobot Dinamis CF & SF per Rumpun Divisi
+    cf_weight   = Column(Float, default=0.60, nullable=False)
+    sf_weight   = Column(Float, default=0.40, nullable=False)
+
     is_active   = Column(Boolean, default=True)
     created_at  = Column(DateTime, default=_now)
 
@@ -243,7 +255,7 @@ class EmployeeScore(Base):
 
 
 # ─────────────────────────────────────────────────────────────
-# TRANSAKSI ALUR KERJA MUTASI SDM
+# TRANSAKSI ALUR KERJA MUTASI SDM (FSM & Audit Trail)
 # ─────────────────────────────────────────────────────────────
 
 class SDMRequest(Base):
@@ -256,9 +268,10 @@ class SDMRequest(Base):
     reason             = Column(Text, nullable=False)
     status             = Column(Enum(RequestStatus), default=RequestStatus.pending, nullable=False)
     
-    # Integrasi Keuangan Gerbang Anggaran
+    # DEPRECATED / BYPASSED: Integrasi Keuangan Gerbang Anggaran (Dipertahankan di DB demi kompatibilitas seeder)
     budget_gate_status = Column(Enum(GateStatus), default=GateStatus.pending, nullable=False)
     budget_notes       = Column(Text, nullable=True)
+    
     is_auto_generated  = Column(Boolean, default=False, nullable=False)
     hrd_notes          = Column(Text, nullable=True)
     created_at         = Column(DateTime, default=_now)
@@ -269,6 +282,10 @@ class SDMRequest(Base):
 
 
 class RotationGate(Base):
+    """
+    Entitas Utama Evaluasi Kandidat (Gate A & Gate B).
+    Bertindak sebagai stateful entity yang melacak eligibility sebelum Profile Matching.
+    """
     __tablename__ = "rotation_gates"
     __table_args__ = (UniqueConstraint("sdm_request_id", "employee_id", name="uq_rotation_gate_flow"),)
 
@@ -290,6 +307,28 @@ class RotationGate(Base):
 
     sdm_request = relationship("SDMRequest")
     employee    = relationship("Employee")
+    history     = relationship("SDMEvaluationHistory", back_populates="gate", cascade="all, delete-orphan")
+
+
+class SDMEvaluationHistory(Base):
+    """
+    NEW AUDIT TRAIL TABLE:
+    Mencatat seluruh riwayat transisi status evaluasi (Otomatis & Manual Action HRD).
+    Menjadi sumber data utama untuk halaman Riwayat Rotasi & fitur ekspor Excel.
+    """
+    __tablename__ = "sdm_evaluation_history"
+
+    id          = Column(Integer, primary_key=True, index=True)
+    gate_id     = Column(Integer, ForeignKey("rotation_gates.id", ondelete="CASCADE"), nullable=False, index=True)
+    from_status = Column(String(50), nullable=False)
+    to_status   = Column(String(50), nullable=False)
+    actor_id    = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    reason      = Column(Text, nullable=True)
+    is_manual   = Column(Boolean, default=False, nullable=False)
+    created_at  = Column(DateTime, default=_now, nullable=False)
+
+    gate  = relationship("RotationGate", back_populates="history")
+    actor = relationship("User")
 
 
 class MatchingResult(Base):
@@ -344,8 +383,6 @@ class WorkloadAnalysis(Base):
     recorded_at          = Column(DateTime, default=_now)
 
     division = relationship("Division")
-    
-
 
 
 # ─────────────────────────────────────────────────────────────

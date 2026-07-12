@@ -425,3 +425,31 @@ async def get_constraints_page(request: Request, db: Session = Depends(get_db)):
         # Jika belum login atau token kedaluwarsa, arahkan kembali ke halaman login utama
         from fastapi.responses import RedirectResponse
         return RedirectResponse(url="/login", status_code=303)
+    
+@app.get("/admin", response_class=HTMLResponse)
+async def view_admin_system(request: Request, db: Session = Depends(get_db)):
+    """
+    Menampilkan halaman web Administrasi Sistem & RBAC.
+    Hanya dapat diakses oleh akun dengan hak akses Manajer HRD atau Super Admin.
+    """
+    # 1. Otentikasi: Ambil user aktif dari cookie sesi
+    user = get_current_user_from_cookie(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+
+    # 2. Otorisasi (RBAC): Pastikan hanya role HRD dan Super Admin yang bisa masuk
+    #    Kita cek lowercase & uppercase untuk menghindari kendala case-sensitive enum/string
+    user_role_str = str(user.role.value if hasattr(user.role, 'value') else user.role).lower()
+    allowed_roles = ["kepala_hrd", "super_admin", "hrd"]
+    
+    if user_role_str not in allowed_roles:
+        logger.warning(f"Akses ilegal ke halaman /admin oleh user ID {user.id} dengan role '{user_role_str}'")
+        # Alihkan kembali ke dashboard jika mencoba memodifikasi URL secara manual
+        return RedirectResponse(url="/dashboard", status_code=303)
+
+    # 3. Render template admin.html jika lolos otentikasi & otorisasi
+    return templates.TemplateResponse("admin.html", {
+        "request": request,
+        "current_user": user,
+        "active_page": "admin"  # Memicu sorotan menu aktif di sidebar
+    })

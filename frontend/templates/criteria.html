@@ -14,13 +14,47 @@
         </button>
     </div>
 
-    <div style="margin-bottom: 24px; background: var(--white); padding: 20px; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);">
+    <!-- Dropdown Pilih Rumpun -->
+    <div style="margin-bottom: 20px; background: var(--white); padding: 20px; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);">
         <label style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 10px;">Pilih Rumpun Divisi (Group):</label>
         <select id="groupSelect" onchange="loadCriteria()" style="width: 100%; max-width: 400px; padding: 10px 12px; border: 1px solid var(--border-mid); border-radius: var(--radius-sm); font-size: 13.5px; outline: none; background-color: var(--surface);">
             <option value="">-- Memuat Rumpun Divisi... --</option>
         </select>
     </div>
 
+    <!-- IMPROVEMENT: Card Bobot CF & SF (Muncul Dinamis) -->
+    <div id="weightConfigCard" style="display: none; margin-bottom: 24px; background: var(--white); padding: 20px; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div>
+                <h4 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--ink);">Bobot Penilaian Rumpun Divisi</h4>
+                <p style="margin: 4px 0 0 0; color: var(--ink-60); font-size: 13px;">Konfigurasi persentase Core Factor (CF) dan Secondary Factor (SF) untuk perhitungan Profile Matching.</p>
+            </div>
+            <button class="btn btn-outline" onclick="openWeightModal()">
+                Atur Bobot
+            </button>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <!-- Card CF -->
+            <div style="padding: 16px; border-radius: var(--radius-sm); background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <span style="font-size: 12px; font-weight: 600; color: var(--red-dark); text-transform: uppercase; letter-spacing: 0.5px;">Core Factor (CF)</span>
+                    <div style="font-size: 24px; font-weight: 700; color: var(--ink); margin-top: 4px;" id="displayCF">60%</div>
+                </div>
+                <div style="text-align: right; font-size: 12px; color: var(--ink-60);">Kriteria Utama / Mutlak</div>
+            </div>
+            <!-- Card SF -->
+            <div style="padding: 16px; border-radius: var(--radius-sm); background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <span style="font-size: 12px; font-weight: 600; color: #065F46; text-transform: uppercase; letter-spacing: 0.5px;">Secondary Factor (SF)</span>
+                    <div style="font-size: 24px; font-weight: 700; color: var(--ink); margin-top: 4px;" id="displaySF">40%</div>
+                </div>
+                <div style="text-align: right; font-size: 12px; color: var(--ink-60);">Kriteria Pendukung</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabel Kriteria -->
     <div class="card">
         <div class="table-responsive">
             <table>
@@ -42,6 +76,7 @@
     </div>
 </div>
 
+<!-- Modal Tambah Kriteria (Existing) -->
 <div id="criteriaModal" class="modal-backdrop">
     <div class="modal">
         <div class="modal-header">
@@ -82,7 +117,42 @@
     </div>
 </div>
 
+<!-- IMPROVEMENT: Modal Ubah Bobot CF/SF -->
+<div id="weightModal" class="modal-backdrop">
+    <div class="modal">
+        <div class="modal-header">
+            <h5 class="modal-title">Atur Bobot Penilaian</h5>
+            <button type="button" onclick="closeWeightModal()" class="modal-close" style="font-size: 20px;">&times;</button>
+        </div>
+        <form id="weightForm">
+            <div class="modal-body">
+                <div style="background: var(--surface); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 13px; color: var(--ink-80); border-left: 3px solid var(--ink);">
+                    <strong>Aturan Sistem:</strong> Total akumulasi bobot Core Factor (CF) dan Secondary Factor (SF) wajib bernilai tepat <strong>100%</strong>.
+                </div>
+                <div style="display: flex; gap: 16px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Core Factor (CF) %</label>
+                        <input type="number" id="input_cf" required min="1" max="99" step="1" placeholder="60">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Secondary Factor (SF) %</label>
+                        <input type="number" id="input_sf" required min="1" max="99" step="1" placeholder="40">
+                    </div>
+                </div>
+                <div id="weightError" style="color: var(--red); font-size: 13px; display: none; margin-top: 4px; font-weight: 600;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeWeightModal()">Batal</button>
+                <button type="submit" class="btn btn-primary" id="btnSaveWeight">Simpan Bobot</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
+    // State Caching agar tidak membebani server
+    let groupsData = [];
+
     document.addEventListener("DOMContentLoaded", async () => {
         await loadGroups();
     });
@@ -90,18 +160,19 @@
     async function loadGroups() {
         try {
             const res = await fetch('/api/divisions/groups');
-            const groups = await res.json();
+            groupsData = await res.json();
+            
             const select = document.getElementById('groupSelect');
             select.innerHTML = '<option value="">-- Pilih Rumpun Divisi --</option>';
             
-            groups.forEach(g => {
+            groupsData.forEach(g => {
                 const opt = document.createElement('option');
                 opt.value = g.id;
                 opt.textContent = `${g.code} - ${g.name}`;
                 select.appendChild(opt);
             });
         } catch (error) {
-            console.error(error);
+            console.error("Gagal memuat grup:", error);
         }
     }
 
@@ -109,14 +180,29 @@
         const groupId = document.getElementById('groupSelect').value;
         const tbody = document.getElementById('criteriaTableBody');
         const btnAdd = document.getElementById('btnAddCriteria');
+        const weightCard = document.getElementById('weightConfigCard');
         
         if (!groupId) {
             tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--ink-60);">Pilih rumpun divisi terlebih dahulu.</td></tr>';
             btnAdd.disabled = true;
+            weightCard.style.display = 'none';
             return;
         }
 
         btnAdd.disabled = false;
+        
+        // Render informasi Bobot CF/SF secara dinamis
+        const selectedGroup = groupsData.find(g => g.id == groupId);
+        if (selectedGroup) {
+            // Default ke 0.6 dan 0.4 jika di DB masih null/kosong
+            const cfPercent = Math.round((selectedGroup.cf_weight !== undefined ? selectedGroup.cf_weight : 0.6) * 100);
+            const sfPercent = Math.round((selectedGroup.sf_weight !== undefined ? selectedGroup.sf_weight : 0.4) * 100);
+            
+            document.getElementById('displayCF').innerText = `${cfPercent}%`;
+            document.getElementById('displaySF').innerText = `${sfPercent}%`;
+            weightCard.style.display = 'block';
+        }
+
         try {
             const res = await fetch(`/api/divisions/groups/${groupId}/criteria`);
             const data = await res.json();
@@ -153,6 +239,7 @@
         }
     }
 
+    // Modal Kriteria Existing
     function openCriteriaModal() {
         document.getElementById('criteriaForm').reset();
         document.getElementById('criteriaModal').classList.add('open');
@@ -162,6 +249,94 @@
         document.getElementById('criteriaModal').classList.remove('open');
     }
 
+    // IMPROVEMENT: Modal Bobot Functions & UX Auto-Calculate
+    function openWeightModal() {
+        const groupId = document.getElementById('groupSelect').value;
+        const selectedGroup = groupsData.find(g => g.id == groupId);
+        
+        if (selectedGroup) {
+            const cfPercent = Math.round((selectedGroup.cf_weight !== undefined ? selectedGroup.cf_weight : 0.6) * 100);
+            const sfPercent = Math.round((selectedGroup.sf_weight !== undefined ? selectedGroup.sf_weight : 0.4) * 100);
+            
+            document.getElementById('input_cf').value = cfPercent;
+            document.getElementById('input_sf').value = sfPercent;
+        }
+        document.getElementById('weightError').style.display = 'none';
+        document.getElementById('weightModal').classList.add('open');
+    }
+
+    function closeWeightModal() {
+        document.getElementById('weightModal').classList.remove('open');
+    }
+
+    // Auto-Calculate SF saat CF diketik (dan sebaliknya)
+    document.getElementById('input_cf').addEventListener('input', (e) => {
+        const cfVal = parseInt(e.target.value) || 0;
+        if (cfVal >= 0 && cfVal <= 100) {
+            document.getElementById('input_sf').value = 100 - cfVal;
+        }
+    });
+
+    document.getElementById('input_sf').addEventListener('input', (e) => {
+        const sfVal = parseInt(e.target.value) || 0;
+        if (sfVal >= 0 && sfVal <= 100) {
+            document.getElementById('input_cf').value = 100 - sfVal;
+        }
+    });
+
+    // Submit Bobot Baru
+    document.getElementById('weightForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const groupId = document.getElementById('groupSelect').value;
+        const cfVal = parseFloat(document.getElementById('input_cf').value);
+        const sfVal = parseFloat(document.getElementById('input_sf').value);
+        const errorDiv = document.getElementById('weightError');
+        const btnSaveWeight = document.getElementById('btnSaveWeight');
+        
+        if (cfVal + sfVal !== 100) {
+            errorDiv.innerText = "Total bobot CF + SF harus tepat bernilai 100%!";
+            errorDiv.style.display = 'block';
+            return;
+        }
+        errorDiv.style.display = 'none';
+
+        // Convert persentase (0-100) ke desimal (0.0 - 1.0) untuk backend
+        const payload = {
+            cf_weight: cfVal / 100,
+            sf_weight: sfVal / 100
+        };
+
+        try {
+            btnSaveWeight.disabled = true;
+            btnSaveWeight.innerText = 'Menyimpan...';
+
+            // Sesuaikan endpoint ini dengan rute update group di backend kamu (misal: PATCH /api/divisions/groups/{id})
+            const response = await fetch(`/api/divisions/groups/${groupId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error('Gagal memperbarui konfigurasi bobot ke server.');
+
+            if(window.App) App.showToast('Bobot berhasil diperbarui!', 'success');
+            closeWeightModal();
+            
+            // Reload data grup agar caching terperbarui, lalu refresh tampilan
+            await loadGroups();
+            document.getElementById('groupSelect').value = groupId;
+            loadCriteria();
+        } catch (error) {
+            console.error(error);
+            if(window.App) App.showToast(error.message, 'error');
+            else alert(error.message);
+        } finally {
+            btnSaveWeight.disabled = false;
+            btnSaveWeight.innerText = 'Simpan Bobot';
+        }
+    });
+
+    // Submit Kriteria Existing
     document.getElementById('criteriaForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const groupId = document.getElementById('groupSelect').value;
