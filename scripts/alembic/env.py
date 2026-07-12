@@ -34,20 +34,26 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
+    """Run migrations in 'online' mode."""
+    
+    # Tambahkan connect_args untuk memaksa search_path di level driver Psycopg2
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args={"options": "-csearch_path=public"}  # <-- TAMBAHKAN BARIS INI
     )
+
     with connectable.connect() as connection:
         context.configure(
-            connection=connection,
+            connection=connection, 
             target_metadata=target_metadata,
-            compare_type=True,
+            version_table_schema="public",  # <-- TAMBAHKAN BARIS INI
+            include_schemas=True
         )
+
         with context.begin_transaction():
             context.run_migrations()
-
 
 if context.is_offline_mode():
     run_migrations_offline()

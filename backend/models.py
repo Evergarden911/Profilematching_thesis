@@ -25,16 +25,14 @@ def _now():
 # ─────────────────────────────────────────────────────────────
 
 class UserRole(str, enum.Enum):
-    # Legacy / Lowercase roles
+    """
+    Standarisasi role pengguna menggunakan format lowercase legacy.
+    Menghilangkan duplikasi uppercase untuk menjaga efisiensi dan konsistensi RBAC.
+    """
+    super_admin = "super_admin"
     kepala_hrd = "kepala_hrd"
     kepala_cabang = "kepala_cabang"
     kepala_divisi = "kepala_divisi"
-    # UI Aligned / Uppercase & Super Admin roles (Untuk sinkronisasi admin.html)
-    HRD = "HRD"
-    KACAB = "KACAB"
-    KADIV = "KADIV"
-    SUPER_ADMIN = "SUPER_ADMIN"
-    super_admin = "super_admin"
 
 
 class RequestStatus(str, enum.Enum):
