@@ -44,24 +44,40 @@
     let currentGateId = null;
 
     async function bukaModalInterview(gateId, divId) {
-        currentGateId = gateId;s
-        // Panggil API untuk ambil kriteria berdasarkan divisi target
-        const res = await fetch(`/api/divisions/${divId}/criteria`);
-        const divs = await (await fetch('/api/divisions/')).json();
-+       const targetDiv = divs.find(d => d.id === divId);
-+       if (!targetDiv || !targetDiv.group_id) { App.showToast('Divisi tidak memiliki rumpun kerja terkait.', 'error'); return; }
-+       const res = await fetch(`/api/divisions/groups/${targetDiv.group_id}/criteria`);
-        const criteria = await res.json();
-        
+        currentGateId = gateId;
         const container = document.getElementById('criteriaList');
-        container.innerHTML = criteria.map(c => `
-            <div style="margin-bottom:10px;">
-                <label>${c.name}</label>
-                <input type="number" class="score-input" data-id="${c.id}" min="0" max="100" placeholder="0-100">
-            </div>
-        `).join('');
-        
+        container.innerHTML = '<p style="color: #64748b; font-size: 13px;">Memuat parameter kriteria divisi target...</p>';
         document.getElementById('modalInterview').style.display = 'flex';
+
+        try {
+            // Panggil API jembatan baru yang menjamin akurasi kriteria sub-divisi target
+            const res = await fetch(`/api/gates/${gateId}/assessment-criteria`, {
+                credentials: 'same-origin'
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || 'Gagal memuat daftar kriteria asesmen.');
+            }
+
+            const criteria = await res.json();
+
+            // Render form input nilai (0-100)
+            container.innerHTML = criteria.map(c => `
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 4px;">
+                        ${c.name} <span style="font-weight: normal; color: #64748b; font-size: 11.5px;">(Bobot: ${c.weight * 100}%)</span>
+                    </label>
+                    <input type="number" class="score-input form-control" data-id="${c.criteria_id}" 
+                           min="0" max="100" placeholder="Skor 0 - 100" 
+                           style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                </div>
+            `).join('');
+
+        } catch (error) {
+            console.error("Kesalahan Kriteria:", error);
+            container.innerHTML = `<p style="color: #dc2626; font-size: 13px;">Error: ${error.message}</p>`;
+        }
     }
 
     async function simpanNilai() {
@@ -74,14 +90,16 @@
         const res = await fetch('/api/gates/interview-scores', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ gate_id: currentGateId, scores: scores })
+            body: JSON.stringify({ gate_id: currentGateId, scores: scores }),
+            credentials: 'same-origin'
         });
 
-        if(res.ok) {
-            alert('Nilai berhasil disimpan!');
+        if (res.ok) {
+            alert('Nilai asesmen berhasil disimpan! Kandidat siap untuk Profile Matching.');
             location.reload();
         } else {
-            alert('Gagal menyimpan nilai.');
+            const err = await res.json();
+            alert('Gagal menyimpan nilai: ' + (err.detail || 'Terjadi kesalahan sistem.'));
         }
     }
 </script>

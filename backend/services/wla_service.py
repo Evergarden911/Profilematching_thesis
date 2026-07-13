@@ -79,7 +79,7 @@ def _wla_warning(wla: float, division_name: str, change: str) -> str | None:
         )
     if wla < WLA_NORMAL_MIN:
         return (
-            f"Inefisiensi: {division_name} akan KEBANYAKAN ORANG setelah {change} "
+            f"Inefisiensi: {division_name} akan KELEBIHAN ORANG setelah {change} "
             f"(WLA={wla:.3f}, min={WLA_NORMAL_MIN})."
         )
     return None

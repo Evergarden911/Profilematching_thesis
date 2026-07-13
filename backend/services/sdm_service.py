@@ -155,7 +155,7 @@ def run_matching(db: Session, request_id: int) -> list[MatchingResult]:
         .options(contains_eager(Employee.scores))
         .all()
     )
-    
+
     seen: set[int] = set()
     unique_employees: list[Employee] = []
     for emp in employees:
@@ -163,6 +163,32 @@ def run_matching(db: Session, request_id: int) -> list[MatchingResult]:
             seen.add(emp.id)
             unique_employees.append(emp)
     employees = unique_employees
+
+    # -----------------------------------------------------------------------
+    # DIAGNOSTIK: Kandidat yang terdaftar di RotationGate untuk request ini,
+    # tapi TIDAK ikut proses matching di atas. Ini membedakan dua kondisi
+    # yang secara query terlihat sama (hilang dari hasil) tapi maknanya beda:
+    #   - masih interview_pending  -> belum dinilai, BUKAN ditolak, tinggal
+    #     lengkapi Gate B (input nilai wawancara)
+    #   - interview_failed / gagal Gate A -> memang tidak eligible
+    # Tanpa ini, satu-satunya sinyal ke HRD adalah pesan generik "tidak ada
+    # karyawan" yang terbaca seperti penolakan total, padahal bisa jadi
+    # kandidat itu tinggal 1 langkah lagi (input nilai) sebelum eligible.
+    # -----------------------------------------------------------------------
+    all_gates_for_request = (
+        db.query(RotationGate)
+        .join(Employee)
+        .filter(RotationGate.sdm_request_id == request_id)
+        .options(contains_eager(RotationGate.employee))
+        .all()
+    )
+    matched_employee_ids = {emp.id for emp in employees}
+    pending_interview_candidates = [
+        g.employee.full_name
+        for g in all_gates_for_request
+        if g.employee_id not in matched_employee_ids
+        and g.interview_gate_status == GateStatus.interview_pending
+    ]
 
     score_index: dict[int, dict[int, float]] = {}
     for emp in employees:
@@ -192,6 +218,16 @@ def run_matching(db: Session, request_id: int) -> list[MatchingResult]:
         match_results.append(compute_match(emp.id, inputs))
 
     if not match_results:
+        if pending_interview_candidates:
+            names = ", ".join(pending_interview_candidates)
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    f"Belum bisa matching: kandidat berikut berasal dari grup divisi berbeda "
+                    f"dan masih menunggu Gate B (input nilai wawancara/asesmen): {names}. "
+                    "Selesaikan penilaian lewat halaman Rotation Gates terlebih dahulu."
+                ),
+            )
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Tidak ada karyawan yang memiliki nilai asesmen pada kriteria sub-divisi target ini."
@@ -227,9 +263,9 @@ def run_matching(db: Session, request_id: int) -> list[MatchingResult]:
         emp_model = db.query(Employee).get(result.employee_id)
         
         # FIXED: Tarik record RotationGate yang sudah ada, jangan pakai db.add(RotationGate(...)) baru!
-        gate = db.query(RotationGate).filter_by(
-            sdm_request_id=request_id, 
-            employee_id=result.employee_id
+        gate = db.query(RotationGate).filter(
+            RotationGate.sdm_request_id == request_id, 
+            RotationGate.employee_id == result.employee_id
         ).first()
         
         if not gate:

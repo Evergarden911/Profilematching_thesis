@@ -30,13 +30,14 @@ Score conversion:
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, contains_eager
 
 from backend.models import (
     ConstraintType,
     GroupCriteria,
     Division,
     DivisionConstraint,
+    DivisionCriteriaWeight,
     Employee,
     EmployeeScore,
     GateStatus,
@@ -147,6 +148,43 @@ def evaluate_education_gate(
     db.refresh(gate)
     return gate
 
+def get_target_assessment_criteria(db: Session, gate_id: int) -> list[dict]:
+    """
+    Mengambil daftar kriteria wajib dari Sub-Divisi Target untuk form Gate B.
+    Mencegah sistem menarik kriteria divisi asal yang tidak relevan.
+    """
+    gate = _get_gate_or_404(db, gate_id)
+    target_div_id = gate.sdm_request.target_division_id 
+
+    div_weights = (
+        db.query(DivisionCriteriaWeight)
+        .join(GroupCriteria)
+        .filter(
+            DivisionCriteriaWeight.division_id == target_div_id,
+            GroupCriteria.is_active == True
+        )
+        .options(contains_eager(DivisionCriteriaWeight.group_criteria))
+        .all()
+    )
+
+    if not div_weights:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Sub-divisi target belum memiliki konfigurasi bobot kriteria yang aktif."
+        )
+
+    output = []
+    for dw in div_weights:
+        gc = dw.group_criteria
+        output.append({
+            "criteria_id": gc.id,
+            "name": gc.name,
+            "target_value": gc.target_value,
+            "factor_type": gc.factor_type.value,
+            "weight": dw.weight
+        })
+    return output
+
 def _decide_interview_requirement(
     db: Session,
     gate: RotationGate,
@@ -154,29 +192,36 @@ def _decide_interview_requirement(
     target_division: Division,
     requires_interview: bool,
 ) -> None:
-    if not requires_interview:
-        gate.is_eligible_for_matching = True
-        return
-
+    # 1. Ambil data divisi asal karyawan
     employee_division = db.query(Division).filter(Division.id == employee.division_id).first()
 
+    # 2. Cek apakah divisi asal dan divisi target berada dalam SATU RUMPUN GRUP
     same_group = (
         target_division.group_id is not None
         and employee_division is not None
         and employee_division.group_id == target_division.group_id
     )
 
-    if same_group:
-        gate.is_eligible_for_matching = True
-        gate.interview_gate_notes = "Employee is within the same division group. Interview not required."
-    else:
+    # 3. ATURAN GERBANG B (Wawancara & Asesmen Kompetensi):
+    # Gate B WAJIB dipicu jika:
+    #   a) Rotasi LINTAS GRUP (not same_group) -> Wajib karena belum punya skor di grup baru
+    #   b) ATAU aturan matriks (DivisionConstraint) secara eksplisit mewajibkan interview (requires_interview == True)
+    if not same_group or requires_interview:
         gate.interview_gate_status = GateStatus.interview_pending
-        gate.interview_gate_notes = (
-            f"Employee is from '{employee_division.name if employee_division else 'unknown'}', "
-            f"which is outside the '{target_division.group.name if target_division.group else target_division.name}' group. "
-            "Interview + test required before Profile Matching."
-        )
         gate.is_eligible_for_matching = False
+        
+        if not same_group:
+            gate.interview_gate_notes = (
+                f"Rotasi Lintas Grup: Dari '{employee_division.name if employee_division else 'unknown'}' "
+                f"ke '{target_division.name}'. Wajib mengikuti asesmen kompetensi Gate B sebelum Profile Matching."
+            )
+        else:
+            gate.interview_gate_notes = "Aturan matriks kualifikasi mewajibkan asesmen wawancara Gate B."
+    else:
+        # Rotasi internal satu grup & tidak ada kewajiban interview dari constraint -> Lolos Otomatis
+        gate.interview_gate_status = GateStatus.passed
+        gate.is_eligible_for_matching = True
+        gate.interview_gate_notes = "Rotasi Satu Rumpun Grup: Gate B dilewati (Lolos Otomatis)."
 
 
 # ---------------------------------------------------------------------------
@@ -190,67 +235,80 @@ def record_interview_scores(
     scored_by: User,
 ) -> list[dict]:
     """
-    Mengonversi skor mentah (0-100) dan langsung menyuntikkannya ke EmployeeScore.
-    Menghapus ketergantungan pada tabel InterviewScore yang telah usang.
+    Mengonversi skor mentah (0–100), memvalidasi kesesuaian kriteria dengan 
+    divisi target, dan menyuntikkannya ke tabel EmployeeScore.
     """
-    gate = _get_gate_or_404(db, gate_id)
-    employee = gate.employee
+    gate = _get_gate_or_404(db, gate_id) 
+    employee = gate.employee 
+    target_div_id = gate.sdm_request.target_division_id 
 
-    if gate.interview_gate_status != GateStatus.interview_pending:
+    if gate.interview_gate_status != GateStatus.interview_pending: 
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Gate is in status '{gate.interview_gate_status}', expected 'interview_pending'.",
+            detail=f"Status Gate saat ini adalah '{gate.interview_gate_status}', diharapkan 'interview_pending'." 
         )
 
-    criteria_ids = [s["criteria_id"] for s in scores]
-    found_criteria = {
-        c.id: c
-        for c in db.query(GroupCriteria).filter(GroupCriteria.id.in_(criteria_ids)).all()
-    }
+    # 1. VALIDASI KETAT: Ambil daftar ID Kriteria sah dari divisi target
+    valid_target_criteria = db.query(DivisionCriteriaWeight.group_criteria_id).filter(
+        DivisionCriteriaWeight.division_id == target_div_id
+    ).all()
+    valid_ids = {item[0] for item in valid_target_criteria}
+
+    submitted_ids = {s["criteria_id"] for s in scores} 
     
-    missing = set(criteria_ids) - set(found_criteria.keys())
-    if missing:
+    # Mencegah masuknya ID Kriteria asing (misal dari divisi asal karyawan)
+    invalid_ids = submitted_ids - valid_ids
+    if invalid_ids:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Group Criteria ID(s) not found: {sorted(missing)}",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Inkonsistensi data: Kriteria ID {sorted(invalid_ids)} bukan parameter penilai pada divisi target."
         )
 
-    results = []
-    for entry in scores:
-        cid = entry["criteria_id"]
-        raw = entry["raw_score"]
+    # Pastikan seluruh kriteria wajib milik divisi target dinilai lengkap
+    missing_ids = valid_ids - submitted_ids
+    if missing_ids:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Penilaian tidak lengkap. Kriteria target ID {sorted(missing_ids)} belum diberikan skor."
+        )
+
+    # 2. EKSEKUSI KONVERSI & UPSERT SKOR
+    results = [] 
+    for entry in scores: 
+        cid = entry["criteria_id"] 
+        raw = entry["raw_score"] 
 
         try:
-            converted = convert_interview_score(raw)
-        except ValueError as e:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+            converted = convert_interview_score(raw) 
+        except ValueError as e: 
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) 
 
-        # Upsert: Timpa nilai lama jika sudah ada, buat baru jika belum ada
+        # Upsert: Timpa nilai lama jika ada, buat baru jika belum
         existing_es = (
             db.query(EmployeeScore)
             .filter(EmployeeScore.employee_id == employee.id, EmployeeScore.criteria_id == cid)
             .first()
-        )
+        ) 
         
-        if existing_es:
-            existing_es.score = converted
-        else:
-            db.add(EmployeeScore(employee_id=employee.id, criteria_id=cid, score=converted))
+        if existing_es: 
+            existing_es.score = converted 
+        else: 
+            db.add(EmployeeScore(employee_id=employee.id, criteria_id=cid, score=converted)) 
             
-        # Mengembalikan format kamus agar sesuai dengan skema InterviewScoreRead di frontend
-        results.append({
-            "criteria_id": cid,
-            "raw_score": raw,
-            "score": converted
-        })
+        results.append({ 
+            "criteria_id": cid, 
+            "raw_score": raw, 
+            "score": converted 
+        }) 
 
-    # Loloskan Gerbang
-    gate.interview_gate_status = GateStatus.interview_passed
-    gate.interview_checked_at = datetime.now(timezone.utc)
-    gate.is_eligible_for_matching = True
+    # 3. TRANSISI STATUS GATE
+    gate.interview_gate_status = GateStatus.interview_passed 
+    gate.interview_checked_at = datetime.now(timezone.utc) 
+    gate.interview_gate_notes = f"Asesmen lintas fungsi selesai dirating oleh {scored_by.full_name}."
+    gate.is_eligible_for_matching = True 
 
-    db.commit()
-    return results
+    db.commit() 
+    return results 
 
 
 def fail_interview_gate(db: Session, gate_id: int, notes: str) -> RotationGate:
@@ -319,49 +377,3 @@ def _get_division_or_404(db: Session, division_id: int) -> Division:
     if not div:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Division not found.")
     return div
-
-def evaluate_initial_constraints(db: Session, sdm_request_id: int, employee_id: int):
-    request = _get_request_or_404(db, sdm_request_id)
-    emp = _get_employee_or_404(db, employee_id)
-    gate = _get_or_create_gate(db, sdm_request_id, employee_id)
-    
-    # 1. ATURAN SANKSI
-    if emp.has_sanction:
-        gate.education_gate_status = "failed"
-        gate.education_gate_notes = "Ditolak di Gate A: Karyawan sedang dalam masa sanksi."
-        db.commit()
-        return gate
-
-    # 2. ATURAN MATRIKS PENDIDIKAN
-    from backend.models import DivisionConstraint
-    constraint = db.query(DivisionConstraint).filter(
-        DivisionConstraint.division_id == request.target_division_id,
-        DivisionConstraint.education_field_id == emp.education_field_id
-    ).first()
-
-    if constraint:
-        if constraint.constraint_type == "blocked":
-            gate.education_gate_status = "failed"
-            gate.education_gate_notes = "Ditolak di Gate A: Kualifikasi pendidikan diblokir untuk divisi ini."
-        elif constraint.constraint_type == "allowed":
-            is_native = (emp.division_id == request.target_division_id)
-            if not is_native and getattr(constraint, 'requires_interview_if_not_native', False):
-                gate.education_gate_status = "interview_pending"
-                gate.education_gate_notes = "Lolos Gate A: Wajib mengikuti asesmen lintas fungsi."
-                gate.interview_gate_status = GateStatus.interview_pending
-            else:
-                gate.education_gate_status = "passed"
-                gate.education_gate_notes = "Lulus Gate A: Kualifikasi pendidikan sesuai."
-    else:
-        # OPEN POLICY
-        is_native = (emp.division_id == request.target_division_id)
-        if not is_native:
-            gate.education_gate_status = "interview_pending"
-            gate.education_gate_notes = "Lolos Gate A: Menerapkan Open Policy (Wajib Asesmen)."
-            gate.interview_gate_status = GateStatus.interview_pending
-        else:
-            gate.education_gate_status = "passed"
-            gate.education_gate_notes = "Lulus Gate A: Menerapkan Open Policy (Internal)."
-
-    db.commit()
-    return gate

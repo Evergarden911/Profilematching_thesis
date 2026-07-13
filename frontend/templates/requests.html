@@ -275,7 +275,7 @@
                 selectDiv.innerHTML = '<option value="">-- Pilih Sub-Bagian Target --</option>';
                 divs.forEach(d => {
                     // Penambahan konteks Grup agar UI lebih jelas untuk user
-                    const groupName = d.group ? d.group.name : 'Tanpa Grup';
+                    const groupName = d.group ? d.group.name : (d.group_name || (d.group_id ? `Grup ID ${d.group_id}` : 'Tanpa Grup'));
                     selectDiv.innerHTML += `<option value="${d.id}">${d.name} (Rumpun: ${groupName})</option>`;
                 });
             }
@@ -527,12 +527,26 @@
 
             tutupModalKandidat();
             
-            if (data.education_gate_status === 'interview_pending') {
-                alert(`INFO: Kandidat berhasil ditambahkan namun lintas divisi.\n\nKandidat masuk antrean asesmen. Silakan cek menu Gates untuk input konversi nilai.`);
-            } else if (data.education_gate_status === 'passed') {
+            // PERBAIKAN: Cek interview_gate_status ATAU education_gate_status
+            if (data.interview_gate_status === 'interview_pending' || data.education_gate_status === 'interview_pending') {
+                // IMPROVISASI: Dialog konfirmasi interaktif untuk redirect ke Gates
+                const mauLanjut = confirm(
+                    "INFO: Kandidat berhasil ditambahkan namun berasal dari rumpun divisi berbeda.\n\n" +
+                    "Kandidat ini memerlukan asesmen kompetensi lintas fungsi (Gate B).\n\n" +
+                    "Apakah Anda ingin langsung menuju halaman Gates untuk menginput nilai wawancara sekarang?"
+                );
+                
+                if (mauLanjut) {
+                    window.location.href = '/gates';
+                } else {
+                    window.location.reload();
+                }
+            } else if (data.education_gate_status === 'passed' && data.is_eligible_for_matching === true) {
                 alert(`SUKSES: Kandidat memiliki korelasi keilmuan yang valid.\n\nKandidat langsung masuk ke daftar siap Profile Matching.`);
+                window.location.reload();
             } else {
-                alert(`Kandidat ditolak oleh sistem (Gate A Gagal).\nAlasan: ${data.education_gate_notes || 'Tidak memenuhi kualifikasi'}`);
+                alert(`Kandidat ditolak oleh sistem (Gate A Gagal).\nAlasan: ${data.education_gate_notes || data.interview_gate_notes || 'Tidak memenuhi kualifikasi'}`);
+                window.location.reload();
             }
 
         } catch (error) {
@@ -558,7 +572,7 @@
                 throw new Error(err.detail || 'Matching gagal dieksekusi.');
             }
 
-            window.location.href = `/results?request_id=${reqId}`;
+            window.location.href = '/results/' + reqId;
         } catch (e) {
             console.error("Kesalahan Matching:", e);
             alert(e.message);

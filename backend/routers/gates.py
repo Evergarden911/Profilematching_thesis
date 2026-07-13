@@ -1,19 +1,19 @@
-from fastapi import APIRouter, Depends, status, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, status, HTTPException 
+from sqlalchemy.orm import Session 
 
-from backend.core.database import get_db
-from backend.core.security import get_current_user, require_role
-from backend.models import User, RequestStatus
+from backend.core.database import get_db 
+from backend.core.security import get_current_user, require_role 
+from backend.models import User, RequestStatus 
 from backend.schemas.division import (
-    GateEvaluateRequest,
-    GateFailRequest,
-    InterviewScoreRead,
-    InterviewScoreSubmit,
-    RotationGateRead,
+    GateEvaluateRequest, 
+    GateFailRequest, 
+    InterviewScoreRead, 
+    InterviewScoreSubmit, 
+    RotationGateRead, 
 )
-from backend.services import constraint_service, sdm_service
+from backend.services import constraint_service, sdm_service 
 
-router = APIRouter(prefix="/api/gates", tags=["rotation-gates"])
+router = APIRouter(prefix="/api/gates", tags=["rotation-gates"]) 
 
 
 @router.post(
@@ -72,3 +72,18 @@ def fail_interview_gate(
 ):
     """Menggagalkan kandidat secara manual pada tahap asesmen kompetensi."""
     return constraint_service.fail_interview_gate(db, payload.gate_id, payload.notes)
+
+@router.get(
+    "/{gate_id}/assessment-criteria",
+    status_code=status.HTTP_200_OK,
+)
+def get_criteria_for_gate_assessment(
+    gate_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("kepala_hrd")),
+):
+    """
+    API untuk Frontend: Mengambil daftar kriteria dan bobot yang sah dari divisi 
+    tujuan sebelum memunculkan modal penilaian Gate B kepada HRD.
+    """
+    return constraint_service.get_target_assessment_criteria(db, gate_id)
