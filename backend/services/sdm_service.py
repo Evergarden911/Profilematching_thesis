@@ -1,18 +1,5 @@
-"""
-SDM Service
-===========
-Orchestrates the business logic for the SDM transfer/mutation workflow:
-
-  1. Kepala Divisi creates SDMRequest (Gate 1: Budget Evaluated here).
-  2. Kepala HRD reviews and forwards to Kepala Cabang.
-  3. Kepala Cabang triggers matching computation.
-  4. System ranks employees via Profile Matching (Gate 2: WLA Simulated here).
-  5. Kepala Cabang creates TransferLetter for the top candidate(s).
-"""
-
 from datetime import datetime
 from fastapi import HTTPException, status
-from sqlalchemy import func
 from sqlalchemy.orm import Session, contains_eager
 
 from backend.models import (
