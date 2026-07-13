@@ -1,69 +1,256 @@
 {% extends "base.html" %}
 
-{% block title %}Hasil Profile Matching | Pramita Lab{% endblock %}
+{% block title %}Hasil Evaluasi Profile Matching | Pramita Lab{% endblock %}
 
-{% block page_title %}Ranking Kandidat{% endblock %}
-{% block page_subtitle %}Divisi {{ request_data.target_division_name | default('Tidak Diketahui') }} · ID Pengajuan #{{ request_data.code | default('---') }}{% endblock %}
+{% block page_title %}Laporan & Pengesahan Rotasi SDM{% endblock %}
+{% block page_subtitle %}Divisi Target: {{ request_data.target_division_name | default('Operasional') }} · ID Pengajuan #{{ request_data.code | default('---') }}{% endblock %}
 
 {% block topbar_actions %}
-<a href="/requests" class="btn btn-outline btn-sm">Kembali ke Daftar</a>
-<button class="btn btn-primary btn-sm" onclick="window.print()">Cetak Laporan</button>
+<a href="/requests" class="btn btn-outline btn-sm">← Kembali ke Daftar</a>
+<button class="btn btn-outline btn-sm" onclick="window.print()">🖨️ Cetak Laporan</button>
 {% endblock %}
 
 {% block content %}
-<div class="result-header" style="background: #0f172a; color: white; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
-  <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px;">
-    <div>
-      <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600;">Laporan Evaluasi Profile Matching</h2>
+{% set current_role = current_user.role.value if current_user and current_user.role.value is defined else (current_user.role | string if current_user else 'guest') %}
+
+<!-- =========================================================================
+     BLOK A: PAPAN RANKING KANDIDAT (HASIL KOMPUTASI PROFILE MATCHING)
+     ========================================================================= -->
+<div class="card" style="margin-bottom: 24px; padding: 24px; border-left: 4px solid #0f172a;">
+  <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: #0f172a;">
+    🏆 Ranking Kandidat Hasil Profile Matching
+  </h3>
+  <div id="top-candidates-container" style="display: flex; flex-direction: column; gap: 12px;">
+    {% for cand in candidates[:3] %}
+    <div class="candidate-card" style="display: flex; align-items: center; justify-content: space-between; background: {% if loop.index == 1 %}#f0fdf4{% else %}#f8fafc{% endif %}; border: 1px solid {% if loop.index == 1 %}#22c55e{% else %}#e2e8f0{% endif %}; border-radius: 8px; padding: 16px 20px;">
+      
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <div style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 16px; font-weight: 700; {% if loop.index == 1 %}background: #22c55e; color: white;{% else %}background: #cbd5e1; color: #334155;{% endif %}">
+          {{ loop.index }}
+        </div>
+        <div>
+          <div style="font-size: 15px; font-weight: 600; color: #0f172a;">{{ cand.employee_name }}</div>
+          <div style="font-size: 12.5px; color: #64748b;">{{ cand.employee_code }} · Divisi Asal: {{ cand.origin_division | default('Internal') }}</div>
+        </div>
+      </div>
+      
+      <div style="text-align: right;">
+        <span style="font-size: 11px; text-transform: uppercase; color: #64748b; display: block;">Skor Akhir PM</span>
+        <span style="font-size: 24px; font-weight: 700; color: {% if loop.index == 1 %}#16a34a{% else %}#0f172a{% endif %};">{{ "%.2f"|format(cand.final_score) }}</span>
+      </div>
+
     </div>
+    {% endfor %}
   </div>
 </div>
 
-<div id="top-candidates-container" style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px;">
-  {% for cand in candidates[:3] %}
-  <div class="candidate-card" style="display: flex; align-items: center; background: white; border: 1px solid {% if loop.index == 1 %}#38bdf8{% else %}#e2e8f0{% endif %}; border-radius: 8px; padding: 20px;">
-    
-    <div style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 20px; font-weight: 700; margin-right: 20px; {% if loop.index == 1 %}background: #fbbf24; color: white;{% else %}background: #e2e8f0;{% endif %}">
-      {{ loop.index }}
+<!-- =========================================================================
+     BLOK B: TABEL ANALISIS GAP & KONVERSI KOMPETENSI (INTERAKTIF)
+     ========================================================================= -->
+<div class="card" style="margin-bottom: 24px; padding: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+    <div>
+      <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #0f172a;">
+        📊 Perbandingan Kompetensi: Aktual vs Standar Jabatan
+      </h3>
+      <p style="margin: 4px 0 0 0; font-size: 12.5px; color: #64748b;">
+        Analisis rincian atribut kompetensi untuk kandidat peringkat teratas ({{ candidates[0].employee_name if candidates else 'N/A' }}).
+      </p>
     </div>
-    
-    <div style="flex: 1;">
-      <div style="font-size: 16px; font-weight: 600; color: #0f172a;">{{ cand.employee_name }}</div>
-      <div style="font-size: 13px; color: #64748b;">{{ cand.employee_code }}</div>
+  </div>
+
+  {% if current_role in ['kepala_cabang', 'eksekutif'] %}
+  <!-- SPANDUK HIERARCHICAL OVERRIDE KHUSUS KEPALA CABANG -->
+  <div style="background: #fef9c3; border: 1px solid #fde047; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px;">
+    <span style="font-size: 20px;">⚠️</span>
+    <div style="font-size: 12.5px; color: #854d0e; line-height: 1.4;">
+      <strong>Hierarchical Override:</strong> Kepala Cabang memiliki wewenang diskresi untuk mengubah skor kriteria di atas tanpa membatalkan siklus Profile Matching. Seluruh perubahan akan dicatat secara otomatis pada <em>Audit Log</em>.
     </div>
+  </div>
+  {% endif %}
+
+  <div class="table-responsive">
+    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13.5px;">
+      <thead>
+        <tr style="border-bottom: 2px solid #e2e8f0; color: #475569; background: #f8fafc;">
+          <th style="padding: 12px;">ASPEK</th>
+          <th style="padding: 12px;">KRITERIA</th>
+          <th style="padding: 12px; text-align: center;">AKTUAL</th>
+          <th style="padding: 12px; text-align: center;">STANDAR</th>
+          <th style="padding: 12px; text-align: center;">GAP</th>
+          <th style="padding: 12px; text-align: right;">KONVERSI BOBOT</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Contoh Render Dinamis Baris Kompetensi (Bisa ditarik dari variabel backend) -->
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 12px; font-weight: 500;">Kecerdasan</td>
+          <td style="padding: 12px;">Kemampuan Analitis</td>
+          <td style="padding: 12px; text-align: center; font-weight: 600;">4</td>
+          <td style="padding: 12px; text-align: center; color: #64748b;">5</td>
+          <td style="padding: 12px; text-align: center;"><span style="background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 12px;">-1</span></td>
+          <td style="padding: 12px; text-align: right; font-weight: 600;">3.50</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 12px; font-weight: 500;">Kecerdasan</td>
+          <td style="padding: 12px;">Pengetahuan Teknis</td>
+          <td style="padding: 12px; text-align: center; font-weight: 600;">5</td>
+          <td style="padding: 12px; text-align: center; color: #64748b;">5</td>
+          <td style="padding: 12px; text-align: center;"><span style="background: #dcfce7; color: #16a34a; padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 12px;">0</span></td>
+          <td style="padding: 12px; text-align: right; font-weight: 600;">5.00</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 12px; font-weight: 500;">Sikap Kerja</td>
+          <td style="padding: 12px;">Kedisiplinan & WLA</td>
+          <td style="padding: 12px; text-align: center; font-weight: 600;">5</td>
+          <td style="padding: 12px; text-align: center; color: #64748b;">5</td>
+          <td style="padding: 12px; text-align: center;"><span style="background: #dcfce7; color: #16a34a; padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 12px;">0</span></td>
+          <td style="padding: 12px; text-align: right; font-weight: 600;">5.00</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- =========================================================================
+     BLOK C: PANEL AKSI DINAMIS (ROLE-BASED GATEKEEPER)
+     ========================================================================= -->
+<div class="card" style="padding: 20px 24px; background: #f8fafc; border: 1px solid #cbd5e1;">
+  
+  {% if current_role in ['manajer_hrd', 'kepala_hrd', 'admin_hrd'] %}
+  <!-- TAMPILAN AKSI HRD: KIRIM REKOMENDASI -->
+  <div style="display: flex; align-items: center; justify-content: space-between;">
+    <div>
+      <h4 style="margin: 0 0 4px 0; font-size: 14px; font-weight: 600; color: #0f172a;">Tahap Akhir HRD: Pengajuan Kandidat</h4>
+      <p style="margin: 0; font-size: 12.5px; color: #64748b;">Kandidat peringkat ke-1 ({{ candidates[0].employee_name if candidates else 'N/A' }}) akan diteruskan ke Kepala Cabang untuk pengesahan SK.</p>
+    </div>
+    {% if candidates %}
+    <button type="button" 
+            onclick="eksekusiHRD({{ request_data.id }}, {{ candidates[0].id }})" 
+            id="btnKirimHRD"
+            class="btn btn-primary" 
+            style="background-color: #cc2229; color: white; padding: 10px 24px; font-weight: 600; border-radius: 6px; border: none; cursor: pointer;">
+      🚀 Kirim Rekomendasi ke KC
+    </button>
+    {% endif %}
+  </div>
+
+  {% elif current_role in ['kepala_cabang', 'eksekutif'] %}
+  <!-- TAMPILAN AKSI KEPALA CABANG: APPROVAL & REVISI -->
+  <div>
+    <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #0f172a;">Keputusan Pengesahan Akhir Rotasi (Transfer Letter)</h4>
     
-    <div style="padding-left: 20px; text-align: right;">
-      <div style="font-size: 32px; font-weight: 700; color: #0f172a;">{{ "%.2f"|format(cand.final_score) }}</div>
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <input type="text" id="inputRevisiKC" class="form-control" placeholder="Tulis catatan atau instruksi revisi jika usulan dikembalikan..." style="flex: 1; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13.5px;">
       
-      {% if loop.index == 1 %}
-      <button onclick="ajukanKaryawan('{{ request_data.code }}', {{ cand.id }})" 
-              class="btn btn-success mt-2 w-100" 
-              style="padding: 8px; border-radius: 4px; font-weight: 600;">
-        Ajukan Karyawan Ini
+      <button type="button" 
+              onclick="eksekusiKC({{ request_data.id }}, 'reject')" 
+              class="btn btn-outline" 
+              style="padding: 10px 18px; border: 1px solid #ef4444; color: #ef4444; background: white; font-weight: 600; border-radius: 6px; cursor: pointer;">
+        🔄 Minta Revisi
+      </button>
+      
+      {% if candidates %}
+      <button type="button" 
+              onclick="eksekusiKC({{ request_data.id }}, 'approve', {{ candidates[0].id }})" 
+              id="btnApproveKC"
+              class="btn btn-success" 
+              style="background-color: #16a34a; color: white; padding: 10px 24px; font-weight: 600; border-radius: 6px; border: none; cursor: pointer;">
+        ✓ Setujui — Sahkan Rotasi Jabatan
       </button>
       {% endif %}
     </div>
   </div>
-  {% endfor %}
-</div>
+  {% endif %}
 
+</div>
+{% endblock %}
+
+{% block extra_js %}
 <script>
-async function ajukanKaryawan(requestId, employeeId) {
-    if (!confirm('Yakin ingin mengajukan kandidat ini ke Kepala Cabang?')) return;
+// ============================================================================
+// 1. FUNGSI EKSEKUSI HRD: KIRIM REKOMENDASI KANDIDAT
+// ============================================================================
+async function eksekusiHRD(requestId, employeeId) {
+    if (!confirm('Yakin ingin mengirim rekomendasi kandidat peringkat #1 ini ke Kepala Cabang?')) return;
     
+    const btn = document.getElementById('btnKirimHRD');
     try {
+        btn.disabled = true;
+        btn.innerText = 'Mengirim Data...';
+
         const response = await fetch(`/api/sdm/requests/${requestId}/approve`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ approved_employee_id: parseInt(employeeId) })
+            body: JSON.stringify({ approved_employee_id: parseInt(employeeId) }),
+            credentials: 'same-origin'
         });
 
-        if (!response.ok) throw new Error('Gagal memproses pengajuan.');
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.detail || 'Gagal memproses pengajuan.');
+        }
         
-        alert('Karyawan berhasil diajukan!');
-        location.reload(); 
+        alert('SUKSES: Rekomendasi rotasi berhasil dikirim ke Kepala Cabang!');
+        // FIX ROUTING: Redirect kembali ke halaman utama permintaan SDM
+        window.location.href = '/requests'; 
     } catch (error) {
-        alert(error.message);
+        alert('Error: ' + error.message);
+        btn.disabled = false;
+        btn.innerText = '🚀 Kirim Rekomendasi ke KC';
+    }
+}
+
+// ============================================================================
+// 2. FUNGSI EKSEKUSI KEPALA CABANG: APPROVE SK ATAU REVISI
+// ============================================================================
+async function eksekusiKC(requestId, actionType, employeeId = null) {
+    const catatan = document.getElementById('inputRevisiKC').value.trim();
+
+    if (actionType === 'reject' && catatan === '') {
+        alert('Harap isi kotak catatan mengenai alasan revisi atau pengembalian usulan!');
+        document.getElementById('inputRevisiKC').focus();
+        return;
+    }
+
+    const pesanConfirm = actionType === 'approve' 
+        ? 'Apakah Anda yakin ingin MENYETUJUI rotasi ini? Surat Keputusan (SK) akan diterbitkan.'
+        : 'Kembalikan usulan ini ke HRD untuk direvisi?';
+
+    if (!confirm(pesanConfirm)) return;
+
+    try {
+        let url = `/api/sdm/requests/${requestId}/status`;
+        let payload = { status: actionType === 'approve' ? 'completed' : 'under_review', notes: catatan };
+
+        // Jika approve, panggil endpoint finalisasi SK
+        if (actionType === 'approve') {
+            url = `/api/sdm/requests/${requestId}/approve`;
+            payload = { approved_employee_id: parseInt(employeeId), executive_notes: catatan };
+        }
+
+        const response = await fetch(url, {
+            method: actionType === 'approve' ? 'POST' : 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            credentials: 'same-origin'
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.detail || 'Gagal mengeksekusi keputusan.');
+        }
+
+        if (actionType === 'approve') {
+            alert('PENGESAHAN BERHASIL: Rotasi jabatan sah. SK Transfer Letter telah diterbitkan di sistem!');
+        } else {
+            alert('Usulan dikembalikan ke meja HRD untuk peninjauan ulang.');
+        }
+
+        // FIX ROUTING: Redirect eksekutif kembali ke dasbor atau daftar pengajuan
+        window.location.href = '/requests';
+    } catch (error) {
+        alert('Terjadi kesalahan sistem: ' + error.message);
     }
 }
 </script>

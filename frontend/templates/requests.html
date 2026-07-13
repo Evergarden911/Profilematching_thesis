@@ -572,10 +572,11 @@
                 throw new Error(err.detail || 'Matching gagal dieksekusi.');
             }
 
+            // PENGALIHAN RUTE KE HALAMAN INTEGRASI RESULTS.HTML
             window.location.href = '/results/' + reqId;
         } catch (e) {
             console.error("Kesalahan Matching:", e);
-            alert(e.message);
+            alert("Error: " + e.message);
         }
     }
 </script>
