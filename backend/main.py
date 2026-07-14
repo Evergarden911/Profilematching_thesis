@@ -232,7 +232,7 @@ async def view_results_detail(  # <-- FIXED BUG-02 (Nama diubah)
     return templates.TemplateResponse("results.html", {
         "request": request,
         "current_user": user,
-        "active_page": "requests",
+        "active_page": "results",
         "request_data": {
             "code": f"REQ-{req_data.id:04d}",
             "target_division_name": req_data.target_division.name if req_data.target_division else "Unknown"
