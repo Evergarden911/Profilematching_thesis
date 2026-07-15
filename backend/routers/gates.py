@@ -12,6 +12,8 @@ from backend.schemas.division import (
     RotationGateRead, 
 )
 from backend.services import constraint_service, sdm_service 
+from backend.schemas.constraint import BatchEvaluateCreate  # <--- Skema dari langkah 1
+from backend.services import constraint_service
 
 router = APIRouter(prefix="/api/gates", tags=["rotation-gates"]) 
 
@@ -87,3 +89,19 @@ def get_criteria_for_gate_assessment(
     tujuan sebelum memunculkan modal penilaian Gate B kepada HRD.
     """
     return constraint_service.get_target_assessment_criteria(db, gate_id)
+
+@router.post("/evaluate-batch", status_code=status.HTTP_201_CREATED)
+def evaluate_batch_candidates(
+    payload: BatchEvaluateCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_role("kepala_hrd", "manajer_hrd"))
+):
+    """
+    Endpoint untuk mendaftarkan dan mengevaluasi kandidat rotasi secara massal (Batch Selection).
+    Hanya dapat diakses oleh Kepala HRD dan Manajer HRD.
+    """
+    return constraint_service.evaluate_batch(
+        db=db,
+        request_id=payload.sdm_request_id,
+        employee_ids=payload.employee_ids
+    )

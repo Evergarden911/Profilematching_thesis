@@ -31,6 +31,7 @@ from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, contains_eager
+from typing import List, Dict, Any
 
 from backend.models import (
     ConstraintType,
@@ -222,6 +223,87 @@ def _decide_interview_requirement(
         gate.interview_gate_status = GateStatus.passed
         gate.is_eligible_for_matching = True
         gate.interview_gate_notes = "Rotasi Satu Rumpun Grup: Gate B dilewati (Lolos Otomatis)."
+
+def evaluate_batch(db: Session, request_id: int, employee_ids: List[int]) -> Dict[str, Any]:
+    """
+    Mengevaluasi dan mendaftarkan daftar karyawan ke dalam tahapan asesmen (Gates) secara massal.
+    Menerapkan pencegahan N+1 Query dan transaksi atomik.
+    """
+    # 1. Validasi eksistensi pengajuan SDM
+    sdm_request = db.query(SDMRequest).filter(SDMRequest.id == request_id).first()
+    if not sdm_request:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="ID Pengajuan SDM tidak ditemukan di dalam sistem."
+        )
+
+    # 2. Bulk Fetch: Ambil seluruh data karyawan sekaligus (Mencegah N+1 Query)
+    employees = db.query(Employee).filter(Employee.id.in_(employee_ids)).all()
+    if not employees:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Daftar kandidat karyawan tidak valid atau tidak ditemukan."
+        )
+
+    # 3. Bulk Check: Ambil data gate yang sudah ada untuk pengajuan ini (Mencegah duplikasi)
+    existing_gates = db.query(RotationGate).filter(
+        RotationGate.sdm_request_id == request_id,
+        RotationGate.employee_id.in_(employee_ids)
+    ).all()
+    existing_emp_ids = {gate.employee_id for gate in existing_gates}
+
+    new_gates = []
+    processed_count = 0
+    skipped_duplicates = 0
+    rejected_sanctions = 0
+
+    for emp in employees:
+        # Lewati jika karyawan sudah pernah didaftarkan pada pengajuan ini
+        if emp.id in existing_emp_ids:
+            skipped_duplicates += 1
+            continue
+
+        # Evaluasi Gate A: Pengecekan Sanksi Aktif
+        # Jika karyawan memiliki sanksi, kita catat kegagalannya atau lewati sesuai aturan bisnis
+        if getattr(emp, "has_sanction", False):
+            rejected_sanctions += 1
+            # Catatan: Jika aturan bisnismu tetap ingin menyimpan data yang gagal Gate A ke DB
+            # dengan status 'rejected', kamu bisa mengubah logika di sini.
+            continue
+
+        # Evaluasi Gate A: Logika penentuan status awal (Sesuaikan dengan aturan sistemmu)
+        # Contoh: Jika rumpun ilmunya berbeda, wajib masuk wawancara (Gate B)
+        is_same_division = (emp.division_id == sdm_request.target_division_id)
+        
+        gate_a_status = "passed"
+        gate_b_status = "pending" if not is_same_division else "waived"
+
+        # Pembuatan objek baris database baru
+        new_gate = RotationGate(
+            sdm_request_id=request_id,
+            employee_id=emp.id,
+            gate_a_status=gate_a_status,
+            gate_b_status=gate_b_status,
+            # Tambahkan atribut lain jika tabel RotationGate kamu memilikinya (misal: education_gate_status)
+        )
+        new_gates.append(new_gate)
+        processed_count += 1
+
+    # 4. Bulk Insert & Single Commit (Atomic Transaction)
+    if new_gates:
+        db.add_all(new_gates)
+        db.commit()
+
+    return {
+        "status": "success",
+        "message": f"Berhasil mendaftarkan {processed_count} kandidat ke dalam tahapan asesmen.",
+        "details": {
+            "total_requested": len(employee_ids),
+            "processed_successfully": processed_count,
+            "skipped_duplicates": skipped_duplicates,
+            "rejected_due_to_sanctions": rejected_sanctions
+        }
+    }
 
 
 # ---------------------------------------------------------------------------

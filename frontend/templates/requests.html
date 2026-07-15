@@ -3,7 +3,7 @@
 {% block title %}Permintaan SDM | Pramita Lab{% endblock %}
 
 {% block page_title %}Permintaan SDM{% endblock %}
-{% block page_subtitle %}Manajemen pengajuan mutasi dan rotasi antar divisi operasional{% endblock %}
+{% block page_subtitle %}Manajemen pengajuan rotasi dan alokasi antar divisi operasional{% endblock %}
 
 {% block topbar_actions %}
 {% set role_str = current_user.role.value if current_user and current_user.role.value is defined else (current_user.role | string if current_user else 'guest') %}
@@ -102,7 +102,7 @@
         {% else %}
             <tr>
                 <td colspan="7" style="text-align: center; padding: 40px; color: var(--ink-40);">
-                    Belum ada data permintaan mutasi SDM yang sesuai dengan tampilan saat ini.
+                    Belum ada data permintaan rotasi SDM yang sesuai dengan tampilan saat ini.
                 </td>
             </tr>
         {% endif %}
@@ -111,6 +111,7 @@
   </div>
 </div>
 
+<!-- MODAL 1: BUAT PENGAJUAN -->
 <div id="modalBuatReq" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(2px); z-index: 99999; align-items: center; justify-content: center; opacity: 1; visibility: visible; pointer-events: auto;">
     <div style="background: white; border-radius: 8px; width: 560px; max-width: 90%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); overflow: hidden; display: flex; flex-direction: column;">
         
@@ -120,7 +121,6 @@
         </div>
         
         <div style="padding: 24px; display: flex; flex-direction: column; gap: 16px; max-height: 70vh; overflow-y: auto;">
-            
             <div class="form-group">
                 <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--ink-80);">1. Divisi Target (Sub-Bagian Operasional) <span style="color: #DC2626;">*</span></label>
                 <select id="req_target_div" class="form-control" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13.5px; color: var(--ink); background-color: white;">
@@ -146,7 +146,6 @@
                 <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--ink-80);">4. Alasan / Justifikasi Kebutuhan <span style="color: #DC2626;">*</span></label>
                 <textarea id="req_reason" class="form-control" rows="3" placeholder="Jelaskan alasan peningkatan beban kerja atau kebutuhan proyek..." style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13.5px; color: var(--ink); font-family: inherit; resize: vertical;"></textarea>
             </div>
-
         </div>
         
         <div style="padding: 16px 24px; border-top: 1px solid var(--border-mid); background-color: #f8fafc; display: flex; justify-content: space-between; align-items: center;">
@@ -162,10 +161,10 @@
                 </button>
             </div>
         </div>
-
     </div>
 </div>
 
+<!-- MODAL 2: DETAIL PENGAJUAN -->
 <div id="modalDetailReq" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(2px); z-index: 99999; align-items: center; justify-content: center; opacity: 1; visibility: visible; pointer-events: auto;">
     <div style="background: white; border-radius: 8px; width: 520px; max-width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); overflow: hidden;">
         
@@ -207,6 +206,7 @@
     </div>
 </div>
 
+<!-- MODAL 3: SETUJUI / TOLAK PENGAJUAN -->
 <div id="modalSetujui" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(2px); z-index: 99999; align-items: center; justify-content: center; opacity: 1; visibility: visible; pointer-events: auto;">
     <div style="background: white; border-radius: 8px; width: 480px; max-width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); overflow: hidden;">
         
@@ -217,7 +217,7 @@
         <div style="padding: 24px;">
             <input type="hidden" id="setujui_input_id">
             <p style="margin: 0; color: var(--ink-80); font-size: 13.5px; line-height: 1.5;">
-                Pilih tindakan untuk pengajuan ini. Menyetujui akan meneruskan status pengajuan ke tahap pencarian dan asesmen kandidat mutasi melalui algoritma <em>Profile Matching</em>.
+                Pilih tindakan untuk pengajuan ini. Menyetujui akan meneruskan status pengajuan ke tahap pencarian dan asesmen kandidat rotasi melalui algoritma <em>Profile Matching</em>.
             </p>
         </div>
 
@@ -229,31 +229,61 @@
     </div>
 </div>
 
+<!-- =========================================================================
+     MODAL 4 (UPDATED): MULTIPLE CHECKLIST KANDIDAT & GATES (BATCH SELECTION)
+     ========================================================================= -->
 <div id="modalKandidat" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(2px); z-index: 99999; align-items: center; justify-content: center; opacity: 1; visibility: visible; pointer-events: auto;">
-    <div style="background: white; border-radius: 8px; width: 540px; max-width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); overflow: hidden;">
+    <div style="background: white; border-radius: 8px; width: 680px; max-width: 95%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); overflow: hidden; display: flex; flex-direction: column;">
         
-        <div style="padding: 16px 24px; border-bottom: 1px solid var(--border-mid); background-color: #f8fafc;">
-            <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--ink);">Ajukan Kandidat Mutasi</h3>
+        <div style="padding: 16px 24px; border-bottom: 1px solid var(--border-mid); background-color: #f8fafc; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--ink);">Ajukan Kandidat Rotasi (Batch Selection)</h3>
+              <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--ink-60);">ID Pengajuan: <strong id="kandidat_req_id" style="color: var(--ink);"></strong></p>
+            </div>
+            <button type="button" onclick="tutupModalKandidat()" style="border: none; background: none; font-size: 20px; cursor: pointer; color: var(--ink-60);">&times;</button>
         </div>
         
-        <div style="padding: 24px;">
-            <p style="margin: 0 0 16px 0; color: var(--ink-60); font-size: 13.5px;">
-                Pilih karyawan untuk dievaluasi pada <strong>Gate A (Sanksi & Keilmuan)</strong> untuk ID Pengajuan <span id="kandidat_req_id" style="font-weight: bold; color: var(--ink);"></span>.
-            </p>
-            
+        <div style="padding: 20px 24px; display: flex; flex-direction: column; gap: 12px;">
             <input type="hidden" id="input_req_id">
 
-            <div class="form-group">
-                <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--ink-80);">Pilih Karyawan Aktif</label>
-                <select id="select_kandidat" class="form-control" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13.5px; color: var(--ink); background-color: white;">
-                    <option value="">Memuat daftar karyawan...</option>
-                </select>
+            <!-- Kotak Pencarian Cepat Dalam Modal -->
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 13px; font-weight: 600; color: var(--ink-80);">Pilih Karyawan Aktif (<span id="selected_counter">0</span> terpilih):</span>
+              <input type="text" id="filter_kandidat_input" placeholder="🔍 Filter nama atau divisi..." onkeyup="filterTabelKandidat()" style="padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12.5px; width: 220px;">
             </div>
+
+            <!-- Tabel Daftar Kandidat dengan Scroll Container -->
+            <div style="max-height: 340px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 6px;">
+              <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+                <thead style="position: sticky; top: 0; background: #f8fafc; z-index: 1; border-bottom: 2px solid #e2e8f0;">
+                  <tr>
+                    <th style="padding: 10px 12px; width: 36px; text-align: center;">
+                      <input type="checkbox" id="selectAllCand" onclick="toggleSelectAll(this)" style="cursor: pointer;">
+                    </th>
+                    <th style="padding: 10px 12px;">NAMA KARYAWAN</th>
+                    <th style="padding: 10px 12px;">DIVISI ASAL</th>
+                    <th style="padding: 10px 12px;">RUMPUN PENDIDIKAN</th>
+                    <th style="padding: 10px 12px; text-align: center;">STATUS SANKSI</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody_kandidat_list">
+                  <tr>
+                    <td colspan="5" style="text-align: center; padding: 24px; color: var(--ink-60);">Memuat daftar karyawan...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            
+            <p style="margin: 0; font-size: 11.5px; color: var(--ink-60);">
+              * Karyawan yang dicentang akan didaftarkan ke <strong>Gate A</strong> secara serentak namun dievaluasi secara independen oleh sistem.
+            </p>
         </div>
         
         <div style="padding: 16px 24px; border-top: 1px solid var(--border-mid); background-color: #f8fafc; display: flex; justify-content: flex-end; gap: 8px;">
             <button type="button" onclick="tutupModalKandidat()" class="btn btn-outline" style="padding: 8px 16px; cursor: pointer;">Batal</button>
-            <button type="button" onclick="prosesEvaluasiKandidat()" id="btnSubmitKandidat" class="btn btn-primary" style="padding: 8px 16px; cursor: pointer;">Evaluasi Kandidat</button>
+            <button type="button" onclick="prosesBatchEvaluasiKandidat()" id="btnSubmitKandidat" class="btn btn-primary" style="padding: 8px 20px; cursor: pointer;">
+              🚀 Kirim Kandidat Terpilih ke Gates
+            </button>
         </div>
     </div>
 </div>
@@ -262,7 +292,7 @@
 {% block extra_js %}
 <script>
     // =========================================================================
-    // 1. LOGIKA MODAL PEMBUATAN PENGAJUAN (QUANTITY + OPTIONAL RECOMMENDATION)
+    // 1. LOGIKA MODAL PEMBUATAN PENGAJUAN
     // =========================================================================
     async function bukaModalBuat() {
         document.getElementById('modalBuatReq').style.display = 'flex';
@@ -274,7 +304,6 @@
                 const selectDiv = document.getElementById('req_target_div');
                 selectDiv.innerHTML = '<option value="">-- Pilih Sub-Bagian Target --</option>';
                 divs.forEach(d => {
-                    // Penambahan konteks Grup agar UI lebih jelas untuk user
                     const groupName = d.group ? d.group.name : (d.group_name || (d.group_id ? `Grup ID ${d.group_id}` : 'Tanpa Grup'));
                     selectDiv.innerHTML += `<option value="${d.id}">${d.name} (Rumpun: ${groupName})</option>`;
                 });
@@ -439,12 +468,18 @@
     }
 
     // =========================================================================
-    // 4. LOGIKA MODAL PENGAJUAN KANDIDAT & GATES (HRD)
+    // 4. (UPDATED) LOGIKA BATCH SELECTION KANDIDAT & GATES
     // =========================================================================
     async function bukaModalKandidat(reqId) {
         document.getElementById('modalKandidat').style.display = 'flex';
         document.getElementById('kandidat_req_id').innerText = `#SDM-${reqId}`;
         document.getElementById('input_req_id').value = reqId;
+        document.getElementById('selected_counter').innerText = '0';
+        document.getElementById('filter_kandidat_input').value = '';
+        document.getElementById('selectAllCand').checked = false;
+
+        const tbody = document.getElementById('tbody_kandidat_list');
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 24px; color: var(--ink-60);">Memuat daftar karyawan...</td></tr>';
 
         try {
             const [empRes, divRes, eduRes] = await Promise.all([
@@ -465,50 +500,119 @@
             const eduMap = {};
             educations.forEach(e => eduMap[e.id] = e.name);
 
-            const select = document.getElementById('select_kandidat');
-            select.innerHTML = '<option value="">-- Pilih Kandidat Karyawan --</option>';
+            tbody.innerHTML = '';
             
+            if (employees.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 24px; color: var(--ink-60);">Tidak ada karyawan aktif yang tersedia.</td></tr>';
+                return;
+            }
+
             employees.forEach(emp => {
                 const isSanctioned = emp.has_sanction === true;
                 const disabledAttr = isSanctioned ? 'disabled' : '';
-                const statusText = isSanctioned ? ' (Sanksi Aktif - Terkunci)' : '';
+                const rowBg = isSanctioned ? '#FEF2F2' : 'transparent';
+                const opacity = isSanctioned ? '0.6' : '1';
                 
                 const divName = divMap[emp.division_id] || `Divisi ID: ${emp.division_id}`;
                 const eduName = eduMap[emp.education_field_id] || `Pendidikan ID: ${emp.education_field_id}`;
                 
-                select.innerHTML += `<option value="${emp.id}" ${disabledAttr}>${emp.full_name} - ${divName} [${eduName}]${statusText}</option>`;
+                const sanctionBadge = isSanctioned 
+                  ? '<span style="background: #fee2e2; color: #dc2626; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; border: 1px solid #fca5a5;">⚠️ Sanksi Aktif</span>' 
+                  : '<span style="background: #dcfce7; color: #16a34a; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px;">Bersih (Eligible)</span>';
+
+                tbody.innerHTML += `
+                  <tr class="cand-row" style="border-bottom: 1px solid #f1f5f9; background: ${rowBg}; opacity: ${opacity};">
+                    <td style="padding: 10px 12px; text-align: center;">
+                      <input type="checkbox" name="selected_candidates" value="${emp.id}" class="cand-checkbox" onclick="updateCounter()" ${disabledAttr} style="cursor: pointer;">
+                    </td>
+                    <td style="padding: 10px 12px; font-weight: 600; color: #0f172a;">
+                      ${emp.full_name} <br> <span style="font-size: 11px; color: #64748b; font-weight: normal;">${emp.employee_code}</span>
+                    </td>
+                    <td style="padding: 10px 12px; color: #334155;">${divName}</td>
+                    <td style="padding: 10px 12px; color: #64748b;">${eduName}</td>
+                    <td style="padding: 10px 12px; text-align: center;">${sanctionBadge}</td>
+                  </tr>
+                `;
             });
         } catch (e) {
             console.error("Gagal memuat kandidat:", e);
-            alert("Kesalahan Sistem: " + e.message);
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 24px; color: #DC2626;">Kesalahan Sistem: ${e.message}</td></tr>`;
         }
+    }
+
+    function toggleSelectAll(masterCb) {
+        const checkboxes = document.querySelectorAll('.cand-checkbox:not([disabled])');
+        checkboxes.forEach(cb => {
+            // Hanya centang baris yang saat ini terlihat (tidak tersembunyi oleh filter)
+            const row = cb.closest('tr');
+            if (row.style.display !== 'none') {
+                cb.checked = masterCb.checked;
+            }
+        });
+        updateCounter();
+    }
+
+    function updateCounter() {
+        const count = document.querySelectorAll('.cand-checkbox:checked').length;
+        document.getElementById('selected_counter').innerText = count;
+    }
+
+    function filterTabelKandidat() {
+        const input = document.getElementById('filter_kandidat_input').value.toLowerCase();
+        const rows = document.querySelectorAll('#tbody_kandidat_list .cand-row');
+        
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            if (text.includes(input)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+                // Lepas centang otomatis jika baris disembunyikan filter agar tidak salah kirim
+                const cb = row.querySelector('.cand-checkbox');
+                if (cb) cb.checked = false;
+            }
+        });
+        updateCounter();
     }
 
     function tutupModalKandidat() {
         document.getElementById('modalKandidat').style.display = 'none';
-        document.getElementById('select_kandidat').value = '';
     }
 
-    async function prosesEvaluasiKandidat() {
-        const empId = document.getElementById('select_kandidat').value;
+    // =========================================================================
+    // 5. EKSEKUSI PENGIRIMAN BATCH KE GATES (PYTHON BACKEND ADAPTATION)
+    // =========================================================================
+    async function prosesBatchEvaluasiKandidat() {
         const reqId = document.getElementById('input_req_id').value;
+        const selectedCbs = Array.from(document.querySelectorAll('.cand-checkbox:checked'));
+        const employeeIds = selectedCbs.map(cb => parseInt(cb.value));
 
-        if (!empId) {
-            alert("Harap pilih karyawan terlebih dahulu.");
+        if (employeeIds.length === 0) {
+            alert("Harap centang minimal 1 karyawan untuk diajukan ke tahapan Asesmen!");
             return;
         }
+
+        if (!confirm(`Yakin ingin mendaftarkan ${employeeIds.length} kandidat terpilih ke tahap Asesmen (Gates)?`)) return;
 
         const btn = document.getElementById('btnSubmitKandidat');
         try {
             btn.disabled = true;
-            btn.innerText = 'Mengevaluasi Gate A...';
+            btn.innerText = 'Mendaftarkan Batch...';
 
+            /* CATATAN PENTING UNTUK BACKEND PYTHON KAMU:
+               Endpoint ini akan mengirimkan payload JSON berupa:
+               {
+                 "sdm_request_id": 123,
+                 "employee_ids": [1, 5, 8, ...]
+               }
+               Pastikan rute di FastAPI kamu mendaftarkan array ID tersebut ke tabel RotationGate.
+            */
             const payload = {
                 sdm_request_id: parseInt(reqId),
-                employee_id: parseInt(empId)
+                employee_ids: employeeIds
             };
 
-            const response = await fetch('/api/gates/evaluate-initial', {
+            const response = await fetch('/api/gates/evaluate-batch', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -522,39 +626,20 @@
                 if (Array.isArray(errorMsg)) {
                     errorMsg = "Data ditolak oleh Pydantic (422):\n" + errorMsg.map(e => `• Kolom '${e.loc[e.loc.length-1]}': ${e.msg}`).join('\n');
                 }
-                throw new Error(errorMsg || "Gagal melakukan evaluasi.");
+                throw new Error(errorMsg || "Gagal melakukan pendaftaran batch.");
             }
 
             tutupModalKandidat();
             
-            // PERBAIKAN: Cek interview_gate_status ATAU education_gate_status
-            if (data.interview_gate_status === 'interview_pending' || data.education_gate_status === 'interview_pending') {
-                // IMPROVISASI: Dialog konfirmasi interaktif untuk redirect ke Gates
-                const mauLanjut = confirm(
-                    "INFO: Kandidat berhasil ditambahkan namun berasal dari rumpun divisi berbeda.\n\n" +
-                    "Kandidat ini memerlukan asesmen kompetensi lintas fungsi (Gate B).\n\n" +
-                    "Apakah Anda ingin langsung menuju halaman Gates untuk menginput nilai wawancara sekarang?"
-                );
-                
-                if (mauLanjut) {
-                    window.location.href = '/gates';
-                } else {
-                    window.location.reload();
-                }
-            } else if (data.education_gate_status === 'passed' && data.is_eligible_for_matching === true) {
-                alert(`SUKSES: Kandidat memiliki korelasi keilmuan yang valid.\n\nKandidat langsung masuk ke daftar siap Profile Matching.`);
-                window.location.reload();
-            } else {
-                alert(`Kandidat ditolak oleh sistem (Gate A Gagal).\nAlasan: ${data.education_gate_notes || data.interview_gate_notes || 'Tidak memenuhi kualifikasi'}`);
-                window.location.reload();
-            }
+            alert(`SUKSES: ${employeeIds.length} kandidat berhasil diproses ke dalam sistem evaluasi Gates.\n\nSilakan buka menu "Asesmen Kandidat (Gates)" untuk melengkapi wawancara kompetensi.`);
+            window.location.reload();
 
         } catch (error) {
             console.error("Tertangkap:", error);
             alert(error.message);
         } finally {
             btn.disabled = false;
-            btn.innerText = 'Evaluasi Kandidat';
+            btn.innerText = '🚀 Kirim Kandidat Terpilih ke Gates';
         }
     }
     
@@ -572,7 +657,6 @@
                 throw new Error(err.detail || 'Matching gagal dieksekusi.');
             }
 
-            // PENGALIHAN RUTE KE HALAMAN INTEGRASI RESULTS.HTML
             window.location.href = '/results/' + reqId;
         } catch (e) {
             console.error("Kesalahan Matching:", e);

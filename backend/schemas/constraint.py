@@ -1,5 +1,9 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
+
+class BatchEvaluateCreate(BaseModel):
+    sdm_request_id: int
+    employee_ids: List[int]
 
 class ConstraintBase(BaseModel):
     division_id: int
