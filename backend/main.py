@@ -453,3 +453,86 @@ async def view_admin_system(request: Request, db: Session = Depends(get_db)):
         "current_user": user,
         "active_page": "admin"  # Memicu sorotan menu aktif di sidebar
     })
+    
+   
+@app.get("/history", response_class=HTMLResponse)
+async def view_history_log(
+    request: Request,
+    division: Optional[str] = None,
+    status_filter: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Menampilkan Laporan Historis & Audit Log Rotasi SDM.
+    Hanya dapat diakses oleh Kepala HRD, Kepala Cabang, dan Manajemen Eksekutif.
+    """
+    # 1. Otentikasi Pengguna dari Cookie
+    user = get_current_user_from_cookie(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    # 2. Otorisasi RBAC (Gatekeeper Eksekutif)
+    allowed_roles = ["kepala_hrd", "kepala_cabang", "manajer_hrd", "eksekutif", "super_admin"]
+    user_role_str = str(user.role.value if hasattr(user.role, 'value') else user.role).lower()
+    
+    if user_role_str not in allowed_roles:
+        logger.warning(f"Akses ilegal ke /history oleh user ID {user.id} dengan role '{user_role_str}'")
+        return RedirectResponse(url="/dashboard", status_code=303)
+
+    # 3. Query Pengajuan yang Sudah Final (Selesai / Matched / Ditolak)
+    query = db.query(SDMRequest).filter(
+        SDMRequest.status.in_([
+            RequestStatus.matched, 
+            RequestStatus.completed, 
+            RequestStatus.rejected
+        ])
+    )
+    
+    # Filter Opsional berdasarkan Divisi dan Status
+    if division and division != 'all':
+        query = query.join(Division, SDMRequest.target_division_id == Division.id).filter(Division.code == division)
+    if status_filter and status_filter != 'all':
+        query = query.filter(SDMRequest.status == status_filter)
+        
+    # Urutkan dari keputusan paling baru (Kronologis terbalik)
+    history_records = query.order_by(SDMRequest.updated_at.desc()).all()
+
+    # 4. Transformasi Data untuk Konsumsi Jinja2
+    formatted_history = []
+    for req in history_records:
+        # Tarik data kandidat Top-N yang resmi dimutasi/disahkan
+        top_candidates = (
+            db.query(MatchingResult)
+            .filter(MatchingResult.sdm_request_id == req.id)
+            .order_by(MatchingResult.rank.asc())
+            .limit(req.quantity)
+            .all()
+        )
+        
+        # Hitung total seluruh kandidat yang pernah dikomputasi (termasuk cadangan)
+        total_assessed = db.query(MatchingResult).filter(MatchingResult.sdm_request_id == req.id).count()
+        
+        formatted_history.append({
+            "id": req.id,
+            "code": f"REQ-{req.id:04d}",
+            "target_division_name": req.target_division.name if req.target_division else "Tidak Diketahui",
+            "quantity": req.quantity,
+            "status": req.status.value if hasattr(req.status, 'value') else str(req.status),
+            "created_at": req.created_at.strftime('%d %b %Y'),
+            "completed_at": req.updated_at.strftime('%d %b %Y, %H:%M') if req.updated_at else "-",
+            "selected_employees": [c.employee.full_name for c in top_candidates if c.employee],
+            "total_assessed": total_assessed,
+            "talent_pool_count": max(0, total_assessed - req.quantity)
+        })
+
+    divs = db.query(Division).all()
+
+    return templates.TemplateResponse("history.html", {
+        "request": request,
+        "current_user": user,
+        "active_page": "history",  # Memicu nyala menu aktif di sidebar
+        "history_data": formatted_history,
+        "divisions_list": divs,
+        "current_division": division,
+        "current_status": status_filter
+    })    

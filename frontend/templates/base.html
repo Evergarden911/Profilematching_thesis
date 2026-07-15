@@ -48,6 +48,7 @@
             {% if u_role == 'kepala_hrd' %}HRD
             {% elif u_role == 'kepala_cabang' %}Cabang
             {% elif u_role == 'kepala_divisi' %}Divisi
+            {% elif u_role == 'manajer_hrd' %}Manajer HRD
             {% else %}{{ u_role }}
             {% endif %}
           {% else %}
@@ -63,14 +64,15 @@
           Panel Utama
         </a>
 
-        {% if u_role in ['kepala_hrd', 'kepala_cabang', 'kepala_divisi', 'HRD', 'KACAB', 'KADIV'] %}
+        {% if u_role in ['kepala_hrd', 'kepala_cabang', 'kepala_divisi', 'manajer_hrd', 'eksekutif', 'super_admin', 'HRD', 'KACAB', 'KADIV'] %}
         <div class="nav-section-title">Operasional Staf</div>
+        <!-- STANDARDISASI TERMINOLOGI: Diganti ke "Rotasi SDM" -->
         <a href="/requests" class="nav-item {% if active_page == 'requests' %}active{% endif %}">
-          Pengajuan Mutasi SDM
+          Pengajuan Rotasi SDM
         </a>
         {% endif %}
 
-        {% if u_role in ['kepala_hrd', 'HRD'] %}
+        {% if u_role in ['kepala_hrd', 'manajer_hrd', 'super_admin', 'HRD'] %}
         <div class="nav-section-title">Data Induk Sistem</div>
         <a href="/divisions" class="nav-item {% if active_page == 'divisions' %}active{% endif %}">
           Manajemen Divisi
@@ -88,10 +90,15 @@
         </a>
         {% endif %}
 
-        {% if u_role in ['kepala_cabang', 'kepala_hrd', 'KACAB', 'HRD'] %}
+        {% if u_role in ['kepala_cabang', 'kepala_hrd', 'manajer_hrd', 'eksekutif', 'super_admin', 'KACAB', 'HRD'] %}
         <div class="nav-section-title">Eksekutif & Laporan</div>
         <a href="/results" class="nav-item {% if active_page == 'results' %}active{% endif %}">
           Hasil Profile Matching
+        </a>
+        
+        <!-- PENAMBAHAN MENU BARU: Historis & Audit Rotasi -->
+        <a href="/history" class="nav-item {% if active_page == 'history' %}active{% endif %}">
+          Historis & Audit Rotasi
         </a>
 
         <div class="nav-section-title">Asesmen & Seleksi</div>
@@ -104,7 +111,6 @@
         </a>
         {% endif %}
 
-        <!-- PENAMBAHAN BARU: Menu Admin Sistem Khusus HRD & Super Admin -->
         {% if u_role in ['kepala_hrd', 'super_admin', 'HRD', 'SUPER_ADMIN'] %}
         <div class="nav-section-title">Sistem & Keamanan</div>
         <a href="/admin" class="nav-item {% if active_page == 'admin' %}active{% endif %}">

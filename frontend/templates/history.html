@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Historis & Audit Keputusan Rotasi | Pramita Lab{% endblock %}
+
+{% block page_title %}Arsip Historis & Audit Keputusan Rotasi SDM{% endblock %}
+{% block page_subtitle %}Rekam jejak pengesahan rotasi, alokasi kuota Top-N, dan log cadangan talent pool eksekutif{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-outline btn-sm" onclick="window.print()">🖨️ Cetak Rekapitulasi Audit</button>
+{% endblock %}
+
+{% block content %}
+<!-- =========================================================================
+     BLOK A: FILTER AUDIT LOG (DIVISI & STATUS)
+     ========================================================================= -->
+<div class="card" style="margin-bottom: 24px; padding: 20px 24px; background: #f8fafc; border: 1px solid #cbd5e1;">
+  <form method="get" action="/history" style="display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;">
+    
+    <div style="flex: 1; min-width: 220px;">
+      <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px; text-transform: uppercase;">
+        Filter Divisi Target
+      </label>
+      <select name="division" class="form-control" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1;">
+        <option value="all">Semua Divisi Operasional</option>
+        {% for div in divisions_list %}
+        <option value="{{ div.code }}" {% if current_division == div.code %}selected{% endif %}>
+          {{ div.name }} ({{ div.code }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="width: 200px;">
+      <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px; text-transform: uppercase;">
+        Status Keputusan
+      </label>
+      <select name="status_filter" class="form-control" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1;">
+        <option value="all">Semua Status</option>
+        <option value="matched" {% if current_status == 'matched' %}selected{% endif %}>Selesai / Disahkan</option>
+        <option value="completed" {% if current_status == 'completed' %}selected{% endif %}>SK Diterbitkan</option>
+        <option value="rejected" {% if current_status == 'rejected' %}selected{% endif %}>Ditolak / Dibatalkan</option>
+      </select>
+    </div>
+
+    <div>
+      <button type="submit" class="btn btn-primary" style="background: #0f172a; color: white; padding: 9px 20px; border-radius: 6px; font-weight: 600; border: none; cursor: pointer;">
+        🔍 Terapkan Filter
+      </button>
+      <a href="/history" class="btn btn-outline" style="padding: 9px 16px; border-radius: 6px; text-decoration: none; color: #64748b; font-weight: 600; border: 1px solid #cbd5e1; margin-left: 8px;">
+        Reset
+      </a>
+    </div>
+
+  </form>
+</div>
+
+<!-- =========================================================================
+     BLOK B: TABEL HISTORIS & AUDIT TRAIL ROTASI
+     ========================================================================= -->
+<div class="card" style="padding: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+    <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #0f172a;">
+      📋 Daftar Riwayat Keputusan Rotasi SDM
+    </h3>
+    <span style="font-size: 12.5px; color: #64748b;">
+      Menampilkan {{ history_data | length }} siklus keputusan
+    </span>
+  </div>
+
+  <div class="table-responsive">
+    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13.5px;">
+      <thead>
+        <tr style="border-bottom: 2px solid #e2e8f0; color: #475569; background: #f8fafc;">
+          <th style="padding: 14px 12px;">NO. PENGAJUAN</th>
+          <th style="padding: 14px 12px;">DIVISI TARGET</th>
+          <th style="padding: 14px 12px; text-align: center;">KUOTA</th>
+          <th style="padding: 14px 12px;">KARYAWAN DISAHKAN (TOP-N)</th>
+          <th style="padding: 14px 12px; text-align: center;">TALENT POOL</th>
+          <th style="padding: 14px 12px; text-align: center;">STATUS AKHIR</th>
+          <th style="padding: 14px 12px;">WAKTU FINALISASI</th>
+          <th style="padding: 14px 12px; text-align: right;">AKSI AUDIT</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in history_data %}
+        <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s ease;">
+          
+          <!-- ID & Kode Pengajuan -->
+          <td style="padding: 14px 12px; font-weight: 600; color: #0f172a;">
+            #{{ row.code }}
+          </td>
+
+          <!-- Divisi Tujuan -->
+          <td style="padding: 14px 12px; font-weight: 500; color: #334155;">
+            {{ row.target_division_name }}
+          </td>
+
+          <!-- Kuota Diminta -->
+          <td style="padding: 14px 12px; text-align: center;">
+            <span style="background: #e2e8f0; color: #334155; font-weight: 700; font-size: 12px; padding: 3px 10px; border-radius: 12px;">
+              {{ row.quantity }} Orang
+            </span>
+          </td>
+
+          <!-- Daftar Karyawan Top-N Terpilih -->
+          <td style="padding: 14px 12px;">
+            {% if row.selected_employees and row.selected_employees | length > 0 %}
+              <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                {% for emp_name in row.selected_employees %}
+                <span style="background: #dcfce7; color: #16a34a; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 4px; border: 1px solid #bbf7d0;">
+                  ✓ {{ emp_name }}
+                </span>
+                {% endfor %}
+              </div>
+            {% else %}
+              <span style="color: #94a3b8; font-style: italic; font-size: 12.5px;">Tidak ada mutasi</span>
+            {% endif %}
+          </td>
+
+          <!-- Talent Pool / Cadangan -->
+          <td style="padding: 14px 12px; text-align: center;">
+            {% if row.talent_pool_count > 0 %}
+            <span style="background: #f1f5f9; color: #64748b; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 12px;" title="{{ row.talent_pool_count }} kandidat memenuhi syarat namun berada di luar batas kuota">
+              +{{ row.talent_pool_count }} Cadangan
+            </span>
+            {% else %}
+            <span style="color: #cbd5e1;">-</span>
+            {% endif %}
+          </td>
+
+          <!-- Badge Status Keputusan -->
+          <td style="padding: 14px 12px; text-align: center;">
+            {% if row.status in ['matched', 'completed'] %}
+            <span style="background: #dcfce7; color: #15803d; font-weight: 700; font-size: 11.5px; padding: 4px 10px; border-radius: 20px;">
+              DISAHKAN KC
+            </span>
+            {% elif row.status == 'rejected' %}
+            <span style="background: #fee2e2; color: #dc2626; font-weight: 700; font-size: 11.5px; padding: 4px 10px; border-radius: 20px;">
+              DITOLAK
+            </span>
+            {% else %}
+            <span style="background: #f1f5f9; color: #64748b; font-weight: 600; font-size: 11.5px; padding: 4px 10px; border-radius: 20px;">
+              {{ row.status | upper }}
+            </span>
+            {% endif %}
+          </td>
+
+          <!-- Timestamp Selesai -->
+          <td style="padding: 14px 12px; font-size: 12.5px; color: #64748b;">
+            {{ row.completed_at }}
+          </td>
+
+          <!-- Aksi Navigasi Audit -->
+          <td style="padding: 14px 12px; text-align: right;">
+            <div style="display: flex; gap: 6px; justify-content: flex-end;">
+              <a href="/results/{{ row.id }}" class="btn btn-outline btn-sm" style="padding: 6px 12px; font-size: 12px; text-decoration: none; border-radius: 4px; border: 1px solid #cbd5e1; color: #0f172a; font-weight: 600;">
+                📊 Lihat Pemeringkatan
+              </a>
+              {% if row.status in ['matched', 'completed'] %}
+              <a href="/api/sdm/requests/{{ row.id }}/print-sk" target="_blank" class="btn btn-sm" style="padding: 6px 10px; font-size: 12px; text-decoration: none; border-radius: 4px; background: #0f172a; color: white; font-weight: 600;" title="Cetak Surat Keputusan">
+                🖨️ SK
+              </a>
+              {% endif %}
+            </div>
+          </td>
+
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" style="text-align: center; padding: 40px; color: #64748b; background: #f8fafc;">
+            Belum ada rekam jejak historis keputusan rotasi SDM yang tersimpan di dalam sistem.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
