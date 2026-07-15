@@ -154,31 +154,31 @@ def update_request_status(
 def approve_rotation_package(
     request_id: int, 
     db: Session = Depends(get_db), 
-    current_user: User = Depends(require_role("kepala_hrd", "kepala_cabang", "eksekutif", "manajer_hrd"))[cite: 25]
+    current_user: User = Depends(require_role("kepala_hrd", "kepala_cabang", "eksekutif", "manajer_hrd"))
 ):
     """
-    Mengesahkan rotasi secara paket berdasar kuota (quantity) yang diminta.[cite: 25]
-    Mengambil peringkat Top-N dari tabel MatchingResult, memindahkan divisi mereka,[cite: 25]
+    Mengesahkan rotasi secara paket berdasar kuota (quantity) yang diminta.
+    Mengambil peringkat Top-N dari tabel MatchingResult, memindahkan divisi mereka,
     dan secara otomatis memperbarui Workload Analysis (WLA) divisi terkait.
     """
-    # 1. Ambil data pengajuan[cite: 25]
-    req = db.query(SDMRequest).filter(SDMRequest.id == request_id).first()[cite: 25]
-    if not req:[cite: 25]
-        raise HTTPException(status_code=404, detail="Pengajuan SDM tidak ditemukan.")[cite: 25]
+    # 1. Ambil data pengajuan
+    req = db.query(SDMRequest).filter(SDMRequest.id == request_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Pengajuan SDM tidak ditemukan.")
 
-    # 2. Ambil kandidat peringkat 1 sampai N (Sesuai kuantitas diminta)[cite: 25]
+    # 2. Ambil kandidat peringkat 1 sampai N (Sesuai kuantitas diminta)
     top_candidates = (
-        db.query(MatchingResult)[cite: 25]
-        .filter(MatchingResult.sdm_request_id == request_id)[cite: 25]
-        .order_by(MatchingResult.rank.asc())[cite: 25]
-        .limit(req.quantity)  # Memotong daftar otomatis berdasar kuota permintaan[cite: 25]
-        .all()[cite: 25]
+        db.query(MatchingResult)
+        .filter(MatchingResult.sdm_request_id == request_id)
+        .order_by(MatchingResult.rank.asc())
+        .limit(req.quantity)  # Memotong daftar otomatis berdasar kuota permintaan
+        .all()
     )
 
-    if not top_candidates:[cite: 25]
+    if not top_candidates:
         raise HTTPException(
-            status_code=400, [cite: 25]
-            detail="Belum ada hasil kalkulasi Profile Matching untuk pengajuan ini. Silakan jalankan matching terlebih dahulu."[cite: 25]
+            status_code=400, 
+            detail="Belum ada hasil kalkulasi Profile Matching untuk pengajuan ini. Silakan jalankan matching terlebih dahulu."
         )
 
     # 3. SIAPKAN HIMPUNAN (SET) DIVISI TERDAMPAK
@@ -186,21 +186,21 @@ def approve_rotation_package(
     affected_divisions = {req.target_division_id}
 
     # 4. Eksekusi perpindahan divisi & catat Divisi Asal
-    for cand in top_candidates:[cite: 25]
-        emp = cand.employee[cite: 25]
-        if emp:[cite: 25]
+    for cand in top_candidates:
+        emp = cand.employee
+        if emp:
             # Catat divisi asal karyawan sebelum dipindahkan
             if emp.division_id:
                 affected_divisions.add(emp.division_id)
             
             # Eksekusi rotasi ke divisi baru
-            emp.division_id = req.target_division_id[cite: 25]
+            emp.division_id = req.target_division_id
 
-    # 5. Kunci status pengajuan menjadi selesai / matched[cite: 25]
-    req.status = RequestStatus.matched[cite: 25]
-    req.updated_at = datetime.now()[cite: 25]
+    # 5. Kunci status pengajuan menjadi selesai / matched
+    req.status = RequestStatus.matched
+    req.updated_at = datetime.now()
     
-    db.commit()[cite: 25]
+    db.commit()
 
     # 6. REKALKULASI WLA DIVISI TERDAMPAK
     # Memastikan indikator beban kerja di Dashboard langsung akurat
@@ -222,9 +222,9 @@ def approve_rotation_package(
         # Prevent secondary WLA errors from failing the already committed transaction
         print(f"Warning: Automated WLA update failed: {e}")
 
-    return {[cite: 25]
-        "status": "success",[cite: 25]
-        "message": f"Berhasil mengesahkan rotasi untuk {len(top_candidates)} karyawan (Top-{req.quantity}). WLA pada {len(affected_divisions)} divisi terkait telah diperbarui!"[cite: 25]
+    return {
+        "status": "success",
+        "message": f"Berhasil mengesahkan rotasi untuk {len(top_candidates)} karyawan (Top-{req.quantity}). WLA pada {len(affected_divisions)} divisi terkait telah diperbarui!"
     }
 
 
