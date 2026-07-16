@@ -94,7 +94,7 @@ def get_criteria_for_gate_assessment(
 def evaluate_batch_candidates(
     payload: BatchEvaluateCreate,
     db: Session = Depends(get_db),
-    current_user = Depends(require_role("kepala_hrd", "manajer_hrd"))
+    current_user = Depends(require_role("kepala_hrd"))
 ):
     """
     Endpoint untuk mendaftarkan dan mengevaluasi kandidat rotasi secara massal (Batch Selection).

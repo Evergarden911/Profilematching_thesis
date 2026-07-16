@@ -225,10 +225,6 @@ def _decide_interview_requirement(
         gate.interview_gate_notes = "Rotasi Satu Rumpun Grup: Gate B dilewati (Lolos Otomatis)."
 
 def evaluate_batch(db: Session, request_id: int, employee_ids: List[int]) -> Dict[str, Any]:
-    """
-    Mengevaluasi dan mendaftarkan daftar karyawan ke dalam tahapan asesmen (Gates) secara massal.
-    Menerapkan pencegahan N+1 Query dan transaksi atomik.
-    """
     # 1. Validasi eksistensi pengajuan SDM
     sdm_request = db.query(SDMRequest).filter(SDMRequest.id == request_id).first()
     if not sdm_request:
@@ -258,33 +254,30 @@ def evaluate_batch(db: Session, request_id: int, employee_ids: List[int]) -> Dic
     rejected_sanctions = 0
 
     for emp in employees:
-        # Lewati jika karyawan sudah pernah didaftarkan pada pengajuan ini
         if emp.id in existing_emp_ids:
             skipped_duplicates += 1
             continue
 
-        # Evaluasi Gate A: Pengecekan Sanksi Aktif
-        # Jika karyawan memiliki sanksi, kita catat kegagalannya atau lewati sesuai aturan bisnis
         if getattr(emp, "has_sanction", False):
             rejected_sanctions += 1
-            # Catatan: Jika aturan bisnismu tetap ingin menyimpan data yang gagal Gate A ke DB
-            # dengan status 'rejected', kamu bisa mengubah logika di sini.
             continue
 
-        # Evaluasi Gate A: Logika penentuan status awal (Sesuaikan dengan aturan sistemmu)
-        # Contoh: Jika rumpun ilmunya berbeda, wajib masuk wawancara (Gate B)
+        # Logika penetapan status awal konsisten dengan model
         is_same_division = (emp.division_id == sdm_request.target_division_id)
         
-        gate_a_status = "passed"
-        gate_b_status = "pending" if not is_same_division else "waived"
+        # PERBAIKAN: Gunakan Enum GateStatus, bukan string sembarangan
+        edu_status = GateStatus.passed
+        int_status = GateStatus.passed if is_same_division else GateStatus.interview_pending
+        is_eligible = True if is_same_division else False
 
-        # Pembuatan objek baris database baru
+        # PERBAIKAN: Sesuaikan nama parameter dengan skema RotationGate di models.py
         new_gate = RotationGate(
             sdm_request_id=request_id,
             employee_id=emp.id,
-            gate_a_status=gate_a_status,
-            gate_b_status=gate_b_status,
-            # Tambahkan atribut lain jika tabel RotationGate kamu memilikinya (misal: education_gate_status)
+            education_gate_status=edu_status,
+            interview_gate_status=int_status,
+            is_eligible_for_matching=is_eligible,
+            education_gate_notes="Evaluasi batch awal: Lolos pengecekan sanksi."
         )
         new_gates.append(new_gate)
         processed_count += 1
