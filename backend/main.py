@@ -192,7 +192,7 @@ async def view_requests(
     })
 
 @app.get("/results/{request_id}", response_class=HTMLResponse)
-async def view_results_detail(  # <-- FIXED BUG-02 (Nama diubah)
+async def view_results_detail(
     request_id: int,
     request: Request, 
     db: Session = Depends(get_db)
@@ -204,6 +204,18 @@ async def view_results_detail(  # <-- FIXED BUG-02 (Nama diubah)
     if not req_data:
         raise HTTPException(status_code=404, detail="Request tidak ditemukan")
 
+    # 1. TARIK KRITERIA STANDAR DIVISI TARGET (Untuk render dinamis Tabel Gap)
+    target_criteria_weights = (
+        db.query(DivisionCriteriaWeight)
+        .join(GroupCriteria)
+        .filter(
+            DivisionCriteriaWeight.division_id == req_data.target_division_id,
+            GroupCriteria.is_active == True
+        )
+        .options(contains_eager(DivisionCriteriaWeight.group_criteria))
+        .all()
+    )
+
     candidates = (
         db.query(MatchingResult)
         .filter(MatchingResult.sdm_request_id == request_id)
@@ -214,19 +226,40 @@ async def view_results_detail(  # <-- FIXED BUG-02 (Nama diubah)
         .all()
     )
 
-    # Transformasi data untuk mempermudah konsumsi Jinja2
+    # 2. TRANSFORMATION & INJEKSI GAP DETAIL
+    from backend.services.profile_matching import compute_match, CriteriaInput
     formatted_candidates = []
+    
     for cand in candidates:
+        emp = cand.employee
+        # Ekstrak skor kompetensi aktual karyawan dari database
+        emp_scores = {es.criteria_id: es.score for es in emp.scores}
+        
+        inputs = []
+        for dw in target_criteria_weights:
+            gc = dw.group_criteria
+            inputs.append(CriteriaInput(
+                criteria_id=gc.id,
+                employee_score=emp_scores.get(gc.id, 1.0), # Safety fallback ke 1.0 jika belum dinilai
+                target_value=gc.target_value,
+                weight=dw.weight,
+                factor_type=gc.factor_type.value
+            ))
+        
+        # Panggil compute_match murni untuk mendapatkan struktur gap_detail
+        pm_calc = compute_match(emp.id, inputs)
+
         formatted_candidates.append({
-            "id": cand.employee.id,
-            "employee_name": cand.employee.full_name,
-            "employee_code": cand.employee.employee_code,
-            "employee_role": cand.employee.position,
-            "origin_division": cand.employee.division.name,
-            "origin_division_code": cand.employee.division.code,
+            "id": emp.id,
+            "employee_name": emp.full_name,
+            "employee_code": emp.employee_code,
+            "employee_role": emp.position,
+            "origin_division": emp.division.name if emp.division else "Internal",
+            "origin_division_code": emp.division.code if emp.division else "-",
             "ncf_score": cand.ncf_score,
             "nsf_score": cand.nsf_score,
-            "final_score": cand.final_score
+            "final_score": cand.final_score,
+            "gap_detail": pm_calc.gap_detail  # <-- MEMUTUS BLIND SPOT: INJEKSI GAP
         })
 
     return templates.TemplateResponse("results.html", {
@@ -234,16 +267,18 @@ async def view_results_detail(  # <-- FIXED BUG-02 (Nama diubah)
         "current_user": user,
         "active_page": "results",
         "request_data": {
+            "id": req_data.id,
             "code": f"REQ-{req_data.id:04d}",
-            "target_division_name": req_data.target_division.name if req_data.target_division else "Unknown"
+            "target_division_name": req_data.target_division.name if req_data.target_division else "Unknown",
+            "quantity": req_data.quantity,  # <-- PATCH BUG #1: KUOTA ASLI DISALURKAN KE UI
+            "status": req_data.status.value if hasattr(req_data.status, 'value') else str(req_data.status)
         },
         "candidates": formatted_candidates,
+        "target_criteria": target_criteria_weights,  # <-- INJEKSI KRITERIA STANDAR KE UI
         "calculated_at": candidates[0].computed_at.strftime('%d %b %Y, %H:%M') if candidates else "Belum dikalkulasi",
         "ncf_weight": 60,
         "nsf_weight": 40,
-        # FIXED BUG-07: Mengubah .criteria menjadi .criteria_weights 
-        # (Model Division terhubungnya ke DivisionCriteriaWeight, bukan langsung ke GroupCriteria)
-        "total_criteria": len(req_data.target_division.criteria_weights) if req_data.target_division else 0
+        "total_criteria": len(target_criteria_weights)
     })
 
 @app.get("/criteria", response_class=HTMLResponse)

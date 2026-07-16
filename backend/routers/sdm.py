@@ -1,13 +1,14 @@
 from typing import Optional
 from datetime import datetime
-from fastapi import APIRouter, Depends, status, Query, HTTPException
+from fastapi import APIRouter, Depends, status, Query, HTTPException, Request
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from sqlalchemy import extract
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, contains_eager
 
 from backend.core.database import get_db
 from backend.core.security import get_current_user, require_role
-from backend.models import User, SDMRequest, RequestStatus, MatchingResult, TransferLetter, SDMEvaluationHistory
+from backend.models import User, SDMRequest, RequestStatus, MatchingResult, TransferLetter, SDMEvaluationHistory, Employee, Division
 from backend.schemas.sdm import (
     MatchingResultRead,
     SDMRequestCreate,
@@ -19,6 +20,11 @@ from backend.schemas.sdm import (
 from backend.services import sdm_service, wla_service
 
 router = APIRouter(prefix="/api/sdm", tags=["sdm"])
+
+ROMAN_MONTHS = {
+    1: "I", 2: "II", 3: "III", 4: "IV", 5: "V", 6: "VI",
+    7: "VII", 8: "VIII", 9: "IX", 10: "X", 11: "XI", 12: "XII"
+}
 
 # Skema Pydantic khusus penambalan BUG-21
 class SDMRequestStatusPatch(BaseModel):
@@ -325,3 +331,66 @@ def issue_transfer_letter(
     current_user: User = Depends(require_role("kepala_cabang")),
 ):
     return sdm_service.create_transfer_letter(db, payload, current_user)
+
+@router.get("/requests/{request_id}/print-sk", response_class=HTMLResponse)
+async def print_surat_tugas(
+    request_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    # 1. Tarik Data Pengajuan
+    sdm_req = db.query(SDMRequest).filter(SDMRequest.id == request_id).first()
+    if not sdm_req:
+        raise HTTPException(status_code=404, detail="Data pengajuan tidak ditemukan.")
+
+    # 2. Tarik Kandidat Terpilih (Top-N Sesuai Kuota)
+    top_results = (
+        db.query(MatchingResult)
+        .filter(MatchingResult.sdm_request_id == request_id)
+        .options(contains_eager(MatchingResult.employee).contains_eager(Employee.division))
+        .join(Employee)
+        .join(Division)
+        .order_by(MatchingResult.rank.asc())
+        .limit(sdm_req.quantity)
+        .all()
+    )
+
+    if not top_results:
+        raise HTTPException(
+            status_code=400, 
+            detail="Belum ada kandidat yang dikalkulasi untuk pengajuan ini."
+        )
+
+    # 3. Rakit Data Dokumen per Karyawan
+    now = datetime.now()
+    roman_month = ROMAN_MONTHS.get(now.month, "VII")
+    letter_year = now.year
+    
+    surat_list = []
+    for index, res in enumerate(top_results, start=1):
+        emp = res.employee
+        # Penomoran surat berurutan, misal: 54A/Cab-1/P.18/VII/2026
+        nomor_surat = f"{sdm_req.id:03d}{chr(64+index)}/Cab-1/P.18/{roman_month}/{letter_year}"
+        
+        surat_list.append({
+            "nomor_surat": nomor_surat,
+            "nama": emp.full_name,
+            "nip": emp.employee_code,
+            "bagian_asal": emp.division.name if emp.division else "Internal",
+            "jabatan_asal": emp.position,
+            "status_pegawai": "Pegawai Tetap", # Bisa ditarik dari kolom DB jika ada
+            "divisi_tujuan": sdm_req.target_division.name,
+            "tanggal_mulai": now.strftime("%d %B %Y"),
+            "tanggal_selesai": (now.replace(year=now.year + 1)).strftime("%d %B %Y")
+        })
+
+    # 4. Ambil Jinja2 Templates dari konfigurasi aplikasi
+    from backend.main import templates
+    return templates.TemplateResponse("surat_tugas.html", {
+        "request": request,
+        "surat_list": surat_list,
+        "tanggal_cetak": now.strftime("%d %B %Y"),
+        "kota_cabang": "Bandung", # Atau disesuaikan dengan cabang aktif
+        "pimpinan": "Yono Harsono",
+        "jabatan_pimpinan": "Kepala Cabang"
+    })

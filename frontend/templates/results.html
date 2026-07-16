@@ -6,17 +6,60 @@
 {% block page_subtitle %}Divisi Target: {{ request_data.target_division_name | default('Operasional') }} · ID Pengajuan #{{ request_data.code | default('---') }} (Kuota: {{ request_data.quantity | default(1) }} Orang){% endblock %}
 
 {% block topbar_actions %}
-<a href="/requests" class="btn btn-outline btn-sm">← Kembali ke Daftar</a>
-{% if request_data.status in ['completed', 'matched'] %}
-  <a href="/api/sdm/requests/{{ request_data.id }}/print-sk" target="_blank" class="btn btn-primary btn-sm">🖨️ Cetak SK Rotasi</a>
-{% else %}
-  <button class="btn btn-outline btn-sm" onclick="window.print()">🖨️ Cetak Draft Laporan</button>
-{% endif %}
+<!-- DROPDOWN NAVIGASI CEPAT (SAFETY NET JAGA-JAGA) -->
+<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+  <div style="position: relative;">
+    <select id="quickSwitchDropdown" onchange="switchRequest(this.value)" class="form-control" style="padding: 6px 32px 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid #3b82f6; border-radius: 6px; background-color: #eff6ff; color: #1d4ed8; cursor: pointer; min-width: 200px;">
+      <option value="">⚡ Ganti ID Pengajuan...</option>
+      <!-- Akan diisi otomatis oleh JavaScript di bawah -->
+    </select>
+  </div>
+
+  <a href="/requests" class="btn btn-outline btn-sm">← Daftar</a>
+  
+  {% if request_data.status in ['completed', 'matched', 'approved'] %}
+    <a href="/api/sdm/requests/{{ request_data.id }}/print-sk" target="_blank" class="btn btn-primary btn-sm" style="background-color: #16a34a; border-color: #16a34a;">🖨️ Cetak SK</a>
+  {% else %}
+    <button class="btn btn-outline btn-sm" onclick="window.print()">🖨️ Draft</button>
+  {% endif %}
+</div>
 {% endblock %}
 
 {% block content %}
 {% set current_role = current_user.role.value if current_user and current_user.role.value is defined else (current_user.role | string if current_user else 'guest') %}
 {% set kuota = request_data.quantity | default(1) %}
+
+<!-- =========================================================================
+     SPANDUK STATUS PENGAJUAN (VISUAL CUE UNTUK KEPALA CABANG / HRD)
+     ========================================================================= -->
+{% if request_data.status in ['forwarded', 'under_review'] %}
+<div style="background: #eff6ff; border: 1px solid #bfdbfe; border-left: 5px solid #3b82f6; padding: 16px 20px; border-radius: 8px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <span style="font-size: 24px;">🔔</span>
+    <div>
+      <h4 style="margin: 0; font-size: 15px; font-weight: 700; color: #1e40af;">
+        {% if request_data.status == 'forwarded' %}
+          Status: DITERUSKAN KE KEPALA CABANG (FORWARDED)
+        {% else %}
+          Status: SEDANG DITINJAU ULANG (UNDER REVIEW)
+        {% endif %}
+      </h4>
+      <p style="margin: 4px 0 0 0; font-size: 13px; color: #3b82f6;">
+        {% if current_role in ['kepala_cabang', 'eksekutif'] %}
+          Pengajuan ini siap untuk pemeriksaan Anda. Silakan tinjau ranking di bawah dan lakukan pengesahan SK pada <strong>Panel Aksi di bagian paling bawah halaman</strong>.
+        {% else %}
+          Menunggu pemeriksaan dan keputusan pengesahan akhir dari Kepala Cabang.
+        {% endif %}
+      </p>
+    </div>
+  </div>
+  {% if current_role in ['kepala_cabang', 'eksekutif'] %}
+    <a href="#panel-aksi-kc" class="btn btn-primary btn-sm" style="background-color: #2563eb; color: white; text-decoration: none; font-weight: 600;">
+      ⬇️ Langsung ke Panel Sahkan SK
+    </a>
+  {% endif %}
+</div>
+{% endif %}
 
 <!-- =========================================================================
      BLOK A: PAPAN RANKING KANDIDAT (MULTI-CANDIDATE QUOTA SYSTEM)
@@ -33,7 +76,6 @@
 
   <div id="top-candidates-container" style="display: flex; flex-direction: column; gap: 12px;">
     {% for cand in candidates %}
-    {# Tentukan apakah kandidat masuk dalam batas kuota Top-N yang diminta #}
     {% set is_selected = loop.index <= kuota %}
 
     <div class="candidate-card" style="display: flex; align-items: center; justify-content: space-between; 
@@ -43,7 +85,6 @@
          border-radius: 8px; padding: 16px 20px; transition: all 0.2s ease;">
       
       <div style="display: flex; align-items: center; gap: 16px;">
-        <!-- Lencana Angka Peringkat -->
         <div style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 16px; font-weight: 700; 
                     {% if is_selected %}background: #22c55e; color: white;{% else %}background: #e2e8f0; color: #64748b;{% endif %}">
           {{ loop.index }}
@@ -52,8 +93,6 @@
         <div>
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             <span style="font-size: 15px; font-weight: 600; color: #0f172a;">{{ cand.employee_name }}</span>
-            
-            <!-- Lencana Status Terpilih vs Cadangan -->
             {% if is_selected %}
               <span style="background: #dcfce7; color: #15803d; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; border: 1px solid #bbf7d0;">
                 ✓ MASUK KUOTA (TOP {{ kuota }})
@@ -87,7 +126,7 @@
 </div>
 
 <!-- =========================================================================
-     BLOK B: TABEL ANALISIS GAP & KONVERSI KOMPETENSI (INTERAKTIF)
+     BLOK B: TABEL ANALISIS GAP & KONVERSI KOMPETENSI (INTERAKTIF & DINAMIS)
      ========================================================================= -->
 <div class="card" style="margin-bottom: 24px; padding: 24px;">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
@@ -102,7 +141,6 @@
   </div>
 
   {% if current_role in ['kepala_cabang', 'eksekutif'] %}
-  <!-- SPANDUK HIERARCHICAL OVERRIDE KHUSUS KEPALA CABANG -->
   <div style="background: #fef9c3; border: 1px solid #fde047; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px;">
     <span style="font-size: 20px;">⚠️</span>
     <div style="font-size: 12.5px; color: #854d0e; line-height: 1.4;">
@@ -117,37 +155,47 @@
         <tr style="border-bottom: 2px solid #e2e8f0; color: #475569; background: #f8fafc;">
           <th style="padding: 12px;">ASPEK</th>
           <th style="padding: 12px;">KRITERIA</th>
-          <th style="padding: 12px; text-align: center;">AKTUAL</th>
+          <th style="padding: 12px; text-align: center;">BOBOT (%)</th>
           <th style="padding: 12px; text-align: center;">STANDAR</th>
-          <th style="padding: 12px; text-align: center;">GAP</th>
+          <th style="padding: 12px; text-align: center;">STATUS GAP</th>
           <th style="padding: 12px; text-align: right;">KONVERSI BOBOT</th>
         </tr>
       </thead>
       <tbody>
-        <tr style="border-bottom: 1px solid #f1f5f9;">
-          <td style="padding: 12px; font-weight: 500;">Kecerdasan</td>
-          <td style="padding: 12px;">Kemampuan Analitis</td>
-          <td style="padding: 12px; text-align: center; font-weight: 600;">4</td>
-          <td style="padding: 12px; text-align: center; color: #64748b;">5</td>
-          <td style="padding: 12px; text-align: center;"><span style="background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 12px;">-1</span></td>
-          <td style="padding: 12px; text-align: right; font-weight: 600;">3.50</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #f1f5f9;">
-          <td style="padding: 12px; font-weight: 500;">Kecerdasan</td>
-          <td style="padding: 12px;">Pengetahuan Teknis</td>
-          <td style="padding: 12px; text-align: center; font-weight: 600;">5</td>
-          <td style="padding: 12px; text-align: center; color: #64748b;">5</td>
-          <td style="padding: 12px; text-align: center;"><span style="background: #dcfce7; color: #16a34a; padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 12px;">0</span></td>
-          <td style="padding: 12px; text-align: right; font-weight: 600;">5.00</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #f1f5f9;">
-          <td style="padding: 12px; font-weight: 500;">Sikap Kerja</td>
-          <td style="padding: 12px;">Kedisiplinan & WLA</td>
-          <td style="padding: 12px; text-align: center; font-weight: 600;">5</td>
-          <td style="padding: 12px; text-align: center; color: #64748b;">5</td>
-          <td style="padding: 12px; text-align: center;"><span style="background: #dcfce7; color: #16a34a; padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 12px;">0</span></td>
-          <td style="padding: 12px; text-align: right; font-weight: 600;">5.00</td>
-        </tr>
+        {% if candidates and candidates|length > 0 and target_criteria %}
+          {% set top_cand = candidates[0] %}
+          {% for tc in target_criteria %}
+            {% set crit = tc.group_criteria %}
+            {% set gap_val = top_cand.gap_detail.get(crit.id, 0.0) %}
+            
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 12px; font-weight: 500; text-transform: uppercase; color: {% if crit.factor_type.value == 'core' %}#1d4ed8{% else %}#64748b{% endif %};">
+                {{ crit.factor_type.value }}
+              </td>
+              <td style="padding: 12px; font-weight: 500;">{{ crit.name }}</td>
+              <td style="padding: 12px; text-align: center; color: #64748b;">{{ "%.0f"|format(tc.weight * 100) }}%</td>
+              <td style="padding: 12px; text-align: center; font-weight: 600;">{{ crit.target_value }}</td>
+              <td style="padding: 12px; text-align: center;">
+                {% if gap_val >= 4.0 %}
+                  <span style="background: #dcfce7; color: #16a34a; padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 11.5px;">✓ Optimal</span>
+                {% elif gap_val >= 3.0 %}
+                  <span style="background: #fef9c3; color: #854d0e; padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 11.5px;">○ Toleransi</span>
+                {% else %}
+                  <span style="background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 11.5px;">⚠️ Kesenjangan</span>
+                {% endif %}
+              </td>
+              <td style="padding: 12px; text-align: right; font-weight: 700; color: #0f172a;">
+                {{ "%.2f"|format(gap_val) }}
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="6" style="text-align: center; padding: 32px; color: #64748b; background: #f8fafc;">
+              Belum ada data kalkulasi rincian kriteria untuk pengajuan ini.
+            </td>
+          </tr>
+        {% endif %}
       </tbody>
     </table>
   </div>
@@ -156,7 +204,7 @@
 <!-- =========================================================================
      BLOK C: PANEL AKSI DINAMIS (ROLE-BASED GATEKEEPER MULTI-CANDIDATE)
      ========================================================================= -->
-<div class="card" style="padding: 20px 24px; background: #f8fafc; border: 1px solid #cbd5e1;">
+<div id="panel-aksi-kc" class="card" style="padding: 20px 24px; background: #f8fafc; border: 1px solid #cbd5e1;">
   
   {% if current_role in ['manajer_hrd', 'kepala_hrd', 'admin_hrd'] %}
   <!-- TAMPILAN AKSI HRD: KIRIM PAKET REKOMENDASI -->
@@ -170,13 +218,19 @@
       </p>
     </div>
     {% if candidates and candidates | length > 0 %}
-    <button type="button" 
-            onclick="eksekusiHRD({{ request_data.id }})" 
-            id="btnKirimHRD"
-            class="btn btn-primary" 
-            style="background-color: #cc2229; color: white; padding: 10px 24px; font-weight: 600; border-radius: 6px; border: none; cursor: pointer;">
-      🚀 Kirim Paket Top-{{ kuota }} ke KC
-    </button>
+      {% if request_data.status == 'forwarded' %}
+        <button type="button" disabled class="btn btn-secondary" style="background-color: #94a3b8; color: white; padding: 10px 24px; font-weight: 600; border-radius: 6px; border: none; cursor: not-allowed;">
+          ✓ Sudah Diteruskan ke KC
+        </button>
+      {% else %}
+        <button type="button" 
+                onclick="eksekusiHRD({{ request_data.id }})" 
+                id="btnKirimHRD"
+                class="btn btn-primary" 
+                style="background-color: #cc2229; color: white; padding: 10px 24px; font-weight: 600; border-radius: 6px; border: none; cursor: pointer;">
+          🚀 Kirim Paket Top-{{ kuota }} ke KC
+        </button>
+      {% endif %}
     {% endif %}
   </div>
 
@@ -187,26 +241,32 @@
       Keputusan Pengesahan Akhir Rotasi (Transfer Letter Top-{{ kuota }})
     </h4>
     
-    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-      <input type="text" id="inputRevisiKC" class="form-control" placeholder="Tulis catatan atau instruksi revisi jika usulan dikembalikan..." style="flex: 1; min-width: 260px; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13.5px;">
-      
-      <button type="button" 
-              onclick="eksekusiKC({{ request_data.id }}, 'reject')" 
-              class="btn btn-outline" 
-              style="padding: 10px 18px; border: 1px solid #ef4444; color: #ef4444; background: white; font-weight: 600; border-radius: 6px; cursor: pointer;">
-        🔄 Minta Revisi
-      </button>
-      
-      {% if candidates and candidates | length > 0 %}
-      <button type="button" 
-              onclick="eksekusiKC({{ request_data.id }}, 'approve')" 
-              id="btnApproveKC"
-              class="btn btn-success" 
-              style="background-color: #16a34a; color: white; padding: 10px 24px; font-weight: 600; border-radius: 6px; border: none; cursor: pointer;">
-        ✓ Sahkan SK Rotasi ({{ kuota }} Karyawan)
-      </button>
-      {% endif %}
-    </div>
+    {% if request_data.status in ['approved', 'matched', 'completed', 'selesai'] %}
+      <div style="padding: 12px; background: #dcfce7; color: #16a34a; border-radius: 6px; font-weight: 600; text-align: center;">
+        ✓ SK Rotasi untuk pengajuan ini telah resmi disahkan oleh Anda.
+      </div>
+    {% else %}
+      <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <input type="text" id="inputRevisiKC" class="form-control" placeholder="Tulis catatan atau instruksi revisi jika usulan dikembalikan..." style="flex: 1; min-width: 260px; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13.5px;">
+        
+        <button type="button" 
+                onclick="eksekusiKC({{ request_data.id }}, 'reject')" 
+                class="btn btn-outline" 
+                style="padding: 10px 18px; border: 1px solid #ef4444; color: #ef4444; background: white; font-weight: 600; border-radius: 6px; cursor: pointer;">
+          🔄 Minta Revisi
+        </button>
+        
+        {% if candidates and candidates | length > 0 %}
+        <button type="button" 
+                onclick="eksekusiKC({{ request_data.id }}, 'approve')" 
+                id="btnApproveKC"
+                class="btn btn-success" 
+                style="background-color: #16a34a; color: white; padding: 10px 24px; font-weight: 600; border-radius: 6px; border: none; cursor: pointer;">
+          ✓ Sahkan SK Rotasi ({{ kuota }} Karyawan)
+        </button>
+        {% endif %}
+      </div>
+    {% endif %}
   </div>
   {% endif %}
 
@@ -216,34 +276,80 @@
 {% block extra_js %}
 <script>
 // ============================================================================
+// 0. FITUR SAFETY NET: AUTO-POPULATE DROPDOWN PENGAJUAN
+// ============================================================================
+document.addEventListener("DOMContentLoaded", async function() {
+    const dropdown = document.getElementById("quickSwitchDropdown");
+    if (!dropdown) return;
+
+    try {
+        // Mengambil daftar pengajuan aktif dari endpoint API standar Pramita Lab
+        const response = await fetch("/api/sdm/requests", { credentials: 'same-origin' });
+        if (!response.ok) return; // Silent fail jika endpoint berbeda
+        
+        const data = await response.json();
+        const list = Array.isArray(data) ? data : (data.data || []);
+        
+        if (list.length > 0) {
+            list.forEach(req => {
+                const reqId = req.id || req.request_id;
+                const divName = req.target_division_name || (req.target_division ? req.target_division.name : "Divisi");
+                const status = req.status ? req.status.toUpperCase() : "PROSES";
+                
+                const option = document.createElement("option");
+                option.value = reqId;
+                option.innerText = `#SDM-2026-${String(reqId).padStart(3, '0')} (${divName}) [${status}]`;
+                
+                // Pilih otomatis item yang sedang aktif saat ini
+                if (reqId == "{{ request_data.id | default(0) }}") {
+                    option.selected = true;
+                }
+                dropdown.appendChild(option);
+            });
+        }
+    } catch (e) {
+        console.log("Quick switch selector: menggunakan mode statis.");
+    }
+});
+
+function switchRequest(targetId) {
+    if (targetId && targetId !== "") {
+        window.location.href = `/results/${targetId}`;
+    }
+}
+
+// ============================================================================
 // 1. FUNGSI EKSEKUSI HRD: KIRIM PAKET TOP-N KANDIDAT
 // ============================================================================
 async function eksekusiHRD(requestId) {
     if (!confirm('Yakin ingin mengirim rekomendasi paket kandidat Top-N ini ke Kepala Cabang?')) return;
     
     const btn = document.getElementById('btnKirimHRD');
+    const originalText = btn ? btn.innerText : '';
+    
     try {
-        btn.disabled = true;
-        btn.innerText = 'Mengirim Paket Data...';
+        if (btn) { btn.disabled = true; btn.innerText = '⏳ Mengirim...'; }
 
-        // Menembak endpoint persetujuan paket (tanpa parameter tunggal employee_id)
-        const response = await fetch(`/api/sdm/requests/${requestId}/approve-package`, {
-            method: 'POST',
+        const response = await fetch(`/api/sdm/requests/${requestId}/status`, {
+            method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                status: 'forwarded', 
+                hrd_notes: "Paket rekomendasi Top-N telah dikirimkan." 
+            }),
             credentials: 'same-origin'
         });
 
         if (!response.ok) {
-            const err = await response.json();
+            const err = await response.json().catch(() => ({}));
             throw new Error(err.detail || 'Gagal memproses pengajuan paket.');
         }
         
-        alert('SUKSES: Paket rekomendasi rotasi berhasil dikirim ke Kepala Cabang!');
+        alert('✅ SUKSES: Paket rekomendasi rotasi berhasil dikirim ke Kepala Cabang!');
         window.location.href = '/requests'; 
     } catch (error) {
-        alert('Error: ' + error.message);
-        btn.disabled = false;
-        btn.innerText = '🚀 Kirim Paket ke KC';
+        alert('❌ Error: ' + error.message);
+        if (btn) { btn.disabled = false; btn.innerText = originalText; }
     }
 }
 
@@ -251,156 +357,57 @@ async function eksekusiHRD(requestId) {
 // 2. FUNGSI EKSEKUSI KEPALA CABANG: APPROVE PAKET ATAU REVISI
 // ============================================================================
 async function eksekusiKC(requestId, actionType) {
-    const catatan = document.getElementById('inputRevisiKC').value.trim();
+    const inputEl = document.getElementById('inputRevisiKC');
+    const catatan = inputEl ? inputEl.value.trim() : "";
 
     if (actionType === 'reject' && catatan === '') {
-        alert('Harap isi kotak catatan mengenai alasan revisi atau pengembalian usulan!');
-        document.getElementById('inputRevisiKC').focus();
+        alert('⚠️ Harap isi kotak catatan mengenai alasan revisi atau pengembalian usulan!');
+        if (inputEl) inputEl.focus();
         return;
     }
 
     const pesanConfirm = actionType === 'approve' 
-        ? 'Apakah Anda yakin ingin MENYETUJUI paket rotasi ini? SK untuk seluruh kandidat dalam kuota akan diterbitkan.'
+        ? 'Apakah Anda yakin ingin MENYETUJUI paket rotasi ini?\n\nSK Transfer Letter untuk seluruh kandidat dalam kuota akan diterbitkan.'
         : 'Kembalikan usulan ini ke HRD untuk direvisi?';
 
     if (!confirm(pesanConfirm)) return;
 
+    const btn = actionType === 'approve' ? document.getElementById('btnApproveKC') : null;
+    const originalText = btn ? btn.innerText : '';
+
     try {
-        let url = `/api/sdm/requests/${requestId}/status`;
-        let payload = { status: actionType === 'approve' ? 'completed' : 'under_review', notes: catatan };
+        if (btn) { btn.disabled = true; btn.innerText = '⏳ Menerbitkan SK...'; }
 
-        // Jika approve paket, panggil endpoint finalisasi SK paket
-        if (actionType === 'approve') {
-            url = `/api/sdm/requests/${requestId}/approve-package`;
-            payload = { executive_notes: catatan };
-        }
+        // PERBAIKAN KRITIS ENUM: Gunakan 'approved' (sah di DB), BUKAN 'completed'
+        const targetStatus = actionType === 'approve' ? 'approved' : 'under_review';
+        const notesPrefix = actionType === 'approve' ? '[PENGESAHAN KC]: ' : '[REVISI KC]: ';
 
-        const response = await fetch(url, {
-            method: actionType === 'approve' ? 'POST' : 'PATCH',
+        const response = await fetch(`/api/sdm/requests/${requestId}/status`, {
+            method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
+            body: JSON.stringify({ 
+                status: targetStatus, 
+                hrd_notes: notesPrefix + (catatan || "SK Rotasi resmi disahkan oleh Kepala Cabang.")
+            }),
             credentials: 'same-origin'
         });
 
         if (!response.ok) {
-            const err = await response.json();
+            const err = await response.json().catch(() => ({}));
             throw new Error(err.detail || 'Gagal mengeksekusi keputusan.');
         }
 
         if (actionType === 'approve') {
-            alert('PENGESAHAN BERHASIL: Rotasi jabatan sah. SK Transfer Letter untuk seluruh kuota kandidat telah diterbitkan!');
+            alert('🎉 PENGESAHAN BERHASIL: Rotasi jabatan sah. SK Transfer Letter telah diterbitkan!');
+            window.location.href = '/requests?status=approved';
         } else {
-            alert('Usulan dikembalikan ke meja HRD untuk peninjauan ulang.');
+            alert('ℹ️ Usulan dikembalikan ke meja HRD untuk peninjauan ulang.');
+            window.location.href = '/requests?status=under_review';
         }
-
-        window.location.href = '/requests';
     } catch (error) {
-        alert('Terjadi kesalahan sistem: ' + error.message);
+        alert('❌ Terjadi kesalahan sistem: ' + error.message);
+        if (btn) { btn.disabled = false; btn.innerText = originalText; }
     }
 }
-
-// 1. HANDLER TOMBOL: SAHKAN SK (APPROVE)
-async function sahkanSK(reqId) {
-    if (!confirm("Apakah Anda yakin ingin mengesahkan Surat Keputusan (SK) Rotasi ini?\n\nTindakan ini akan memfinalisasi status pengajuan menjadi 'Approved' dan menerbitkan nomor SK resmi.")) {
-        return;
-    }
-
-    const btn = document.getElementById('btnSahkanSK') || document.querySelector('button[onclick*="sahkanSK"]');
-    const originalText = btn ? btn.innerText : '';
-    
-    try {
-        if (btn) {
-            btn.disabled = true;
-            btn.innerText = "⏳ Mengesahkan SK...";
-        }
-
-        // Mengirim status 'approved' sesuai standar tipe data Enum di PostgreSQL kamu
-        const response = await fetch(`/api/sdm/requests/${reqId}/status`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                status: 'approved',
-                hrd_notes: "SK Rotasi telah diverifikasi dan disahkan oleh pimpinan."
-            }),
-            credentials: 'same-origin'
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.detail || "Peladen gagal mengesahkan Surat Keputusan.");
-        }
-
-        if (window.App && window.App.showToast) {
-            App.showToast("SK Rotasi berhasil disahkan!", "success");
-        } else {
-            alert("✅ Sukses: Surat Keputusan (SK) Rotasi resmi disahkan!");
-        }
-
-        // Alihkan kembali ke halaman riwayat agar status terbaru terlihat
-        window.location.href = '/requests?status=approved';
-    } catch (error) {
-        console.error("Kesalahan Sahkan SK:", error);
-        alert("Gagal mengesahkan SK:\n" + error.message);
-        if (btn) {
-            btn.disabled = false;
-            btn.innerText = originalText;
-        }
-    }
-}
-
-// 2. HANDLER TOMBOL: MINTA REVISI
-async function mintaRevisi(reqId) {
-    const catatanRevisi = prompt("Masukkan alasan atau catatan revisi untuk tim HRD:\n(Contoh: Kandidat teratas dibutuhkan di proyek lain, harap evaluasi kandidat peringkat 2)");
-    
-    if (catatanRevisi === null) return; // Batal jika user menekan Cancel
-    if (catatanRevisi.trim().length < 10) {
-        alert("⚠️ Catatan revisi terlalu singkat! Harap jelaskan alasan minimal 10 karakter.");
-        return;
-    }
-
-    const btn = document.getElementById('btnMintaRevisi') || document.querySelector('button[onclick*="mintaRevisi"]');
-    const originalText = btn ? btn.innerText : '';
-
-    try {
-        if (btn) {
-            btn.disabled = true;
-            btn.innerText = "⏳ Mengirim Revisi...";
-        }
-
-        // Mengembalikan status ke 'under_review' agar HRD bisa menjalankan matching ulang
-        const response = await fetch(`/api/sdm/requests/${reqId}/status`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                status: 'under_review',
-                hrd_notes: `[REVISI PIMPINAN]: ${catatanRevisi.trim()}`
-            }),
-            credentials: 'same-origin'
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.detail || "Peladen gagal mengirim permintaan revisi.");
-        }
-
-        if (window.App && window.App.showToast) {
-            App.showToast("Permintaan revisi berhasil dikirim ke HRD!", "info");
-        } else {
-            alert("ℹ️ Permintaan revisi telah dikirimkan kembali kepada tim HRD.");
-        }
-
-        window.location.href = '/requests?status=under_review';
-    } catch (error) {
-        console.error("Kesalahan Minta Revisi:", error);
-        alert("Gagal mengirim permintaan revisi:\n" + error.message);
-        if (btn) {
-            btn.disabled = false;
-            btn.innerText = originalText;
-        }
-    }
-}
-
 </script>
 {% endblock %}

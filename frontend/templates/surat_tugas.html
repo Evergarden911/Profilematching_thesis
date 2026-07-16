@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cetak Surat Tugas - Pramita Lab</title>
+    <style>
+        /* RESET & PENGATURAN KERTAS A4 */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.5; color: #000; background: #525659; }
+        
+        .page-container {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 25mm 25mm 25mm 30mm; /* Margin standar surat resmi */
+            margin: 10mm auto;
+            background: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        /* ATURAN KHUSUS PRINTER */
+        @media print {
+            body { background: transparent; }
+            .page-container { margin: 0; padding: 25mm 25mm 25mm 30mm; box-shadow: none; width: 100%; min-height: auto; }
+            .no-print { display: none !important; }
+            .page-break { page-break-after: always; }
+        }
+
+        /* KOP SURAT */
+        .kop-surat {
+            text-align: center;
+            border-bottom: 3px double #000;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        .kop-surat h1 { font-size: 16pt; font-weight: bold; letter-spacing: 1px; color: #990000; }
+        .kop-surat p { font-size: 10pt; font-family: Arial, sans-serif; }
+
+        /* JUDUL SURAT */
+        .judul-surat { text-align: center; margin-bottom: 25px; }
+        .judul-surat h2 { font-size: 14pt; font-weight: bold; text-decoration: underline; letter-spacing: 4px; }
+        .judul-surat p { font-size: 11pt; margin-top: 5px; }
+
+        /* ISI SURAT */
+        .isi-surat { text-align: justify; margin-bottom: 20px; }
+        
+        .tabel-identitas {
+            width: 100%;
+            margin: 15px 0 20px 20px;
+            border-collapse: collapse;
+        }
+        .tabel-identitas td { padding: 4px 0; vertical-align: top; }
+        .tabel-identitas td.label { width: 150px; }
+        .tabel-identitas td.sep { width: 20px; text-align: center; }
+
+        /* TANDA TANGAN & TEMBUSAN */
+        .ttd-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 40px;
+            margin-bottom: 40px;
+        }
+        .ttd-box { text-align: left; width: 250px; }
+        .ttd-space { height: 70px; }
+        .ttd-nama { font-weight: bold; text-decoration: underline; }
+
+        .tembusan { font-size: 10pt; margin-top: 30px; }
+        .tembusan ul { list-style-type: none; padding-left: 15px; margin-top: 5px; }
+        
+        /* TOMBOL MELAYANG DI LAYAR */
+        .floating-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        .floating-btn:hover { background: #1d4ed8; }
+    </style>
+</head>
+<body>
+
+    <button onclick="window.print()" class="floating-btn no-print">🖨️ Cetak Surat Tugas Sekarang</button>
+
+    {% for surat in surat_list %}
+    <div class="page-container {% if not loop.last %}page-break{% endif %}">
+        
+        <!-- KOP SURAT PRAMITA -->
+        <div class="kop-surat">
+            <h1>LABORATORIUM KLINIK PRAMITA</h1>
+            <p>Cabang Kebon Jeruk · Layanan Diagnostik Medis & Klinik Terpadu</p>
+        </div>
+
+        <!-- JUDUL & NOMOR SURAT[cite: 12] -->
+        <div class="judul-surat">
+            <h2>S U R A T&nbsp;&nbsp;&nbsp;&nbsp;T U G A S</h2>
+            <p>No. {{ surat.nomor_surat }}</p>
+        </div>
+
+        <!-- PEMBUKA[cite: 12] -->
+        <div class="isi-surat">
+            <p>Kepala Cabang Laboratorium Klinik Pramita Cabang Kebon Jeruk, memberikan tugas kepada :</p>
+
+            <table class="tabel-identitas">
+                <tr>
+                    <td class="label">Nama</td>
+                    <td class="sep">:</td>
+                    <td><strong>Sdr. {{ surat.nama }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label">NIP / ID Karyawan</td>
+                    <td class="sep">:</td>
+                    <td>{{ surat.nip }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Bagian / Divisi Asal</td>
+                    <td class="sep">:</td>
+                    <td>{{ surat.bagian_asal }} ({{ surat.jabatan_asal }})</td>
+                </tr>
+                <tr>
+                    <td class="label">Status</td>
+                    <td class="sep">:</td>
+                    <td>{{ surat.status_pegawai }}</td>
+                </tr>
+            </table>
+
+            <!-- PERINTAH PENUGASAN[cite: 12] -->
+            <p>
+                Untuk bertugas di <strong>Laboratorium Klinik Pramita Cabang Kebon Jeruk</strong> sebagai <strong>{{ surat.divisi_tujuan | upper }}</strong>, mulai hari tanggal <strong>{{ surat.tanggal_mulai }}</strong> sampai dengan <strong>{{ surat.tanggal_selesai }}</strong>.
+            </p>
+            <br>
+            <p>
+                Demikian Surat Tugas ini kami buat, atas perhatian dan kerjasamanya kami ucapkan terimakasih.
+            </p>
+        </div>
+
+        <!-- TANDA TANGAN PIMPINAN[cite: 12] -->
+        <div class="ttd-container">
+            <div class="ttd-box">
+                <p>Kebon Jeruk, {{ tanggal_cetak }}</p>
+                <p>Hormat kami,</p>
+                <p>Laboratorium Klinik Pramita Cabang Kebon Jeruk</p>
+                <div class="ttd-space"></div>
+                <p class="ttd-nama">{{ pimpinan }}</p>
+                <p>{{ jabatan_pimpinan }}</p>
+            </div>
+        </div>
+
+        <!-- TEMBUSAN[cite: 12] -->
+        <div class="tembusan">
+            <p><strong>Tembusan Yth;</strong></p>
+            <ul>
+                <li>1. Spv SDM dan Umum Laboratorium Klinik Pramita</li>
+                <li>2. Arsip</li>
+            </ul>
+        </div>
+
+    </div>
+    {% endfor %}
+
+    <!-- PEMICU CETAK OTOMATIS SAAT TAB DIBUKA -->
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            // Memberikan waktu 500ms agar font & layout selesai di-render browser sebelum dialog print muncul
+            setTimeout(() => {
+                window.print();
+            }, 500);
+        });
+    </script>
+</body>
+</html>
