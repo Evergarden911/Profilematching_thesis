@@ -79,7 +79,6 @@ class DivisionConstraintRead(DivisionConstraintCreate):
 class DivisionCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     code: str = Field(..., min_length=1, max_length=20)
-    description: Optional[str] = None
     group_id: Optional[int] = None
     monthly_budget: float = Field(0.0, ge=0.0)
 

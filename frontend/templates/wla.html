@@ -1,13 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}Analisis Beban Kerja (WLA) | Pramita Lab{% endblock %}
-{% block page_title %}Analisis Beban Kerja Divisi (WLA){% endblock %}
+{% block title %}Analisis Beban Kerja WLA | Pramita Lab{% endblock %}
+{% block page_title %}Analisis Beban Kerja Divisi WLA{% endblock %}
 {% block page_subtitle %}Kalkulasi rasio beban kerja riil, optimasi kapasitas staf, dan integrasi pengajuan personel{% endblock %}
 
 {% block content %}
+{% set can_edit = can_edit_wla | default(false) %}
+
 <!-- =========================================================================
-     BAGIAN 1: GRID 2 KOLOM (FORM INPUT Ala FIGMA & LIVE REACTIVE PREVIEW)
+     BAGIAN 1: KONDISIONAL HAK AKSES OPERASIONAL (GRID INPUT VS PANEL MONITORING)
      ========================================================================= -->
+{% if can_edit %}
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
   
   <!-- KOLOM KIRI: FORM INPUT BEBAN KERJA -->
@@ -33,27 +36,27 @@
         <div class="form-group">
           <label style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 6px;">Volume Tindakan Harian <span style="color: #DC2626;">*</span></label>
           <input type="number" id="wla_volume" required min="0" step="1" placeholder="Contoh: 25" oninput="liveCalculate()" class="form-control" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13.5px;">
-          <span style="font-size: 11px; color: var(--ink-60);">Rata-rata sampel/pasien</span>
+          <span style="font-size: 11px; color: var(--ink-60);">Rata-rata sampel atau pasien</span>
         </div>
       </div>
 
       <div class="form-group" style="margin-bottom: 24px;">
         <label style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 6px;">Jumlah Personel Aktif (Riil DB) <span style="color: #DC2626;">*</span></label>
         <input type="number" id="wla_staff_count" required min="1" step="1" readonly class="form-control" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13.5px; background: #f8fafc; color: #475569; font-weight: bold;">
-        <span style="font-size: 11px; color: #0369a1;">⚡ Diambil otomatis dari Data Karyawan Aktif agar sinkron pasca-rotasi.</span>
+        <span style="font-size: 11px; color: #0369a1;">Diambil otomatis dari Data Karyawan Aktif agar sinkron pasca-rotasi.</span>
       </div>
 
       <button type="submit" id="btnSaveWLA" class="btn btn-primary" style="width: 100%; padding: 12px; background: var(--red, #CC2229); color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s;">
-        💾 Simpan & Catat Analisis WLA
+        Simpan & Catat Analisis WLA
       </button>
     </form>
   </div>
 
-  <!-- KOLOM KANAN: HASIL KALKULASI (LIVE REACTIVE PREVIEW Ala FIGMA) -->
+  <!-- KOLOM KANAN: HASIL KALKULASI (LIVE REACTIVE PREVIEW) -->
   <div class="card" style="padding: 24px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: var(--radius-lg); display: flex; flex-direction: column; justify-content: space-between;">
     <div>
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 20px;">
-        <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #0f172a;">⚡ Hasil Kalkulasi Sistem (Live)</h3>
+        <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #0f172a;">Hasil Kalkulasi Sistem Live</h3>
         <span id="preview_status_badge" style="background: #e2e8f0; color: #64748b; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px;">BELUM DIHITUNG</span>
       </div>
 
@@ -70,7 +73,7 @@
 
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: white; border-radius: 8px; border: 2px solid #cbd5e1;" id="preview_ratio_box">
           <div>
-            <span style="font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase;">Rasio Beban Kerja (Indeks WLA)</span>
+            <span style="font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase;">Rasio Beban Kerja Indeks WLA</span>
             <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8;" id="preview_desc">Silakan pilih divisi dan masukkan parameter</p>
           </div>
           <span id="preview_ratio" style="font-size: 28px; font-weight: 800; color: #0f172a;">-%</span>
@@ -78,24 +81,40 @@
       </div>
     </div>
 
-    <!-- Kotak Saran / Rekomendasi Alur -->
     <div id="preview_action_hint" style="margin-top: 20px; padding: 12px 16px; background: #e0f2fe; border-left: 4px solid #0284c7; border-radius: 4px; display: none;">
       <p style="margin: 0; font-size: 12.5px; color: #0369a1; font-weight: 500; line-height: 1.4;" id="preview_action_text"></p>
     </div>
   </div>
 
 </div>
+{% else %}
+<!-- TAMPILAN ELEGAN MONITORING KHUSUS KEPALA CABANG (READ-ONLY) -->
+<div style="background: #eff6ff; border: 1px solid #bfdbfe; border-left: 5px solid #3b82f6; padding: 20px 24px; border-radius: var(--radius-lg); margin-bottom: 32px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+  <div style="display: flex; align-items: center; gap: 16px;">
+    <div style="font-size: 24px; background: #dbeafe; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: #1e40af;">👁️</div>
+    <div>
+      <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: #1e40af;">Mode Pemantauan Eksklusif Kepala Cabang</h3>
+      <p style="margin: 4px 0 0 0; font-size: 13px; color: #1d4ed8; line-height: 1.4;">
+        Anda memiliki hak akses pemantauan penuh terhadap indeks beban kerja riil dan produktivitas kapasitas staf laboratorium. Hak akses penulisan data dibatasi hanya untuk Kepala Bagian dan unit HRD.
+      </p>
+    </div>
+  </div>
+  <span style="background: #2563eb; color: white; font-size: 11px; font-weight: 700; padding: 6px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;">
+    Read-Only Monitoring
+  </span>
+</div>
+{% endif %}
 
 <!-- =========================================================================
-     BAGIAN 2: TABEL RIWAYAT & INTEGRASI DIRECT REQUEST
+     BAGIAN 2: TABEL RIWAYAT DENGAN KOLOM AKSI DINAMIS
      ========================================================================= -->
 <div class="card" style="padding: 24px; background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
     <div>
-      <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--ink);">📋 Riwayat & Pemantauan Beban Kerja Divisi</h3>
+      <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--ink);">Riwayat & Pemantauan Beban Kerja Divisi</h3>
       <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--ink-60);">Data di bawah ini menjadi referensi langsung untuk pengajuan rotasi atau penambahan SDM.</p>
     </div>
-    <button type="button" onclick="loadWLAData()" class="btn btn-outline btn-sm" style="padding: 6px 12px; font-size: 12px; cursor: pointer;">🔄 Segarkan Data</button>
+    <button type="button" onclick="loadWLAData()" class="btn btn-outline btn-sm" style="padding: 6px 12px; font-size: 12px; cursor: pointer;">Segarkan Data</button>
   </div>
 
   <div class="table-responsive">
@@ -108,12 +127,14 @@
           <th style="padding: 12px; text-align: center;">PERSONEL RIIL</th>
           <th style="padding: 12px; text-align: center;">RASIO WLA</th>
           <th style="padding: 12px; text-align: center;">STATUS</th>
-          <th style="padding: 12px; text-align: right;">CLOSED-LOOP ACTION</th>
+          {% if can_edit %}
+            <th style="padding: 12px; text-align: right;">CLOSED-LOOP ACTION</th>
+          {% endif %}
         </tr>
       </thead>
       <tbody id="wlaTableBody">
         <tr>
-          <td colspan="7" style="text-align: center; padding: 32px; color: #64748b;">Memuat data analisis beban kerja dari peladen...</td>
+          <td colspan="{{ 7 if can_edit else 6 }}" style="text-align: center; padding: 32px; color: #64748b;">Memuat data analisis beban kerja dari peladen...</td>
         </tr>
       </tbody>
     </table>
@@ -123,16 +144,32 @@
 
 {% block extra_js %}
 <script>
-    // 1. CACHE MAP: Untuk menerjemahkan angka ID Divisi menjadi Nama & Kode Divisi
+    // Injeksi Flag Otorisasi Berbasis Peran dari Server ke Sisi Klien JavaScript
+    const canEditWLA = {{ 'true' if can_edit else 'false' }};
+    
     let divisionsMap = {};
 
-    // 2. JALANKAN SAAT HALAMAN DIMUAT
     document.addEventListener("DOMContentLoaded", async () => {
-        await loadDivisionsDropdown(); // Wajib dijalankan duluan agar divisionsMap terisi
+        // Form dropdown hanya dievaluasi jika elemennya dirender di DOM (HRD & Kabag)
+        if (canEditWLA) {
+            await loadDivisionsDropdown();
+        } else {
+            // Pre-fetch peta informasi divisi agar nama divisi pada tabel pemantauan KC tetap ter-resolusi sempurna
+            await fetchDivisionsMapOnly();
+        }
         await loadWLAData();
     });
 
-    // 3. AUTO-LOAD DIVISI VIA API & ISI CACHE MAP
+    async function fetchDivisionsMapOnly() {
+        try {
+            const res = await fetch('/api/divisions/', { credentials: 'same-origin' });
+            if (res.ok) {
+                const divs = await res.json();
+                divs.forEach(d => { divisionsMap[d.id] = { name: d.name, code: d.code }; });
+            }
+        } catch (e) { console.error("Gagal inisialisasi metadata kamus divisi:", e); }
+    }
+
     async function loadDivisionsDropdown() {
         try {
             const res = await fetch('/api/divisions/', { credentials: 'same-origin' });
@@ -143,22 +180,20 @@
             select.innerHTML = '<option value="">-- Pilih Divisi Operasional --</option>';
             
             divs.forEach(d => {
-                // Simpan nama dan kode divisi ke dalam kamus (map) berdasarkan ID-nya
                 divisionsMap[d.id] = { name: d.name, code: d.code };
-
                 const staffCount = (d.employees && d.employees.length > 0) ? d.employees.length : (d.employee_count || 1);
                 select.innerHTML += `<option value="${d.id}" data-staff="${staffCount}">${d.name} (${d.code})</option>`;
             });
         } catch (e) {
             console.error("Gagal memuat daftar divisi:", e);
             const select = document.getElementById('wla_division_id');
-            select.innerHTML = '<option value="">-- Gagal memuat divisi dari peladen --</option>';
+            if (select) select.innerHTML = '<option value="">-- Gagal memuat divisi dari peladen --</option>';
         }
     }
 
-    // 4. TARIK PERSONEL AKTIF SECARA DINAMIS
     function tarikPersonelAktif() {
         const select = document.getElementById('wla_division_id');
+        if (!select) return;
         const selectedOpt = select.options[select.selectedIndex];
         const staffCount = selectedOpt ? selectedOpt.getAttribute('data-staff') : 1;
         
@@ -166,8 +201,9 @@
         liveCalculate();
     }
 
-    // 5. LIVE REACTIVE CALCULATOR
     function liveCalculate() {
+        if (!canEditWLA) return;
+        
         const totalHours = parseFloat(document.getElementById('wla_total_hours').value) || 0;
         const volume = parseFloat(document.getElementById('wla_volume').value) || 0;
         const staffCount = parseInt(document.getElementById('wla_staff_count').value) || 1;
@@ -198,7 +234,7 @@
             hintBox.style.display = "block";
             hintBox.style.background = "#fee2e2"; hintBox.style.borderLeftColor = "#dc2626";
             hintText.style.color = "#991b1b";
-            hintText.innerHTML = `⚠️ <strong>Rekomendasi Sistem:</strong> Divisi ini kekurangan staf. Klik tombol <strong>Simpan</strong>, lalu gunakan tombol <strong>Direct Request</strong> di tabel bawah untuk mengajukan rotasi personel baru.`;
+            hintText.innerHTML = `<strong>Rekomendasi Sistem:</strong> Divisi ini kekurangan staf. Simpan data ini, lalu eksekusi tombol <strong>Ajukan Rotasi</strong> pada tabel di bawah untuk meminta distribusi staf.`;
         } else if (wlaIndex < 0.80) {
             badge.innerText = "OVERSTAFFED (SURPLUS)";
             badge.style.background = "#fef3c7"; badge.style.color = "#d97706";
@@ -208,7 +244,7 @@
             hintBox.style.display = "block";
             hintBox.style.background = "#fef3c7"; hintBox.style.borderLeftColor = "#d97706";
             hintText.style.color = "#92400e";
-            hintText.innerHTML = `💡 <strong>Rekomendasi Sistem:</strong> Divisi ini memiliki surplus staf. Karyawan dari divisi ini dapat menjadi kandidat yang ditarik untuk membantu divisi yang Overload.`;
+            hintText.innerHTML = `<strong>Rekomendasi Sistem:</strong> Divisi ini memiliki surplus tenaga kerja. Anggota pada divisi ini direkomendasikan untuk menjadi donor mutasi ke unit kerja yang overload.`;
         } else {
             badge.innerText = "NORMAL / OPTIMAL";
             badge.style.background = "#dcfce7"; badge.style.color = "#16a34a";
@@ -218,10 +254,10 @@
         }
     }
 
-    // 6. LOAD DATA & RENDER TABEL (TERJEMAHAN ID KE NAMA DIVISI)
     async function loadWLAData() {
         const tbody = document.getElementById('wlaTableBody');
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 32px; color: #64748b;">Memuat data...</td></tr>';
+        const targetColspan = canEditWLA ? 7 : 6;
+        tbody.innerHTML = `<tr><td colspan="${targetColspan}" style="text-align: center; padding: 32px; color: #64748b;">Memuat data...</td></tr>`;
 
         try {
             const res = await fetch('/api/wla/');
@@ -230,7 +266,7 @@
 
             tbody.innerHTML = '';
             if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 32px; color: #64748b;">Belum ada analisis beban kerja yang dicatat. Silakan input di form atas.</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="${targetColspan}" style="text-align: center; padding: 32px; color: #64748b;">Belum ada analisis beban kerja yang dicatat.</td></tr>`;
                 return;
             }
 
@@ -239,7 +275,6 @@
                 const staffCount = row.headcount !== undefined ? row.headcount : (row.staff_count || 1);
                 const totalHours = row.total_workload_hours !== undefined ? row.total_workload_hours : (row.total_hours || 0);
                 
-                // KUNCI PERBAIKAN: Ambil dari divisionsMap jika row.division tidak dikirim oleh backend
                 const divObj = divisionsMap[row.division_id] || {};
                 const divName = row.division?.name || row.division_name || divObj.name || `Divisi ID: ${row.division_id}`;
                 const divCode = row.division?.code || row.division_code || divObj.code || '';
@@ -250,54 +285,68 @@
                 let actionHtml = '';
 
                 if (wlaVal > 1.30) {
-                    const deficit = Math.max(1, Math.ceil(totalHours / 160.0) - staffCount);
                     badgeHtml = `<span style="background: #fee2e2; color: #dc2626; font-weight: 700; font-size: 11px; padding: 4px 10px; border-radius: 12px;">OVERLOAD (${ratioPercent}%)</span>`;
-                    
-                    actionHtml = `
-                      <button type="button" onclick="directRequestRotasi(${row.division_id}, '${divName.replace(/'/g, "\\'")}', ${deficit})" class="btn btn-sm" style="background: #dc2626; color: white; font-size: 11.5px; font-weight: 600; padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer; box-shadow: 0 1px 2px rgba(220,38,38,0.3);">
-                        🚨 Ajukan Rotasi (+${deficit} Staf)
-                      </button>
-                    `;
+                    if (canEditWLA) {
+                        const deficit = Math.max(1, Math.ceil(totalHours / 160.0) - staffCount);
+                        actionHtml = `
+                          <button type="button" onclick="directRequestRotasi(${row.division_id}, '${divName.replace(/'/g, "\\'")}', ${deficit})" class="btn btn-sm" style="background: #dc2626; color: white; font-size: 11.5px; font-weight: 600; padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer;">
+                            Ajukan Rotasi (+${deficit} Staf)
+                          </button>
+                        `;
+                    }
                 } else if (wlaVal < 0.80) {
                     badgeHtml = `<span style="background: #fef3c7; color: #d97706; font-weight: 700; font-size: 11px; padding: 4px 10px; border-radius: 12px;">SURPLUS (${ratioPercent}%)</span>`;
-                    actionHtml = `<span style="color: #64748b; font-size: 12px; font-style: italic;">Siap menjadi donor staf</span>`;
+                    if (canEditWLA) {
+                        actionHtml = `<span style="color: #64748b; font-size: 12px; font-style: italic;">Siap menjadi donor staf</span>`;
+                    }
                 } else {
                     badgeHtml = `<span style="background: #dcfce7; color: #16a34a; font-weight: 700; font-size: 11px; padding: 4px 10px; border-radius: 12px;">OPTIMAL (${ratioPercent}%)</span>`;
-                    actionHtml = `<span style="color: #94a3b8; font-size: 12px;">-</span>`;
+                    if (canEditWLA) {
+                        actionHtml = `<span style="color: #94a3b8; font-size: 12px;">-</span>`;
+                    }
                 }
 
                 const tr = document.createElement('tr');
                 tr.style.borderBottom = "1px solid #f1f5f9";
-                tr.innerHTML = `
+                
+                let innerHTMLContent = `
                   <td style="padding: 12px; font-weight: 600; color: #0f172a;">${divName} <br><span style="font-size: 11px; color: #64748b; font-weight: normal;">${divCode}</span></td>
                   <td style="padding: 12px; color: #334155;">${totalHours} Jam</td>
                   <td style="padding: 12px; color: #334155;">${notesText}</td>
                   <td style="padding: 12px; text-align: center; font-weight: bold; color: #0f172a;">${staffCount}</td>
                   <td style="padding: 12px; text-align: center; font-weight: 700; color: #334155;">${ratioPercent}%</td>
                   <td style="padding: 12px; text-align: center;">${badgeHtml}</td>
-                  <td style="padding: 12px; text-align: right;">
-                    <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
-                      ${actionHtml}
-                      <button type="button" onclick="hapusWLA(${row.id})" title="Hapus Data" style="background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 14px;">🗑️</button>
-                    </div>
-                  </td>
                 `;
+
+                // Suntik kolom tindakan secara kondisional hanya jika diizinkan melakukan edit (HRD & Kabag)
+                if (canEditWLA) {
+                    innerHTMLContent += `
+                      <td style="padding: 12px; text-align: right;">
+                        <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+                          ${actionHtml}
+                          <button type="button" onclick="hapusWLA(${row.id})" title="Hapus Data" style="background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 14px;">Hapus</button>
+                        </div>
+                      </td>
+                    `;
+                }
+
+                tr.innerHTML = innerHTMLContent;
                 tbody.appendChild(tr);
             });
         } catch (e) {
             console.error("Error loading WLA:", e);
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 32px; color: #dc2626;">Gagal memuat data dari peladen. Pastikan endpoint /api/wla/ sudah benar.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="${targetColspan}" style="text-align: center; padding: 32px; color: #dc2626;">Gagal memuat data analisis beban kerja dari peladen.</td></tr>`;
         }
     }
 
-    // 7. SIMPAN DATA WLA
     async function simpanDataWLA(e) {
         e.preventDefault();
+        if (!canEditWLA) return;
+
         const divId = parseInt(document.getElementById('wla_division_id').value);
         const totalHours = parseFloat(document.getElementById('wla_total_hours').value);
         const volume = parseFloat(document.getElementById('wla_volume').value);
         const staffCount = parseInt(document.getElementById('wla_staff_count').value);
-
         const currentPeriod = new Date().toISOString().slice(0, 7);
 
         const btn = document.getElementById('btnSaveWLA');
@@ -326,7 +375,7 @@
             if(window.App && window.App.showToast) {
                 App.showToast("Data WLA berhasil diperbarui!", "success");
             } else {
-                alert("Sukses: Data analisis beban kerja (WLA) berhasil diperbarui!");
+                alert("Sukses: Data analisis beban kerja WLA berhasil diperbarui!");
             }
             
             await loadWLAData();
@@ -337,13 +386,12 @@
                 alert("Error: " + error.message);
             }
         } finally {
-            btn.disabled = false; btn.innerText = "💾 Simpan & Catat Analisis WLA";
+            if (btn) { btn.disabled = false; btn.innerText = "Simpan & Catat Analisis WLA"; }
         }
     }
 
-    // 8. HAPUS DATA WLA
     async function hapusWLA(id) {
-        if (!confirm("Apakah Anda yakin ingin menghapus rekam data beban kerja ini?")) return;
+        if (!canEditWLA || !confirm("Apakah Anda yakin ingin menghapus rekam data beban kerja ini?")) return;
         try {
             const res = await fetch(`/api/wla/${id}`, { method: 'DELETE' });
             if (!res.ok) {
@@ -359,13 +407,12 @@
         }
     }
 
-    // 9. DIRECT REQUEST KE MENU ROTASI
     function directRequestRotasi(divId, divName, deficitQty) {
-        if (!confirm(`Divisi ${divName} mengalami OVERLOAD.\n\nApakah Anda ingin langsung membuka formulir Pengajuan Rotasi SDM untuk meminta tambahan ${deficitQty} personel baru?`)) return;
+        if (!canEditWLA || !confirm(`Divisi ${divName} mengalami OVERLOAD.\n\nApakah Anda ingin langsung membuka formulir Pengajuan Rotasi SDM untuk meminta tambahan ${deficitQty} personel baru?`)) return;
         
         sessionStorage.setItem('direct_req_div_id', divId);
         sessionStorage.setItem('direct_req_qty', deficitQty);
-        sessionStorage.setItem('direct_req_reason', `[AUTO-DIRECT REQUEST dari WLA] Divisi ${divName} terdeteksi kritis/overload dengan defisit kapasitas kerja. Diperlukan penambahan minimal ${deficitQty} personel untuk menjaga standar pelayanan lab.`);
+        sessionStorage.setItem('direct_req_reason', `[AUTO-DIRECT REQUEST dari WLA] Divisi ${divName} terdeteksi kritis atau overload dengan defisit kapasitas kerja. Diperlukan penambahan minimal ${deficitQty} personel untuk menjaga standar pelayanan lab.`);
         
         window.location.href = '/requests?auto_open=true';
     }

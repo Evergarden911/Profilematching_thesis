@@ -354,6 +354,11 @@
     }
 
     // --- MANAJEMEN BOBOT KRITERIA (Sama seperti sebelumnya) ---
+
+    async function closeWeightsModal() {
+            document.getElementById('weightsModal').classList.remove('open');
+        }
+
     async function configureWeights(divisionId, groupId) {
         document.getElementById('weight_div_id').value = divisionId;
         const coreCont = document.getElementById('coreFactorsContainer');

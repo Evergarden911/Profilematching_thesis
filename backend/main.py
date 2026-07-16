@@ -380,11 +380,27 @@ async def view_divisions(request: Request, db: Session = Depends(get_db)):
 @app.get("/wla", response_class=HTMLResponse)
 async def view_wla(request: Request, db: Session = Depends(get_db)):
     user = get_current_user_from_cookie(request, db)
-    if not user: return RedirectResponse(url="/", status_code=302)
+    if not user: 
+        return RedirectResponse(url="/login", status_code=302)
+
+    user_role_str = str(user.role.value if hasattr(user.role, 'value') else user.role).lower()
+    
+    # Daftar izin
+    read_roles = ["kepala_hrd", "manajer_hrd", "admin_hrd", "hrd", "kepala_cabang", "eksekutif", "kacab", "kepala_divisi", "kepala_bagian", "bagian"]
+    write_roles = ["kepala_hrd", "manajer_hrd", "admin_hrd", "hrd", "kepala_divisi", "kepala_bagian", "bagian"]
+
+    # Gatekeeper halaman: Jika bukan termasuk ketiga rumpun tersebut, tendang ke dashboard
+    if user_role_str not in read_roles:
+        return RedirectResponse(url="/dashboard", status_code=303)
+
+    # Tentukan apakah user aktif boleh melakukan input/edit
+    can_edit = user_role_str in write_roles
+
     return templates.TemplateResponse("wla.html", {
         "request": request, 
         "current_user": user, 
-        "active_page": "wla"
+        "active_page": "wla",
+        "can_edit_wla": can_edit  # <-- INJEKSI FLAG KE UI
     })
 
 @app.get("/results", response_class=HTMLResponse)

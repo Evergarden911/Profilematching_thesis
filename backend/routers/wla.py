@@ -15,7 +15,7 @@ def list_wla(
     division_id: int | None = None,
     db: Session = Depends(get_db),
     # PERLUASAN RBAC: Menambahkan manajer_hrd, eksekutif, & super_admin agar tidak 403 Forbidden
-    _=Depends(require_role("kepala_hrd", "kepala_cabang", "manajer_hrd", "eksekutif", "super_admin")),
+    _=Depends(require_role("kepala_hrd", "kepala_cabang", "manajer_hrd", "kepala_divisi", "super_admin")),
 ):
     """
     Mengambil daftar riwayat Analisis Beban Kerja (WLA).
@@ -66,7 +66,7 @@ def simulate_rotation(
     target_division_id: int,
     period: str,
     db: Session = Depends(get_db),
-    _=Depends(require_role("kepala_hrd", "kepala_cabang", "manajer_hrd", "eksekutif", "super_admin")),
+    _=Depends(require_role("kepala_hrd", "kepala_cabang", "manajer_hrd", "kepala_divisi", "super_admin")),
 ):
     """
     Mensimulasikan dampak perpindahan staf terhadap rasio WLA divisi asal dan divisi tujuan sebelum SK diterbitkan.
@@ -80,7 +80,7 @@ def simulate_rotation(
 def delete_wla(
     wla_id: int,
     db: Session = Depends(get_db),
-    _=Depends(require_role("kepala_hrd", "manajer_hrd", "super_admin")),
+    _=Depends(require_role("kepala_hrd", "kepala_divisi", "super_admin")),
 ):
     """
     Menghapus rekam historis WLA berdasarkan ID.

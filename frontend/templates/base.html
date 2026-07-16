@@ -72,7 +72,7 @@
         </a>
         {% endif %}
 
-        {% if u_role in ['kepala_hrd', 'manajer_hrd', 'super_admin', 'HRD'] %}
+        {% if u_role in ['kepala_hrd', 'kepala_cabang', 'super_admin', 'HRD'] %}
         <div class="nav-section-title">Data Induk Sistem</div>
         <a href="/divisions" class="nav-item {% if active_page == 'divisions' %}active{% endif %}">
           Manajemen Divisi
@@ -84,6 +84,9 @@
           Kriteria Evaluasi
         </a>
 
+        {% endif %}
+
+        {% if u_role in ['kepala_hrd', 'kepala_cabang', 'kepala_divisi']%}
         <div class="nav-section-title">Kapasitas Kerja</div>
         <a href="/wla" class="nav-item {% if active_page == 'wla' %}active{% endif %}">
           Analisis Beban Kerja WLA
