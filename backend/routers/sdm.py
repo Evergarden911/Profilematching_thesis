@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from backend.core.database import get_db
 from backend.core.security import get_current_user, require_role
-from backend.models import User, SDMRequest, RequestStatus, MatchingResult, TransferLetter
+from backend.models import User, SDMRequest, RequestStatus, MatchingResult, TransferLetter, SDMEvaluationHistory
 from backend.schemas.sdm import (
     MatchingResultRead,
     SDMRequestCreate,
@@ -24,6 +24,9 @@ router = APIRouter(prefix="/api/sdm", tags=["sdm"])
 class SDMRequestStatusPatch(BaseModel):
     status: RequestStatus
 
+class RequestStatusUpdate(BaseModel):
+    status: RequestStatus
+    hrd_notes: Optional[str] = None
 
 # ---------------------------------------------------------------------------
 # STATISTIK DASHBOARD
@@ -257,6 +260,60 @@ def get_canonical_request_detail(
         "created_at": request_data.created_at
     }
 
+@router.patch("/requests/{request_id}/status", status_code=status.HTTP_200_OK)
+def update_request_status(
+    request_id: int,
+    payload: RequestStatusUpdate,
+    db: Session = Depends(get_db),
+    # PENTING: Izinkan Kepala Cabang, Eksekutif, dan HRD untuk mengubah status
+    current_user = Depends(require_role("kepala_hrd", "manajer_hrd", "kepala_cabang", "eksekutif", "super_admin"))
+):
+    """
+    Memperbarui status pengajuan SDM (Digunakan untuk Sahkan SK dan Minta Revisi).
+    """
+    sdm_req = db.query(SDMRequest).filter(SDMRequest.id == request_id).first()
+    if not sdm_req:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail=f"Pengajuan dengan ID {request_id} tidak ditemukan."
+        )
+
+    old_status = sdm_req.status.value
+    new_status_val = payload.status.value
+
+    # Update atribut pengajuan
+    sdm_req.status = payload.status
+    if payload.hrd_notes:
+        sdm_req.hrd_notes = payload.hrd_notes
+
+    # Catat ke Audit Trail (SDMEvaluationHistory) agar terekam di riwayat
+    history_entry = SDMEvaluationHistory(
+        gate_id=request_id, # Atau hubungkan ke ID gate jika skemamu mensyaratkan
+        from_status=old_status,
+        to_status=new_status_val,
+        actor_id=current_user.id,
+        reason=payload.hrd_notes or f"Status diubah menjadi {new_status_val}",
+        is_manual=True
+    )
+    db.add(history_entry)
+
+    try:
+        db.commit()
+        db.refresh(sdm_req)
+        return {
+            "status": "success",
+            "message": f"Status pengajuan berhasil diperbarui dari '{old_status}' menjadi '{new_status_val}'.",
+            "data": {
+                "id": sdm_req.id,
+                "current_status": sdm_req.status.value
+            }
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Gagal memperbarui status ke database: {str(e)}"
+        )
 
 # ---------------------------------------------------------------------------
 # Eksekusi Surat Tugas

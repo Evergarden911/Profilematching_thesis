@@ -18,30 +18,27 @@
     <form id="wlaForm" onsubmit="simpanDataWLA(event)">
       <div class="form-group" style="margin-bottom: 16px;">
         <label style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 6px;">Pilih Divisi Operasional <span style="color: #DC2626;">*</span></label>
-        <select id="wla_division_id" class="form-control" required onchange="tarikPersonelAktif()" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13.5px;">
+        <select id="wla_division_id" class="form-control" required onchange="tarikPersonelAktif()" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13.5px; background-color: white;">
           <option value="">-- Memuat Daftar Divisi... --</option>
-          {% for div in divisions %}
-          <option value="{{ div.id }}" data-staff="{{ div.employees|length if div.employees else 0 }}">{{ div.name }} ({{ div.code }})</option>
-          {% endfor %}
         </select>
       </div>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
         <div class="form-group">
-          <label style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 6px;">Total Jam Kerja Efektif / Bln</label>
-          <input type="number" id="wla_total_hours" required min="1" step="1" value="480" oninput="liveCalculate()" class="form-control" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13.5px;">
+          <label style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 6px;">Total Jam Kerja Efektif / Bln <span style="color: #DC2626;">*</span></label>
+          <input type="number" id="wla_total_hours" required min="1" step="0.5" value="480" oninput="liveCalculate()" class="form-control" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13.5px;">
           <span style="font-size: 11px; color: var(--ink-60);">Standar lab: 160 jam/org</span>
         </div>
 
         <div class="form-group">
-          <label style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 6px;">Volume Tindakan Harian</label>
+          <label style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 6px;">Volume Tindakan Harian <span style="color: #DC2626;">*</span></label>
           <input type="number" id="wla_volume" required min="0" step="1" placeholder="Contoh: 25" oninput="liveCalculate()" class="form-control" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13.5px;">
           <span style="font-size: 11px; color: var(--ink-60);">Rata-rata sampel/pasien</span>
         </div>
       </div>
 
       <div class="form-group" style="margin-bottom: 24px;">
-        <label style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 6px;">Jumlah Personel Aktif (Riil DB)</label>
+        <label style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 6px;">Jumlah Personel Aktif (Riil DB) <span style="color: #DC2626;">*</span></label>
         <input type="number" id="wla_staff_count" required min="1" step="1" readonly class="form-control" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13.5px; background: #f8fafc; color: #475569; font-weight: bold;">
         <span style="font-size: 11px; color: #0369a1;">⚡ Diambil otomatis dari Data Karyawan Aktif agar sinkron pasca-rotasi.</span>
       </div>
@@ -83,7 +80,7 @@
 
     <!-- Kotak Saran / Rekomendasi Alur -->
     <div id="preview_action_hint" style="margin-top: 20px; padding: 12px 16px; background: #e0f2fe; border-left: 4px solid #0284c7; border-radius: 4px; display: none;">
-      <p style="margin: 0; font-size: 12.5px; color: #0369a1; font-weight: 500;" id="preview_action_text"></p>
+      <p style="margin: 0; font-size: 12.5px; color: #0369a1; font-weight: 500; line-height: 1.4;" id="preview_action_text"></p>
     </div>
   </div>
 
@@ -98,7 +95,7 @@
       <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--ink);">📋 Riwayat & Pemantauan Beban Kerja Divisi</h3>
       <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--ink-60);">Data di bawah ini menjadi referensi langsung untuk pengajuan rotasi atau penambahan SDM.</p>
     </div>
-    <button onclick="loadWLAData()" class="btn btn-outline btn-sm" style="padding: 6px 12px; font-size: 12px; cursor: pointer;">🔄 Segarkan Data</button>
+    <button type="button" onclick="loadWLAData()" class="btn btn-outline btn-sm" style="padding: 6px 12px; font-size: 12px; cursor: pointer;">🔄 Segarkan Data</button>
   </div>
 
   <div class="table-responsive">
@@ -107,7 +104,7 @@
         <tr style="border-bottom: 2px solid #e2e8f0; color: #475569; background: #f8fafc; font-size: 12px;">
           <th style="padding: 12px;">DIVISI</th>
           <th style="padding: 12px;">JAM KERJA</th>
-          <th style="padding: 12px;">VOLUME HARIAN</th>
+          <th style="padding: 12px;">CATATAN VOLUME</th>
           <th style="padding: 12px; text-align: center;">PERSONEL RIIL</th>
           <th style="padding: 12px; text-align: center;">RASIO WLA</th>
           <th style="padding: 12px; text-align: center;">STATUS</th>
@@ -126,21 +123,50 @@
 
 {% block extra_js %}
 <script>
-    document.addEventListener("DOMContentLoaded", () => {
-        loadWLAData();
+    // 1. CACHE MAP: Untuk menerjemahkan angka ID Divisi menjadi Nama & Kode Divisi
+    let divisionsMap = {};
+
+    // 2. JALANKAN SAAT HALAMAN DIMUAT
+    document.addEventListener("DOMContentLoaded", async () => {
+        await loadDivisionsDropdown(); // Wajib dijalankan duluan agar divisionsMap terisi
+        await loadWLAData();
     });
 
-    // 1. TARIK PERSONEL AKTIF SECARA DINAMIS (Solusi Gagal Sync Pasca-Rotasi)
+    // 3. AUTO-LOAD DIVISI VIA API & ISI CACHE MAP
+    async function loadDivisionsDropdown() {
+        try {
+            const res = await fetch('/api/divisions/', { credentials: 'same-origin' });
+            if (!res.ok) throw new Error("Gagal memuat divisi");
+            const divs = await res.json();
+            
+            const select = document.getElementById('wla_division_id');
+            select.innerHTML = '<option value="">-- Pilih Divisi Operasional --</option>';
+            
+            divs.forEach(d => {
+                // Simpan nama dan kode divisi ke dalam kamus (map) berdasarkan ID-nya
+                divisionsMap[d.id] = { name: d.name, code: d.code };
+
+                const staffCount = (d.employees && d.employees.length > 0) ? d.employees.length : (d.employee_count || 1);
+                select.innerHTML += `<option value="${d.id}" data-staff="${staffCount}">${d.name} (${d.code})</option>`;
+            });
+        } catch (e) {
+            console.error("Gagal memuat daftar divisi:", e);
+            const select = document.getElementById('wla_division_id');
+            select.innerHTML = '<option value="">-- Gagal memuat divisi dari peladen --</option>';
+        }
+    }
+
+    // 4. TARIK PERSONEL AKTIF SECARA DINAMIS
     function tarikPersonelAktif() {
         const select = document.getElementById('wla_division_id');
         const selectedOpt = select.options[select.selectedIndex];
-        const staffCount = selectedOpt ? selectedOpt.getAttribute('data-staff') : 0;
+        const staffCount = selectedOpt ? selectedOpt.getAttribute('data-staff') : 1;
         
         document.getElementById('wla_staff_count').value = staffCount || 1;
         liveCalculate();
     }
 
-    // 2. LIVE REACTIVE CALCULATOR (Ala Figma tapi Dinamis)
+    // 5. LIVE REACTIVE CALCULATOR
     function liveCalculate() {
         const totalHours = parseFloat(document.getElementById('wla_total_hours').value) || 0;
         const volume = parseFloat(document.getElementById('wla_volume').value) || 0;
@@ -148,14 +174,11 @@
         
         if (totalHours <= 0 || staffCount <= 0) return;
 
-        // Asumsi standar jam kerja normal per orang di lab = 160 jam/bulan
-        const maxCapacity = staffCount * 160; 
-        // Indeks WLA = Total Jam Riil / Kapasitas Maksimal
+        const maxCapacity = staffCount * 160.0; 
         const wlaIndex = (totalHours / maxCapacity);
         const ratioPercent = Math.round(wlaIndex * 100);
-        const idealStaff = Math.ceil(totalHours / 160);
+        const idealStaff = Math.ceil(totalHours / 160.0);
 
-        // Update DOM Preview
         document.getElementById('preview_ideal_staff').innerText = `${idealStaff} Orang`;
         document.getElementById('preview_capacity').innerText = `${maxCapacity} Jam/Bln`;
         document.getElementById('preview_ratio').innerText = `${ratioPercent}%`;
@@ -195,7 +218,7 @@
         }
     }
 
-    // 3. LOAD DATA & RENDER TABEL DENGAN TOMBOL DIRECT REQUEST
+    // 6. LOAD DATA & RENDER TABEL (TERJEMAHAN ID KE NAMA DIVISI)
     async function loadWLAData() {
         const tbody = document.getElementById('wlaTableBody');
         tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 32px; color: #64748b;">Memuat data...</td></tr>';
@@ -212,22 +235,30 @@
             }
 
             data.forEach(row => {
-                const ratioPercent = Math.round(row.wla_index * 100);
+                const wlaVal = row.wla_value !== undefined ? row.wla_value : (row.wla_index || 0);
+                const staffCount = row.headcount !== undefined ? row.headcount : (row.staff_count || 1);
+                const totalHours = row.total_workload_hours !== undefined ? row.total_workload_hours : (row.total_hours || 0);
+                
+                // KUNCI PERBAIKAN: Ambil dari divisionsMap jika row.division tidak dikirim oleh backend
+                const divObj = divisionsMap[row.division_id] || {};
+                const divName = row.division?.name || row.division_name || divObj.name || `Divisi ID: ${row.division_id}`;
+                const divCode = row.division?.code || row.division_code || divObj.code || '';
+                
+                const notesText = row.notes || '-';
+                const ratioPercent = Math.round(wlaVal * 100);
                 let badgeHtml = '';
                 let actionHtml = '';
 
-                // Kunci Integrasi Closed-Loop: Tombol Direct Request
-                if (row.wla_index > 1.30) {
-                    const deficit = Math.max(1, Math.ceil(row.total_hours / 160) - row.staff_count);
+                if (wlaVal > 1.30) {
+                    const deficit = Math.max(1, Math.ceil(totalHours / 160.0) - staffCount);
                     badgeHtml = `<span style="background: #fee2e2; color: #dc2626; font-weight: 700; font-size: 11px; padding: 4px 10px; border-radius: 12px;">OVERLOAD (${ratioPercent}%)</span>`;
                     
-                    // Tombol ini melempar parameter ke halaman /requests
                     actionHtml = `
-                      <button onclick="directRequestRotasi(${row.division_id}, '${row.division_name}', ${deficit})" class="btn btn-sm" style="background: #dc2626; color: white; font-size: 11.5px; font-weight: 600; padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer; box-shadow: 0 1px 2px rgba(220,38,38,0.3);">
+                      <button type="button" onclick="directRequestRotasi(${row.division_id}, '${divName.replace(/'/g, "\\'")}', ${deficit})" class="btn btn-sm" style="background: #dc2626; color: white; font-size: 11.5px; font-weight: 600; padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer; box-shadow: 0 1px 2px rgba(220,38,38,0.3);">
                         🚨 Ajukan Rotasi (+${deficit} Staf)
                       </button>
                     `;
-                } else if (row.wla_index < 0.80) {
+                } else if (wlaVal < 0.80) {
                     badgeHtml = `<span style="background: #fef3c7; color: #d97706; font-weight: 700; font-size: 11px; padding: 4px 10px; border-radius: 12px;">SURPLUS (${ratioPercent}%)</span>`;
                     actionHtml = `<span style="color: #64748b; font-size: 12px; font-style: italic;">Siap menjadi donor staf</span>`;
                 } else {
@@ -238,16 +269,16 @@
                 const tr = document.createElement('tr');
                 tr.style.borderBottom = "1px solid #f1f5f9";
                 tr.innerHTML = `
-                  <td style="padding: 12px; font-weight: 600; color: #0f172a;">${row.division_name} <br><span style="font-size: 11px; color: #64748b; font-weight: normal;">${row.division_code || ''}</span></td>
-                  <td style="padding: 12px; color: #334155;">${row.total_hours} Jam</td>
-                  <td style="padding: 12px; color: #334155;">${row.daily_volume || 0} Kasus/hr</td>
-                  <td style="padding: 12px; text-align: center; font-weight: bold; color: #0f172a;">${row.staff_count}</td>
+                  <td style="padding: 12px; font-weight: 600; color: #0f172a;">${divName} <br><span style="font-size: 11px; color: #64748b; font-weight: normal;">${divCode}</span></td>
+                  <td style="padding: 12px; color: #334155;">${totalHours} Jam</td>
+                  <td style="padding: 12px; color: #334155;">${notesText}</td>
+                  <td style="padding: 12px; text-align: center; font-weight: bold; color: #0f172a;">${staffCount}</td>
                   <td style="padding: 12px; text-align: center; font-weight: 700; color: #334155;">${ratioPercent}%</td>
                   <td style="padding: 12px; text-align: center;">${badgeHtml}</td>
                   <td style="padding: 12px; text-align: right;">
                     <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
                       ${actionHtml}
-                      <button onclick="hapusWLA(${row.id})" title="Hapus Data" style="background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 14px;">🗑️</button>
+                      <button type="button" onclick="hapusWLA(${row.id})" title="Hapus Data" style="background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 14px;">🗑️</button>
                     </div>
                   </td>
                 `;
@@ -259,7 +290,7 @@
         }
     }
 
-    // 4. SIMPAN DATA WLA (CRUD - POST)
+    // 7. SIMPAN DATA WLA
     async function simpanDataWLA(e) {
         e.preventDefault();
         const divId = parseInt(document.getElementById('wla_division_id').value);
@@ -274,11 +305,11 @@
             btn.disabled = true; btn.innerText = "Menyimpan...";
             
             const payload = {
-                division_id: parseInt(document.getElementById('wla_division_id').value),
-                period: new Date().toISOString().slice(0, 7), // Contoh output: "2026-07"
-                total_workload_hours: parseFloat(document.getElementById('wla_total_hours').value),
-                headcount: parseInt(document.getElementById('wla_staff_count').value),
-                notes: `Volume tindakan harian: ${document.getElementById('wla_volume').value} kasus`
+                division_id: divId,
+                period: currentPeriod,
+                total_workload_hours: totalHours,
+                headcount: staffCount,
+                notes: `Volume tindakan harian: ${volume} kasus`
             };
 
             const res = await fetch('/api/wla/', {
@@ -292,37 +323,50 @@
                 throw new Error(err.detail || "Gagal menyimpan analisis beban kerja.");
             }
 
-            alert("Sukses: Data analisis beban kerja (WLA) berhasil diperbarui!");
-            loadWLAData();
+            if(window.App && window.App.showToast) {
+                App.showToast("Data WLA berhasil diperbarui!", "success");
+            } else {
+                alert("Sukses: Data analisis beban kerja (WLA) berhasil diperbarui!");
+            }
+            
+            await loadWLAData();
         } catch (error) {
-            alert("Error: " + error.message);
+            if(window.App && window.App.showToast) {
+                App.showToast(error.message, "error");
+            } else {
+                alert("Error: " + error.message);
+            }
         } finally {
             btn.disabled = false; btn.innerText = "💾 Simpan & Catat Analisis WLA";
         }
     }
 
-    // 5. HAPUS DATA WLA (CRUD - DELETE)
+    // 8. HAPUS DATA WLA
     async function hapusWLA(id) {
-        if (!confirm("Hapus rekam data beban kerja ini?")) return;
+        if (!confirm("Apakah Anda yakin ingin menghapus rekam data beban kerja ini?")) return;
         try {
             const res = await fetch(`/api/wla/${id}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error("Gagal menghapus data.");
-            loadWLAData();
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Gagal menghapus data.");
+            }
+            if(window.App && window.App.showToast) {
+                App.showToast("Rekam WLA berhasil dihapus!", "success");
+            }
+            await loadWLAData();
         } catch (e) {
             alert(e.message);
         }
     }
 
-    // 6. FITUR PALING KRUSIAL: DIRECT REQUEST KE MENU ROTASI
+    // 9. DIRECT REQUEST KE MENU ROTASI
     function directRequestRotasi(divId, divName, deficitQty) {
         if (!confirm(`Divisi ${divName} mengalami OVERLOAD.\n\nApakah Anda ingin langsung membuka formulir Pengajuan Rotasi SDM untuk meminta tambahan ${deficitQty} personel baru?`)) return;
         
-        // Simpan parameter di sessionStorage atau kirim lewat URL agar ditangkap oleh requests.html
         sessionStorage.setItem('direct_req_div_id', divId);
         sessionStorage.setItem('direct_req_qty', deficitQty);
         sessionStorage.setItem('direct_req_reason', `[AUTO-DIRECT REQUEST dari WLA] Divisi ${divName} terdeteksi kritis/overload dengan defisit kapasitas kerja. Diperlukan penambahan minimal ${deficitQty} personel untuk menjaga standar pelayanan lab.`);
         
-        // Alihkan ke halaman pengajuan
         window.location.href = '/requests?auto_open=true';
     }
 </script>

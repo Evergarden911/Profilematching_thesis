@@ -298,5 +298,109 @@ async function eksekusiKC(requestId, actionType) {
         alert('Terjadi kesalahan sistem: ' + error.message);
     }
 }
+
+// 1. HANDLER TOMBOL: SAHKAN SK (APPROVE)
+async function sahkanSK(reqId) {
+    if (!confirm("Apakah Anda yakin ingin mengesahkan Surat Keputusan (SK) Rotasi ini?\n\nTindakan ini akan memfinalisasi status pengajuan menjadi 'Approved' dan menerbitkan nomor SK resmi.")) {
+        return;
+    }
+
+    const btn = document.getElementById('btnSahkanSK') || document.querySelector('button[onclick*="sahkanSK"]');
+    const originalText = btn ? btn.innerText : '';
+    
+    try {
+        if (btn) {
+            btn.disabled = true;
+            btn.innerText = "⏳ Mengesahkan SK...";
+        }
+
+        // Mengirim status 'approved' sesuai standar tipe data Enum di PostgreSQL kamu
+        const response = await fetch(`/api/sdm/requests/${reqId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                status: 'approved',
+                hrd_notes: "SK Rotasi telah diverifikasi dan disahkan oleh pimpinan."
+            }),
+            credentials: 'same-origin'
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.detail || "Peladen gagal mengesahkan Surat Keputusan.");
+        }
+
+        if (window.App && window.App.showToast) {
+            App.showToast("SK Rotasi berhasil disahkan!", "success");
+        } else {
+            alert("✅ Sukses: Surat Keputusan (SK) Rotasi resmi disahkan!");
+        }
+
+        // Alihkan kembali ke halaman riwayat agar status terbaru terlihat
+        window.location.href = '/requests?status=approved';
+    } catch (error) {
+        console.error("Kesalahan Sahkan SK:", error);
+        alert("Gagal mengesahkan SK:\n" + error.message);
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = originalText;
+        }
+    }
+}
+
+// 2. HANDLER TOMBOL: MINTA REVISI
+async function mintaRevisi(reqId) {
+    const catatanRevisi = prompt("Masukkan alasan atau catatan revisi untuk tim HRD:\n(Contoh: Kandidat teratas dibutuhkan di proyek lain, harap evaluasi kandidat peringkat 2)");
+    
+    if (catatanRevisi === null) return; // Batal jika user menekan Cancel
+    if (catatanRevisi.trim().length < 10) {
+        alert("⚠️ Catatan revisi terlalu singkat! Harap jelaskan alasan minimal 10 karakter.");
+        return;
+    }
+
+    const btn = document.getElementById('btnMintaRevisi') || document.querySelector('button[onclick*="mintaRevisi"]');
+    const originalText = btn ? btn.innerText : '';
+
+    try {
+        if (btn) {
+            btn.disabled = true;
+            btn.innerText = "⏳ Mengirim Revisi...";
+        }
+
+        // Mengembalikan status ke 'under_review' agar HRD bisa menjalankan matching ulang
+        const response = await fetch(`/api/sdm/requests/${reqId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                status: 'under_review',
+                hrd_notes: `[REVISI PIMPINAN]: ${catatanRevisi.trim()}`
+            }),
+            credentials: 'same-origin'
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.detail || "Peladen gagal mengirim permintaan revisi.");
+        }
+
+        if (window.App && window.App.showToast) {
+            App.showToast("Permintaan revisi berhasil dikirim ke HRD!", "info");
+        } else {
+            alert("ℹ️ Permintaan revisi telah dikirimkan kembali kepada tim HRD.");
+        }
+
+        window.location.href = '/requests?status=under_review';
+    } catch (error) {
+        console.error("Kesalahan Minta Revisi:", error);
+        alert("Gagal mengirim permintaan revisi:\n" + error.message);
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = originalText;
+        }
+    }
+}
+
 </script>
 {% endblock %}

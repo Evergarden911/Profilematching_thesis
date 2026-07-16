@@ -269,6 +269,18 @@ def simulate_rotation(
         rotation_approved=source_sim.is_safe and target_sim.is_safe,
     )
 
+def delete_wla(db: Session, wla_id: int) -> bool:
+    """
+    Menghapus rekam analisis beban kerja berdasarkan ID.
+    Mengembalikan True jika berhasil, False jika data tidak ditemukan.
+    """
+    record = db.query(WorkloadAnalysis).filter(WorkloadAnalysis.id == wla_id).first()
+    if not record:
+        return False
+    
+    db.delete(record)
+    db.commit()
+    return True
 
 # ---------------------------------------------------------------------------
 # Helpers
