@@ -483,7 +483,7 @@ async def view_history_log(
     query = db.query(SDMRequest).filter(
         SDMRequest.status.in_([
             RequestStatus.matched, 
-            RequestStatus.completed, 
+            RequestStatus.approved, 
             RequestStatus.rejected
         ])
     )

@@ -58,3 +58,46 @@ def get_criteria_for_division(
             })
             
     return results
+
+@router.delete("/{criteria_id}", status_code=status.HTTP_200_OK)
+def delete_criteria(
+    criteria_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_role("kepala_hrd", "manajer_hrd", "super_admin"))
+):
+    """
+    Menghapus parameter kriteria evaluasi berdasarkan ID.
+    Hanya dapat dilakukan oleh HRD atau Super Admin.
+    """
+    # GANTI dari Criteria menjadi GroupCriteria di bawah ini:
+    crit = db.query(GroupCriteria).filter(GroupCriteria.id == criteria_id).first()
+    if not crit:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail=f"Kriteria dengan ID {criteria_id} tidak ditemukan."
+        )
+
+    try:
+        crit_name = crit.name
+        db.delete(crit)
+        db.commit()
+        return {
+            "status": "success", 
+            "message": f"Kriteria '{crit_name}' berhasil dihapus dari sistem."
+        }
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Kriteria '{crit.name}' tidak dapat dihapus karena sudah digunakan dalam "
+                "data penilaian historis kandidat. Harap ubah statusnya menjadi 'Nonaktif' "
+                "agar tidak merusak rekam jejak audit (Audit Trail)."
+            )
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Terjadi kesalahan internal saat menghapus data: {str(e)}"
+        )

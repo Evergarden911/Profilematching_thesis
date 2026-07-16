@@ -22,7 +22,7 @@
         </select>
     </div>
 
-    <!-- IMPROVEMENT: Card Bobot CF & SF (Muncul Dinamis) -->
+    <!-- Card Bobot CF & SF (Muncul Dinamis) -->
     <div id="weightConfigCard" style="display: none; margin-bottom: 24px; background: var(--white); padding: 20px; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
             <div>
@@ -64,11 +64,12 @@
                         <th>TARGET NILAI (1-5)</th>
                         <th>JENIS FAKTOR</th>
                         <th>STATUS</th>
+                        <th style="text-align: right;">AKSI</th>
                     </tr>
                 </thead>
                 <tbody id="criteriaTableBody">
                     <tr>
-                        <td colspan="4" style="text-align: center; color: var(--ink-60);">Pilih rumpun divisi terlebih dahulu.</td>
+                        <td colspan="5" style="text-align: center; color: var(--ink-60);">Pilih rumpun divisi terlebih dahulu.</td>
                     </tr>
                 </tbody>
             </table>
@@ -76,7 +77,7 @@
     </div>
 </div>
 
-<!-- Modal Tambah Kriteria (Existing) -->
+<!-- Modal Tambah Kriteria -->
 <div id="criteriaModal" class="modal-backdrop">
     <div class="modal">
         <div class="modal-header">
@@ -117,7 +118,7 @@
     </div>
 </div>
 
-<!-- IMPROVEMENT: Modal Ubah Bobot CF/SF -->
+<!-- Modal Ubah Bobot CF/SF -->
 <div id="weightModal" class="modal-backdrop">
     <div class="modal">
         <div class="modal-header">
@@ -150,7 +151,6 @@
 </div>
 
 <script>
-    // State Caching agar tidak membebani server
     let groupsData = [];
 
     document.addEventListener("DOMContentLoaded", async () => {
@@ -183,7 +183,7 @@
         const weightCard = document.getElementById('weightConfigCard');
         
         if (!groupId) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--ink-60);">Pilih rumpun divisi terlebih dahulu.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--ink-60);">Pilih rumpun divisi terlebih dahulu.</td></tr>';
             btnAdd.disabled = true;
             weightCard.style.display = 'none';
             return;
@@ -191,10 +191,8 @@
 
         btnAdd.disabled = false;
         
-        // Render informasi Bobot CF/SF secara dinamis
         const selectedGroup = groupsData.find(g => g.id == groupId);
         if (selectedGroup) {
-            // Default ke 0.6 dan 0.4 jika di DB masih null/kosong
             const cfPercent = Math.round((selectedGroup.cf_weight !== undefined ? selectedGroup.cf_weight : 0.6) * 100);
             const sfPercent = Math.round((selectedGroup.sf_weight !== undefined ? selectedGroup.sf_weight : 0.4) * 100);
             
@@ -209,7 +207,7 @@
             
             tbody.innerHTML = '';
             if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--ink-60);">Belum ada kriteria di rumpun ini.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--ink-60);">Belum ada kriteria di rumpun ini.</td></tr>';
                 return;
             }
 
@@ -217,6 +215,9 @@
                 const factorBadge = crit.factor_type === 'core' 
                     ? '<span class="badge" style="background: var(--red-light); color: var(--red-dark); border: 1px solid var(--red-mid);">Core Factor</span>' 
                     : '<span class="badge" style="background: #D1FAE5; color: #065F46; border: 1px solid rgba(16, 185, 129, 0.2);">Secondary Factor</span>';
+                
+                // Mencegah error sintaks JS jika nama kriteria mengandung tanda kutip satu
+                const safeName = crit.name.replace(/'/g, "\\'");
                     
                 const row = document.createElement('tr');
                 row.innerHTML = `
@@ -230,12 +231,47 @@
                     </td>
                     <td>${factorBadge}</td>
                     <td><span class="badge" style="background: var(--ink-10); color: var(--ink-80);">Aktif</span></td>
+                    <td style="text-align: right;">
+                        <button type="button" onclick="hapusKriteria(${crit.id}, '${safeName}')" class="btn btn-outline btn-sm" style="padding: 6px 12px; font-size: 12px; border-radius: 4px; border: 1px solid #fca5a5; background: #fef2f2; color: #dc2626; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                            🗑️ Hapus
+                        </button>
+                    </td>
                 `;
                 tbody.appendChild(row);
             });
         } catch (error) {
             console.error(error);
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--red);">Gagal memuat kriteria dari server.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--red);">Gagal memuat kriteria dari server.</td></tr>`;
+        }
+    }
+
+    // Fungsi Baru: Eksekusi Penghapusan Kriteria
+    async function hapusKriteria(id, nama) {
+        if (!confirm(`Apakah Anda yakin ingin menghapus kriteria "${nama}"?\n\nPeringatan: Menghapus kriteria dapat memengaruhi bobot kalkulasi pada divisi terkait.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/criteria/${id}`, {
+                method: 'DELETE',
+                credentials: 'same-origin'
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.detail || 'Peladen gagal menghapus kriteria ini.');
+            }
+
+            if(window.App) App.showToast(`Kriteria "${nama}" berhasil dihapus!`, 'success');
+            else alert(`Sukses: Kriteria "${nama}" berhasil dihapus dari sistem!`);
+            
+            // Muat ulang daftar kriteria secara asinkron tanpa memuat ulang seluruh halaman
+            await loadCriteria();
+        } catch (error) {
+            console.error("Kesalahan Hapus Kriteria:", error);
+            if(window.App) App.showToast(error.message, 'error');
+            else alert("Gagal menghapus kriteria:\n" + error.message);
         }
     }
 
@@ -249,7 +285,7 @@
         document.getElementById('criteriaModal').classList.remove('open');
     }
 
-    // IMPROVEMENT: Modal Bobot Functions & UX Auto-Calculate
+    // Modal Bobot Functions & UX Auto-Calculate
     function openWeightModal() {
         const groupId = document.getElementById('groupSelect').value;
         const selectedGroup = groupsData.find(g => g.id == groupId);
@@ -269,7 +305,6 @@
         document.getElementById('weightModal').classList.remove('open');
     }
 
-    // Auto-Calculate SF saat CF diketik (dan sebaliknya)
     document.getElementById('input_cf').addEventListener('input', (e) => {
         const cfVal = parseInt(e.target.value) || 0;
         if (cfVal >= 0 && cfVal <= 100) {
@@ -284,7 +319,6 @@
         }
     });
 
-    // Submit Bobot Baru
     document.getElementById('weightForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const groupId = document.getElementById('groupSelect').value;
@@ -300,7 +334,6 @@
         }
         errorDiv.style.display = 'none';
 
-        // Convert persentase (0-100) ke desimal (0.0 - 1.0) untuk backend
         const payload = {
             cf_weight: cfVal / 100,
             sf_weight: sfVal / 100
@@ -310,7 +343,6 @@
             btnSaveWeight.disabled = true;
             btnSaveWeight.innerText = 'Menyimpan...';
 
-            // Sesuaikan endpoint ini dengan rute update group di backend kamu (misal: PATCH /api/divisions/groups/{id})
             const response = await fetch(`/api/divisions/groups/${groupId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
@@ -322,7 +354,6 @@
             if(window.App) App.showToast('Bobot berhasil diperbarui!', 'success');
             closeWeightModal();
             
-            // Reload data grup agar caching terperbarui, lalu refresh tampilan
             await loadGroups();
             document.getElementById('groupSelect').value = groupId;
             loadCriteria();
@@ -336,7 +367,6 @@
         }
     });
 
-    // Submit Kriteria Existing
     document.getElementById('criteriaForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const groupId = document.getElementById('groupSelect').value;

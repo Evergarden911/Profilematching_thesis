@@ -37,7 +37,7 @@
       <select name="status_filter" class="form-control" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1;">
         <option value="all">Semua Status</option>
         <option value="matched" {% if current_status == 'matched' %}selected{% endif %}>Selesai / Disahkan</option>
-        <option value="completed" {% if current_status == 'completed' %}selected{% endif %}>SK Diterbitkan</option>
+        <option value="approved" {% if current_status == 'approved' %}selected{% endif %}>SK Diterbitkan</option>
         <option value="rejected" {% if current_status == 'rejected' %}selected{% endif %}>Ditolak / Dibatalkan</option>
       </select>
     </div>
@@ -130,7 +130,7 @@
 
           <!-- Badge Status Keputusan -->
           <td style="padding: 14px 12px; text-align: center;">
-            {% if row.status in ['matched', 'completed'] %}
+            {% if row.status in ['matched', 'approved'] %}
             <span style="background: #dcfce7; color: #15803d; font-weight: 700; font-size: 11.5px; padding: 4px 10px; border-radius: 20px;">
               DISAHKAN KC
             </span>
@@ -147,7 +147,7 @@
 
           <!-- Timestamp Selesai -->
           <td style="padding: 14px 12px; font-size: 12.5px; color: #64748b;">
-            {{ row.completed_at }}
+            {{ row.approved_at }}
           </td>
 
           <!-- Aksi Navigasi Audit -->
@@ -156,7 +156,7 @@
               <a href="/results/{{ row.id }}" class="btn btn-outline btn-sm" style="padding: 6px 12px; font-size: 12px; text-decoration: none; border-radius: 4px; border: 1px solid #cbd5e1; color: #0f172a; font-weight: 600;">
                 📊 Lihat Pemeringkatan
               </a>
-              {% if row.status in ['matched', 'completed'] %}
+              {% if row.status in ['matched', 'approved'] %}
               <a href="/api/sdm/requests/{{ row.id }}/print-sk" target="_blank" class="btn btn-sm" style="padding: 6px 10px; font-size: 12px; text-decoration: none; border-radius: 4px; background: #0f172a; color: white; font-weight: 600;" title="Cetak Surat Keputusan">
                 🖨️ SK
               </a>
