@@ -71,7 +71,8 @@ def get_dashboard_stats(
 def create_request(
     payload: SDMRequestCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("kepala_divisi")),
+    # kepala_hrd diizinkan mengajukan closed-loop request dari WLA (sinkron dengan main.py can_request_sdm)
+    current_user: User = Depends(require_role("kepala_divisi", "kepala_hrd", "super_admin")),
 ):
     return sdm_service.create_sdm_request(db, payload, current_user)
 

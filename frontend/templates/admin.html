@@ -4,10 +4,13 @@
 
 {% block content %}
 <!-- RBAC Security Guard Notice (Muncul jika unauthorized) -->
-<div id="unauthorizedNotice" style="display: none; text-align: center; padding: 60px 20px; background: var(--white); border-radius: var(--radius-lg); border: 1px solid var(--red-mid);">
+<div id="unauthorizedNotice"
+    style="display: none; text-align: center; padding: 60px 20px; background: var(--white); border-radius: var(--radius-lg); border: 1px solid var(--red-mid);">
     <div style="font-size: 48px; margin-bottom: 16px;">🚫</div>
     <h3 style="color: var(--red-dark); margin: 0 0 8px 0; font-size: 20px;">Akses Ditolak (Unauthorized Access)</h3>
-    <p style="color: var(--ink-60); font-size: 14px; max-width: 450px; margin: 0 auto 20px;">Halaman Administrasi Sistem hanya dapat diakses oleh pengguna dengan hak akses <strong>Manajer HRD</strong> atau <strong>Super Admin</strong>.</p>
+    <p style="color: var(--ink-60); font-size: 14px; max-width: 450px; margin: 0 auto 20px;">Halaman Administrasi Sistem
+        hanya dapat diakses oleh pengguna dengan hak akses <strong>Manajer HRD</strong> atau <strong>Super
+            Admin</strong>.</p>
     <a href="/dashboard" class="btn btn-primary" style="text-decoration: none;">Kembali ke Dashboard</a>
 </div>
 
@@ -16,7 +19,8 @@
     <!-- Page Header -->
     <div style="margin-bottom: 24px;">
         <h3 style="margin: 0; font-size: 22px; font-weight: 700; color: var(--ink);">Administrasi Sistem</h3>
-        <p style="margin: 4px 0 0 0; color: var(--ink-60); font-size: 13.5px;">Manajemen akun • pemulihan sandi • RBAC • pemeliharaan basis data</p>
+        <p style="margin: 4px 0 0 0; color: var(--ink-60); font-size: 13.5px;">Manajemen akun • pemulihan sandi • RBAC •
+            pemeliharaan basis data</p>
     </div>
 
     <!-- Navigation Tabs -->
@@ -28,25 +32,38 @@
     </div>
 
     <!-- TAB 1: AKUN BARU (Split 2-Column Layout) -->
-    <div id="tab-akun" class="tab-pane active" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
-        
+    <div id="tab-akun" class="tab-pane active"
+        style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
+
         <!-- Left Column: Registrasi Form (Sudah Diselaraskan dengan models.py) -->
-        <div style="background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm);">
-            <h4 style="margin: 0 0 20px 0; font-size: 16px; font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--border); padding-bottom: 12px;">Registrasi Akun Baru</h4>
+        <div
+            style="background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm);">
+            <h4
+                style="margin: 0 0 20px 0; font-size: 16px; font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+                Registrasi Akun Baru</h4>
             <form id="registerForm">
                 <div class="form-group" style="margin-bottom: 16px;">
-                    <label style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 6px;">Nama Lengkap (Full Name)</label>
-                    <input type="text" id="reg_full_name" required placeholder="Contoh: dr. Budi Santoso, M.Kes" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-mid); border-radius: var(--radius-sm); font-size: 13.5px; outline: none;">
+                    <label
+                        style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 6px;">Nama
+                        Lengkap (Full Name)</label>
+                    <input type="text" id="reg_full_name" required placeholder="Contoh: dr. Budi Santoso, M.Kes"
+                        style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-mid); border-radius: var(--radius-sm); font-size: 13.5px; outline: none;">
                 </div>
 
                 <div class="form-group" style="margin-bottom: 16px;">
-                    <label style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 6px;">Username / Email Login</label>
-                    <input type="text" id="reg_username" required placeholder="budi.hrd atau budi@pramita.co.id" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-mid); border-radius: var(--radius-sm); font-size: 13.5px; outline: none;">
+                    <label
+                        style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 6px;">Username
+                        / Email Login</label>
+                    <input type="text" id="reg_username" required placeholder="budi.hrd atau budi@pramita.co.id"
+                        style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-mid); border-radius: var(--radius-sm); font-size: 13.5px; outline: none;">
                 </div>
 
                 <div class="form-group" style="margin-bottom: 16px;">
-                    <label style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 6px;">Peran Pengguna (Role)</label>
-                    <select id="reg_role" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-mid); border-radius: var(--radius-sm); font-size: 13.5px; outline: none; background-color: var(--white);">
+                    <label
+                        style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 6px;">Peran
+                        Pengguna (Role)</label>
+                    <select id="reg_role" required
+                        style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-mid); border-radius: var(--radius-sm); font-size: 13.5px; outline: none; background-color: var(--white);">
                         <option value="">Pilih peran ▾</option>
                         <option value="HRD">Manajer HRD (Human Resources)</option>
                         <option value="KADIV">Kepala Divisi (Kadiv/Asal)</option>
@@ -57,18 +74,25 @@
 
                 <!-- NEW: Dropdown Divisi untuk melengkapi User.division_id -->
                 <div class="form-group" style="margin-bottom: 16px;">
-                    <label style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 6px;">Divisi (Opsional - Khusus Role KADIV)</label>
-                    <select id="reg_division_id" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-mid); border-radius: var(--radius-sm); font-size: 13.5px; outline: none; background-color: var(--white);">
+                    <label
+                        style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 6px;">Divisi
+                        (Opsional - Khusus Role KADIV)</label>
+                    <select id="reg_division_id"
+                        style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-mid); border-radius: var(--radius-sm); font-size: 13.5px; outline: none; background-color: var(--white);">
                         <option value="">-- Tidak Ada / Lintas Divisi --</option>
                     </select>
                 </div>
 
                 <div class="form-group" style="margin-bottom: 24px;">
-                    <label style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 6px;">Kata Sandi Awal</label>
-                    <input type="password" id="reg_password" required minlength="8" placeholder="minimum 8 karakter" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-mid); border-radius: var(--radius-sm); font-size: 13.5px; outline: none;">
+                    <label
+                        style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 6px;">Kata
+                        Sandi Awal</label>
+                    <input type="password" id="reg_password" required minlength="8" placeholder="minimum 8 karakter"
+                        style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-mid); border-radius: var(--radius-sm); font-size: 13.5px; outline: none;">
                 </div>
 
-                <button type="submit" id="btnRegister" class="btn" style="width: 100%; background: var(--red); color: white; padding: 12px; font-weight: 600; border: none; border-radius: var(--radius-sm); cursor: pointer;">
+                <button type="submit" id="btnRegister" class="btn"
+                    style="width: 100%; background: var(--red); color: white; padding: 12px; font-weight: 600; border: none; border-radius: var(--radius-sm); cursor: pointer;">
                     Daftarkan Akun
                 </button>
             </form>
@@ -76,12 +100,15 @@
 
         <!-- Right Column: Antrean Pemulihan Sandi + Info DB -->
         <div style="display: flex; flex-direction: column; gap: 20px;">
-            <div style="background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm);">
-                <h4 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: var(--ink);">Antrean Pemulihan Kata Sandi</h4>
+            <div
+                style="background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm);">
+                <h4 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: var(--ink);">Antrean Pemulihan
+                    Kata Sandi</h4>
                 <div class="table-responsive" style="margin-bottom: 0;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
                         <thead>
-                            <tr style="border-bottom: 1px solid var(--border); text-align: left; color: var(--ink-60); font-size: 11px; text-transform: uppercase;">
+                            <tr
+                                style="border-bottom: 1px solid var(--border); text-align: left; color: var(--ink-60); font-size: 11px; text-transform: uppercase;">
                                 <th style="padding: 8px 4px;">NAMA LENGKAP</th>
                                 <th style="padding: 8px 4px;">USERNAME</th>
                                 <th style="padding: 8px 4px;">WAKTU REQ</th>
@@ -100,21 +127,27 @@
             </div>
 
             <!-- Card Pemeliharaan Basis Data -->
-            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; font-size: 12.5px; color: var(--ink-80); line-height: 1.6;">
+            <div
+                style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; font-size: 12.5px; color: var(--ink-80); line-height: 1.6;">
                 <strong style="color: var(--ink); display: block; margin-bottom: 4px;">Pemeliharaan Basis Data</strong>
-                Backup SQL manual/berkala • Audit Log perubahan kriteria • Deactivation akun pegawai keluar. Menjamin pemulihan sistem tanpa merusak riwayat kalkulasi Profile Matching.
+                Backup SQL manual/berkala • Audit Log perubahan kriteria • Deactivation akun pegawai keluar. Menjamin
+                pemulihan sistem tanpa merusak riwayat kalkulasi Profile Matching.
             </div>
         </div>
     </div>
 
     <!-- TAB 2: PEMULIHAN SANDI (All Requests) -->
-    <div id="tab-sandi" class="tab-pane" style="display: none; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px;">
-        <h4 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: var(--ink);">Daftar Seluruh Permintaan Pemulihan Kata Sandi</h4>
-        <p style="color: var(--ink-60); font-size: 13.5px; margin-bottom: 20px;">Berikut adalah riwayat dan antrean aktif pemulihan sandi pegawai.</p>
+    <div id="tab-sandi" class="tab-pane"
+        style="display: none; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px;">
+        <h4 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: var(--ink);">Daftar Seluruh Permintaan
+            Pemulihan Kata Sandi</h4>
+        <p style="color: var(--ink-60); font-size: 13.5px; margin-bottom: 20px;">Berikut adalah riwayat dan antrean
+            aktif pemulihan sandi pegawai.</p>
         <div class="table-responsive">
             <table style="width: 100%; border-collapse: collapse; font-size: 13.5px;">
                 <thead>
-                    <tr style="border-bottom: 1px solid var(--border); text-align: left; color: var(--ink-60); font-size: 11px; text-transform: uppercase;">
+                    <tr
+                        style="border-bottom: 1px solid var(--border); text-align: left; color: var(--ink-60); font-size: 11px; text-transform: uppercase;">
                         <th style="padding: 10px;">ID AKUN</th>
                         <th style="padding: 10px;">NAMA PEGAWAI</th>
                         <th style="padding: 10px;">USERNAME</th>
@@ -123,25 +156,33 @@
                     </tr>
                 </thead>
                 <tbody id="allRecoveryTableBody">
-                    <tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--ink-60);">Memuat data...</td></tr>
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 20px; color: var(--ink-60);">Memuat data...
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
 
     <!-- TAB 3: UBAH PERAN / STATUS (Diselaraskan dengan User model di models.py) -->
-    <div id="tab-status" class="tab-pane" style="display: none; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px;">
+    <div id="tab-status" class="tab-pane"
+        style="display: none; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <div>
-                <h4 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 600; color: var(--ink);">Manajemen Hak Akses & Status Akun</h4>
-                <p style="color: var(--ink-60); font-size: 13.5px; margin: 0;">Ubah role (RBAC) atau nonaktifkan akun pegawai yang resign/mutasi keluar.</p>
+                <h4 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 600; color: var(--ink);">Manajemen Hak Akses
+                    & Status Akun</h4>
+                <p style="color: var(--ink-60); font-size: 13.5px; margin: 0;">Ubah role (RBAC) atau nonaktifkan akun
+                    pegawai yang resign/mutasi keluar.</p>
             </div>
-            <input type="text" id="searchUser" placeholder="Cari nama atau username..." style="padding: 8px 14px; border: 1px solid var(--border-mid); border-radius: var(--radius-sm); font-size: 13px; width: 250px;">
+            <input type="text" id="searchUser" placeholder="Cari nama atau username..."
+                style="padding: 8px 14px; border: 1px solid var(--border-mid); border-radius: var(--radius-sm); font-size: 13px; width: 250px;">
         </div>
         <div class="table-responsive">
             <table style="width: 100%; border-collapse: collapse; font-size: 13.5px;">
                 <thead>
-                    <tr style="border-bottom: 1px solid var(--border); text-align: left; color: var(--ink-60); font-size: 11px; text-transform: uppercase;">
+                    <tr
+                        style="border-bottom: 1px solid var(--border); text-align: left; color: var(--ink-60); font-size: 11px; text-transform: uppercase;">
                         <th style="padding: 10px;">ID</th>
                         <th style="padding: 10px;">USERNAME / LOGIN</th>
                         <th style="padding: 10px;">NAMA LENGKAP</th>
@@ -152,7 +193,10 @@
                     </tr>
                 </thead>
                 <tbody id="userRoleTableBody">
-                    <tr><td colspan="7" style="text-align: center; padding: 20px; color: var(--ink-60);">Memuat daftar pengguna...</td></tr>
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 20px; color: var(--ink-60);">Memuat daftar
+                            pengguna...</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -160,18 +204,30 @@
 
     <!-- TAB 4: PEMELIHARAAN DB (Maintenance & Audit Logs) -->
     <div id="tab-db" class="tab-pane" style="display: none; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-        <div style="background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px;">
-            <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: var(--ink);">Backup & Restore Basis Data</h4>
-            <p style="color: var(--ink-60); font-size: 13px; margin-bottom: 20px; line-height: 1.5;">Lakukan pencadangan berkala untuk melindungi riwayat rotasi, transaksi skor wla, dan nilai evaluasi kriteria.</p>
+        <div
+            style="background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px;">
+            <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: var(--ink);">Backup & Restore Basis
+                Data</h4>
+            <p style="color: var(--ink-60); font-size: 13px; margin-bottom: 20px; line-height: 1.5;">Lakukan pencadangan
+                berkala untuk melindungi riwayat rotasi, transaksi skor wla, dan nilai evaluasi kriteria.</p>
             <div style="display: flex; gap: 12px;">
-                <button onclick="triggerBackup()" class="btn btn-primary" style="flex: 1; background: var(--ink); color: white; padding: 10px; border-radius: var(--radius-sm); border: none; cursor: pointer;">📦 Unduh Backup SQL</button>
-                <button onclick="alert('Fitur Restore membutuhkan otentikasi 2FA Super Admin.')" class="btn btn-outline" style="flex: 1; padding: 10px; border-radius: var(--radius-sm); cursor: pointer;">🔄 Restore DB</button>
+                <button onclick="triggerBackup()" class="btn btn-primary"
+                    style="flex: 1; background: var(--ink); color: white; padding: 10px; border-radius: var(--radius-sm); border: none; cursor: pointer;">📦
+                    Unduh Backup SQL</button>
+                <button onclick="alert('Fitur Restore membutuhkan otentikasi 2FA Super Admin.')" class="btn btn-outline"
+                    style="flex: 1; padding: 10px; border-radius: var(--radius-sm); cursor: pointer;">🔄 Restore
+                    DB</button>
             </div>
         </div>
-        <div style="background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px;">
-            <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: var(--ink);">Integritas Skema & Seeder</h4>
-            <p style="color: var(--ink-60); font-size: 13px; margin-bottom: 20px; line-height: 1.5;">Alat pemeliharaan untuk mereset data evaluasi skripsi kembali ke kondisi awal (awal simulasi Gate A & B).</p>
-            <button onclick="resetSimulationData()" class="btn" style="width: 100%; background: #DC2626; color: white; padding: 10px; border-radius: var(--radius-sm); border: none; font-weight: 600; cursor: pointer;">⚠️ Reset Data Simulasi Skripsi</button>
+        <div
+            style="background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px;">
+            <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: var(--ink);">Integritas Skema &
+                Seeder</h4>
+            <p style="color: var(--ink-60); font-size: 13px; margin-bottom: 20px; line-height: 1.5;">Alat pemeliharaan
+                untuk mereset data evaluasi skripsi kembali ke kondisi awal (awal simulasi Gate A & B).</p>
+            <button onclick="resetSimulationData()" class="btn"
+                style="width: 100%; background: #DC2626; color: white; padding: 10px; border-radius: var(--radius-sm); border: none; font-weight: 600; cursor: pointer;">⚠️
+                Reset Data Simulasi Skripsi</button>
         </div>
     </div>
 </div>
@@ -188,12 +244,15 @@
         position: relative;
         transition: color 0.2s ease;
     }
+
     .admin-tab:hover {
         color: var(--ink);
     }
+
     .admin-tab.active {
         color: var(--red);
     }
+
     .admin-tab.active::after {
         content: '';
         position: absolute;
@@ -250,7 +309,7 @@
 
             document.getElementById('unauthorizedNotice').style.display = 'none';
             document.getElementById('adminContent').style.display = 'block';
-            
+
             loadAllUsers();
             loadRecoveryQueue();
         } catch (error) {
@@ -297,11 +356,11 @@
 
         const targetPane = document.getElementById(tabId);
         if (tabId === 'tab-akun' || tabId === 'tab-db') {
-            targetPane.style.display = 'grid'; 
+            targetPane.style.display = 'grid';
         } else {
             targetPane.style.display = 'block';
         }
-        
+
         btnElement.classList.add('active');
         if (tabId === 'tab-status') loadAllUsers();
     }
@@ -310,7 +369,7 @@
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const btnReg = document.getElementById('btnRegister');
-        
+
         const divVal = document.getElementById('reg_division_id').value;
 
         // Payload murni sesuai struktur model User
@@ -340,10 +399,10 @@
 
             if (window.App) App.showToast('Akun berhasil didaftarkan!', 'success');
             else alert('Akun berhasil didaftarkan!');
-            
+
             document.getElementById('registerForm').reset();
-            loadAllUsers(); 
-            loadRecoveryQueue(); 
+            loadAllUsers();
+            loadRecoveryQueue();
         } catch (error) {
             console.error(error);
             alert(`Gagal Registrasi: ${error.message}`);
@@ -374,7 +433,7 @@
             tbody.innerHTML = '';
             users.forEach(u => {
                 const roleBadge = getRoleBadge(u.role);
-                const statusBadge = u.is_active !== false 
+                const statusBadge = u.is_active !== false
                     ? '<span class="badge" style="background: #D1FAE5; color: #065F46;">Aktif</span>'
                     : '<span class="badge" style="background: var(--ink-10); color: var(--ink-60);">Nonaktif</span>';
 
@@ -404,11 +463,11 @@
 
     function getRoleBadge(role) {
         const r = String(role).toUpperCase();
-        if (r === 'HRD' || r === 'KEPALA_HRD') {
+        if (r === 'kepala_hrd' || r === 'hrd') {
             return '<span class="badge" style="background: var(--red-light); color: var(--red-dark); border: 1px solid var(--red-mid);">Manajer HRD</span>';
-        } else if (r === 'KACAB' || r === 'KEPALA_CABANG') {
+        } else if (r === 'kepala_cabang') {
             return '<span class="badge" style="background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D;">Kepala Cabang</span>';
-        } else if (r === 'KADIV' || r === 'KEPALA_DIVISI') {
+        } else if (r === 'kepala_divisi') {
             return '<span class="badge" style="background: #E0E7FF; color: #3730A3; border: 1px solid #C7D2FE;">Kepala Divisi</span>';
         } else {
             return `<span class="badge" style="background: var(--surface); color: var(--ink-80); border: 1px solid var(--border);">${role}</span>`;

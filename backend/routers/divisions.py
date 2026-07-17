@@ -12,7 +12,7 @@ from backend.core.database import get_db
 from backend.core.security import require_role
 from backend.models import (
     Division, DivisionConstraint, DivisionCriteriaWeight,
-    DivisionGroup, EducationField, GroupCriteria, FactorType
+    DivisionGroup, EducationField, GroupCriteria, FactorType, UserRole
 )
 from backend.schemas.division import (
     DivisionConstraintCreate, DivisionConstraintRead,
@@ -24,13 +24,18 @@ from backend.schemas.division import (
 )
 
 router = APIRouter(prefix="/api/divisions", tags=["divisions"])
-_hrd = require_role("kepala_hrd", "kepala_cabang", "kepala_divisi")
+_hrd = require_role("kepala_hrd")
 
 # ---------------------------------------------------------------------------
 # Division CRUD
 # ---------------------------------------------------------------------------
 @router.get("/", response_model=list[DivisionRead])
-def list_divisions(group_id: int | None = None, db: Session = Depends(get_db), _=Depends(require_role("kepala_hrd", "kepala_cabang", "kepala_divisi"))):
+def list_divisions(
+    group_id: int | None = None, 
+    db: Session = Depends(get_db), 
+    # SINKRONISASI MUTLAK DENGAN ENUM USERROLE:
+    _=Depends(require_role("super_admin", "kepala_hrd", "kepala_cabang", "kepala_divisi", "admin_hrd"))
+):
     q = db.query(Division).filter(Division.is_active == True)
     if group_id is not None:
         q = q.filter(Division.group_id == group_id)
@@ -67,7 +72,10 @@ def deactivate_division(division_id: int, db: Session = Depends(get_db), _=Depen
 # Division Groups & Criteria
 # ---------------------------------------------------------------------------
 @router.get("/groups", response_model=list[DivisionGroupRead])
-def list_groups(db: Session = Depends(get_db), _=Depends(require_role("kepala_hrd", "kepala_cabang", "kepala_divisi"))):
+def list_groups(
+    db: Session = Depends(get_db), 
+    _=Depends(require_role("super_admin", "kepala_hrd", "kepala_cabang", "kepala_divisi"))
+):
     return db.query(DivisionGroup).filter(DivisionGroup.is_active == True).order_by(DivisionGroup.name).all()
 
 @router.post("/groups", response_model=DivisionGroupRead, status_code=status.HTTP_201_CREATED)

@@ -64,58 +64,66 @@
           Panel Utama
         </a>
 
-        {% if u_role in ['kepala_hrd', 'kepala_cabang', 'kepala_divisi', 'manajer_hrd', 'eksekutif', 'super_admin', 'HRD', 'KACAB', 'KADIV'] %}
-        <div class="nav-section-title">Operasional Staf</div>
-        <!-- STANDARDISASI TERMINOLOGI: Diganti ke "Rotasi SDM" -->
-        <a href="/requests" class="nav-item {% if active_page == 'requests' %}active{% endif %}">
-          Pengajuan Rotasi SDM
-        </a>
-        {% endif %}
-
+        {# ── SECTION 1: DATA MASTER ───────────────────────────────────── #}
         {% if u_role in ['kepala_hrd', 'kepala_cabang', 'super_admin', 'HRD'] %}
-        <div class="nav-section-title">Data Induk Sistem</div>
+        <div class="nav-section-title">Data Master</div>
         <a href="/divisions" class="nav-item {% if active_page == 'divisions' %}active{% endif %}">
           Manajemen Divisi
         </a>
         <a href="/employees" class="nav-item {% if active_page == 'employees' %}active{% endif %}">
           Data Karyawan Aktif
         </a>
-        <a href="/criteria" class="nav-item {% if active_page == 'criteria' %}active{% endif %}">
-          Kriteria Evaluasi
-        </a>
-
         {% endif %}
 
-        {% if u_role in ['kepala_hrd', 'kepala_cabang', 'kepala_divisi']%}
-        <div class="nav-section-title">Kapasitas Kerja</div>
+        {% if u_role in ['kepala_hrd', 'kepala_cabang', 'kepala_divisi', 'super_admin', 'HRD'] %}
+        {% if u_role not in ['kepala_hrd', 'kepala_cabang', 'super_admin', 'HRD'] %}
+        <div class="nav-section-title">Data Master</div>
+        {% endif %}
         <a href="/wla" class="nav-item {% if active_page == 'wla' %}active{% endif %}">
           Analisis Beban Kerja WLA
         </a>
         {% endif %}
 
+        {# ── SECTION 2: REQUEST & EVALUASI ───────────────────────────── #}
+        {% if u_role in ['kepala_hrd', 'kepala_cabang', 'kepala_divisi', 'manajer_hrd', 'eksekutif', 'super_admin', 'HRD', 'KACAB', 'KADIV'] %}
+        <div class="nav-section-title">Request & Evaluasi</div>
+        <a href="/requests" class="nav-item {% if active_page == 'requests' %}active{% endif %}">
+          Pengajuan Rotasi SDM
+        </a>
+        {% endif %}
+
         {% if u_role in ['kepala_cabang', 'kepala_hrd', 'manajer_hrd', 'eksekutif', 'super_admin', 'KACAB', 'HRD'] %}
-        <div class="nav-section-title">Eksekutif & Laporan</div>
+        {% if u_role not in ['kepala_hrd', 'kepala_cabang', 'kepala_divisi', 'manajer_hrd', 'eksekutif', 'super_admin', 'HRD', 'KACAB', 'KADIV'] %}
+        <div class="nav-section-title">Request & Evaluasi</div>
+        {% endif %}
         <a href="/results" class="nav-item {% if active_page == 'results' %}active{% endif %}">
           Hasil Profile Matching
         </a>
-        
-        <!-- PENAMBAHAN MENU BARU: Historis & Audit Rotasi -->
         <a href="/history" class="nav-item {% if active_page == 'history' %}active{% endif %}">
           Historis & Audit Rotasi
         </a>
+        {% endif %}
 
+        {% if u_role in ['kepala_hrd', 'kepala_cabang', 'super_admin', 'HRD'] %}
+        <a href="/criteria" class="nav-item {% if active_page == 'criteria' %}active{% endif %}">
+          Kriteria Evaluasi
+        </a>
+        {% endif %}
+
+        {# ── SECTION 3: ASESMEN & SELEKSI ────────────────────────────── #}
+        {% if u_role in ['kepala_cabang', 'kepala_hrd', 'manajer_hrd', 'eksekutif', 'super_admin', 'KACAB', 'HRD'] %}
         <div class="nav-section-title">Asesmen & Seleksi</div>
         <a href="/gates" class="nav-item {% if active_page == 'gates' %}active{% endif %}">
           Asesmen Kandidat (Gates)
         </a>
-
         <a href="/constraints" class="nav-item {% if active_page == 'constraints' %}active{% endif %}">
           Manajemen Assesment
         </a>
         {% endif %}
 
+        {# ── SECTION 4: UTILITAS ──────────────────────────────────────── #}
         {% if u_role in ['kepala_hrd', 'super_admin', 'HRD', 'SUPER_ADMIN'] %}
-        <div class="nav-section-title">Sistem & Keamanan</div>
+        <div class="nav-section-title">Utilitas</div>
         <a href="/admin" class="nav-item {% if active_page == 'admin' %}active{% endif %}">
           Administrasi (RBAC)
         </a>

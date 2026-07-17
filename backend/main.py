@@ -385,22 +385,32 @@ async def view_wla(request: Request, db: Session = Depends(get_db)):
 
     user_role_str = str(user.role.value if hasattr(user.role, 'value') else user.role).lower()
     
-    # Daftar izin
-    read_roles = ["kepala_hrd", "manajer_hrd", "admin_hrd", "hrd", "kepala_cabang", "eksekutif", "kacab", "kepala_divisi", "kepala_bagian", "bagian"]
-    write_roles = ["kepala_hrd", "manajer_hrd", "admin_hrd", "hrd", "kepala_divisi", "kepala_bagian", "bagian"]
-
-    # Gatekeeper halaman: Jika bukan termasuk ketiga rumpun tersebut, tendang ke dashboard
+    # RBAC WLA:
+    # - read_roles   : bisa mengakses halaman WLA (monitoring)
+    # - write_roles  : bisa input/simpan/hapus data WLA
+    # - can_request  : bisa kirim closed-loop SDM request dari WLA (sinkron dengan sdm.py POST /requests)
+    # - can_calculate: bisa menggunakan form live kalkulasi (termasuk kepala_cabang untuk monitoring)
+    read_roles  = ["kepala_hrd", "kepala_cabang", "admin_hrd", "kepala_divisi", "super_admin"]
+    write_roles = ["kepala_hrd", "admin_hrd", "kepala_divisi", "super_admin"]
+    # Gatekeeper halaman: Jika bukan termasuk rumpun tersebut, tendang ke dashboard
     if user_role_str not in read_roles:
         return RedirectResponse(url="/dashboard", status_code=303)
 
-    # Tentukan apakah user aktif boleh melakukan input/edit
+    # Tentukan apakah user aktif boleh melakukan input/edit/hapus
     can_edit = user_role_str in write_roles
+    # Tentukan apakah user boleh mengajukan rotasi SDM langsung dari WLA
+    # HARUS sinkron dengan require_role(...) pada POST /api/sdm/requests (backend/routers/sdm.py)
+    can_request_sdm = user_role_str in ["kepala_hrd", "kepala_divisi", "super_admin"]
+    # kepala_cabang mendapat form live kalkulasi (read-only, tanpa tombol simpan) untuk keperluan monitoring
+    can_calculate = True  # semua role yang lolos gatekeeper bisa kalkulasi live
 
     return templates.TemplateResponse("wla.html", {
         "request": request, 
         "current_user": user, 
         "active_page": "wla",
-        "can_edit_wla": can_edit  # <-- INJEKSI FLAG KE UI
+        "can_edit_wla": can_edit,
+        "can_request_sdm": can_request_sdm,
+        "can_calculate_wla": can_calculate,
     })
 
 @app.get("/results", response_class=HTMLResponse)
@@ -586,4 +596,4 @@ async def view_history_log(
         "divisions_list": divs,
         "current_division": division,
         "current_status": status_filter
-    })    
+    })

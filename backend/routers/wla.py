@@ -14,8 +14,8 @@ router = APIRouter(prefix="/api/wla", tags=["workload-analysis"])
 def list_wla(
     division_id: int | None = None,
     db: Session = Depends(get_db),
-    # PERLUASAN RBAC: Menambahkan manajer_hrd, eksekutif, & super_admin agar tidak 403 Forbidden
-    _=Depends(require_role("kepala_hrd", "kepala_cabang", "manajer_hrd", "kepala_divisi", "super_admin")),
+    # PERLUASAN RBAC: Menambahkan admin_hrd, eksekutif, & super_admin agar tidak 403 Forbidden
+    _=Depends(require_role("kepala_hrd", "kepala_cabang", "admin_hrd", "kepala_divisi", "super_admin")),
 ):
     """
     Mengambil daftar riwayat Analisis Beban Kerja (WLA).
@@ -28,7 +28,7 @@ def record_wla(
     payload: WLACreate,
     db: Session = Depends(get_db),
     # Kepala Divisi diizinkan menginput data operasional divisinya
-    _=Depends(require_role("kepala_hrd", "kepala_cabang", "manajer_hrd", "kepala_divisi", "super_admin")),
+    _=Depends(require_role("kepala_hrd", "admin_hrd", "kepala_divisi", "super_admin")),
 ):
     """
     Mencatat atau memperbarui analisis beban kerja divisi bulanan.
@@ -47,7 +47,7 @@ def record_wla(
 def latest_wla(
     division_id: int,
     db: Session = Depends(get_db),
-    _=Depends(require_role("kepala_hrd", "kepala_cabang", "manajer_hrd", "kepala_divisi", "super_admin")),
+    _=Depends(require_role("kepala_hrd", "kepala_cabang", "admin_hrd", "kepala_divisi", "super_admin")),
 ):
     """
     Mengambil data WLA terbaru untuk divisi tertentu (berguna untuk auto-fill di form pengajuan mutasi).
@@ -66,7 +66,7 @@ def simulate_rotation(
     target_division_id: int,
     period: str,
     db: Session = Depends(get_db),
-    _=Depends(require_role("kepala_hrd", "kepala_cabang", "manajer_hrd", "kepala_divisi", "super_admin")),
+    _=Depends(require_role("kepala_hrd", "admin_hrd", "kepala_divisi", "super_admin")),
 ):
     """
     Mensimulasikan dampak perpindahan staf terhadap rasio WLA divisi asal dan divisi tujuan sebelum SK diterbitkan.

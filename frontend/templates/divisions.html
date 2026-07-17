@@ -4,17 +4,17 @@
 
 {% block content %}
 <div style="margin-bottom: 24px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div class="card-header" style="border-radius: var(--radius-lg); border: 1px solid var(--border); background: var(--white); margin-bottom: 24px; box-shadow: var(--shadow-sm);">
         <div>
-            <h3 style="margin: 0; font-size: 20px; font-weight: 600; color: var(--ink);">Struktur Organisasi Laboratorium</h3>
-            <p style="margin: 4px 0 0 0; color: var(--ink-60); font-size: 13.5px;">Kelola Rumpun Kerja Induk dan Sub-Divisi Operasional di dalamnya.</p>
+            <h2 class="card-title">Struktur Organisasi Laboratorium</h2>
+            <p style="margin: 4px 0 0 0; color: var(--ink-60); font-size: 13px;">Kelola Rumpun Kerja Induk dan Sub-Divisi Operasional di dalamnya.</p>
         </div>
         <button class="btn btn-primary" onclick="openGroupModal()">
             + Tambah Grup Baru
         </button>
     </div>
 
-    <div id="organigramContainer" style="display: flex; flex-direction: column; gap: 24px;">
+    <div id="organigramContainer" style="display: flex; flex-direction: column; gap: 20px;">
         <div style="text-align: center; color: var(--ink-60); padding: 40px;">Memuat struktur organisasi...</div>
     </div>
 </div>

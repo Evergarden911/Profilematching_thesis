@@ -1,106 +1,159 @@
 {% extends "base.html" %}
 
+{% block title %}Asesmen Kandidat | Pramita Lab{% endblock %}
+
+{% block page_title %}Asesmen & Seleksi{% endblock %}
+{% block page_subtitle %}Daftar kandidat yang menunggu penilaian wawancara kompetensi{% endblock %}
+
 {% block content %}
 <div class="card">
-  <h3>Daftar Asesmen Kandidat</h3>
-  <table style="width: 100%; border-collapse: collapse;">
-    <thead>
-      <tr style="border-bottom: 2px solid #eee;">
-        <th style="padding: 12px;">KANDIDAT</th>
-        <th style="padding: 12px;">ID PENGAJUAN</th>
-        <th style="padding: 12px;">STATUS</th>
-        <th style="padding: 12px; text-align: right;">AKSI</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for gate in pending_gates %}
-      <tr>
-        <td style="padding: 12px;">{{ gate.employee.full_name }}</td>
-        <td style="padding: 12px;">#SDM-{{ gate.sdm_request.id }}</td>
-        <td style="padding: 12px;">
-            <span class="badge" style="background: #fef3c7; color: #92400e;">Menunggu Wawancara</span>
-        </td>
-        <td style="padding: 12px; text-align: right;">
-          <button class="btn btn-primary btn-sm" onclick="bukaModalInterview({{ gate.id }}, {{ gate.sdm_request.target_division_id }})">
-            Input Nilai
-          </button>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="card-header">
+    <div>
+      <h2 class="card-title">Daftar Asesmen Kandidat</h2>
+      <p style="font-size: 12.5px; color: var(--ink-60); margin: 4px 0 0 0;">Kandidat rotasi yang siap melalui tahap penilaian kompetensi (Gates)</p>
+    </div>
+    {% if pending_gates %}
+    <span class="badge badge-pending" style="font-size: 12px;">{{ pending_gates | length }} Menunggu</span>
+    {% endif %}
+  </div>
+
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>KANDIDAT</th>
+          <th>ID PENGAJUAN</th>
+          <th>STATUS</th>
+          <th style="text-align: right;">AKSI</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for gate in pending_gates %}
+        <tr>
+          <td>
+            <div style="font-weight: 600; color: var(--ink);">{{ gate.employee.full_name }}</div>
+            <div style="font-size: 12px; color: var(--ink-60); margin-top: 2px;">Kandidat Rotasi</div>
+          </td>
+          <td>
+            <span style="font-family: monospace; font-weight: 600; color: var(--ink); background: var(--surface); padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12.5px;">#SDM-{{ gate.sdm_request.id }}</span>
+          </td>
+          <td>
+            <span class="badge badge-pending">Menunggu Wawancara</span>
+          </td>
+          <td style="text-align: right;">
+            <button class="btn btn-primary btn-sm" onclick="bukaModalInterview({{ gate.id }}, {{ gate.sdm_request.target_division_id }})">
+              Input Nilai
+            </button>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4">
+            <div class="empty-state">
+              <div class="empty-state-icon">🎯</div>
+              <div class="empty-state-text">Tidak ada kandidat yang menunggu asesmen</div>
+              <div class="empty-state-sub">Kandidat akan muncul di sini setelah pengajuan rotasi disetujui oleh HRD</div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 
-<div id="modalInterview" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
-    <div style="background:white; padding:20px; border-radius:8px; width:400px;">
-        <h3>Input Nilai Kompetensi</h3>
-        <div id="criteriaList"></div>
-        <button onclick="simpanNilai()" class="btn btn-primary">Simpan Nilai</button>
-        <button onclick="document.getElementById('modalInterview').style.display='none'" class="btn">Batal</button>
+<!-- Modal Input Nilai Kompetensi -->
+<div id="modalInterview" class="modal-backdrop">
+  <div class="modal" style="max-width: 480px;">
+    <div class="modal-header">
+      <h5 class="modal-title">Input Nilai Kompetensi</h5>
+      <button onclick="tutupModalInterview()" class="modal-close" style="font-size: 20px;">&times;</button>
     </div>
+    <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+      <p style="font-size: 13px; color: var(--ink-60); margin: 0 0 16px 0;">Masukkan skor kompetensi kandidat (rentang 0–100) untuk setiap kriteria yang telah dikonfigurasi pada divisi target.</p>
+      <div id="criteriaList"></div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="tutupModalInterview()" class="btn btn-outline">Batal</button>
+      <button onclick="simpanNilai()" class="btn btn-primary">Simpan Nilai</button>
+    </div>
+  </div>
 </div>
 
 <script>
-    let currentGateId = null;
+  let currentGateId = null;
 
-    async function bukaModalInterview(gateId, divId) {
-        currentGateId = gateId;
-        const container = document.getElementById('criteriaList');
-        container.innerHTML = '<p style="color: #64748b; font-size: 13px;">Memuat parameter kriteria divisi target...</p>';
-        document.getElementById('modalInterview').style.display = 'flex';
+  async function bukaModalInterview(gateId, divId) {
+    currentGateId = gateId;
+    const container = document.getElementById('criteriaList');
+    container.innerHTML = '<p style="color: var(--ink-60); font-size: 13px; text-align: center; padding: 16px;">Memuat parameter kriteria divisi target...</p>';
+    document.getElementById('modalInterview').classList.add('open');
 
-        try {
-            // Panggil API jembatan baru yang menjamin akurasi kriteria sub-divisi target
-            const res = await fetch(`/api/gates/${gateId}/assessment-criteria`, {
-                credentials: 'same-origin'
-            });
+    try {
+      const res = await fetch(`/api/gates/${gateId}/assessment-criteria`, {
+        credentials: 'same-origin'
+      });
 
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.detail || 'Gagal memuat daftar kriteria asesmen.');
-            }
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Gagal memuat daftar kriteria asesmen.');
+      }
 
-            const criteria = await res.json();
+      const criteria = await res.json();
 
-            // Render form input nilai (0-100)
-            container.innerHTML = criteria.map(c => `
-                <div style="margin-bottom: 12px;">
-                    <label style="display: block; font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 4px;">
-                        ${c.name} <span style="font-weight: normal; color: #64748b; font-size: 11.5px;">(Bobot: ${c.weight * 100}%)</span>
-                    </label>
-                    <input type="number" class="score-input form-control" data-id="${c.criteria_id}" 
-                           min="0" max="100" placeholder="Skor 0 - 100" 
-                           style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
-                </div>
-            `).join('');
+      if (criteria.length === 0) {
+        container.innerHTML = '<p style="color: var(--amber-dark); font-size: 13px; text-align: center; padding: 16px; background: var(--amber-light); border-radius: 6px;">Belum ada kriteria yang dikonfigurasi untuk divisi ini.</p>';
+        return;
+      }
 
-        } catch (error) {
-            console.error("Kesalahan Kriteria:", error);
-            container.innerHTML = `<p style="color: #dc2626; font-size: 13px;">Error: ${error.message}</p>`;
-        }
+      container.innerHTML = criteria.map(c => `
+        <div class="form-group">
+          <label>${c.name}
+            <span style="font-weight: 400; color: var(--ink-60); font-size: 11.5px;">(Bobot: ${(c.weight * 100).toFixed(0)}%)</span>
+          </label>
+          <input type="number" class="score-input" data-id="${c.criteria_id}"
+                 min="0" max="100" placeholder="Skor 0 – 100">
+        </div>
+      `).join('');
+
+    } catch (error) {
+      console.error("Kesalahan Kriteria:", error);
+      container.innerHTML = `<p style="color: var(--red); font-size: 13px;">Error: ${error.message}</p>`;
     }
+  }
 
-    async function simpanNilai() {
-        const inputs = document.querySelectorAll('.score-input');
-        const scores = Array.from(inputs).map(i => ({
-            criteria_id: parseInt(i.dataset.id),
-            raw_score: parseFloat(i.value) || 0
-        }));
+  function tutupModalInterview() {
+    document.getElementById('modalInterview').classList.remove('open');
+    currentGateId = null;
+  }
 
-        const res = await fetch('/api/gates/interview-scores', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ gate_id: currentGateId, scores: scores }),
-            credentials: 'same-origin'
-        });
+  async function simpanNilai() {
+    const inputs = document.querySelectorAll('.score-input');
+    const scores = Array.from(inputs).map(i => ({
+      criteria_id: parseInt(i.dataset.id),
+      raw_score: parseFloat(i.value) || 0
+    }));
 
-        if (res.ok) {
-            alert('Nilai asesmen berhasil disimpan! Kandidat siap untuk Profile Matching.');
-            location.reload();
-        } else {
-            const err = await res.json();
-            alert('Gagal menyimpan nilai: ' + (err.detail || 'Terjadi kesalahan sistem.'));
-        }
+    const res = await fetch('/api/gates/interview-scores', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ gate_id: currentGateId, scores: scores }),
+      credentials: 'same-origin'
+    });
+
+    if (res.ok) {
+      if (window.App) App.showToast('Nilai asesmen berhasil disimpan! Kandidat siap untuk Profile Matching.', 'success');
+      tutupModalInterview();
+      setTimeout(() => location.reload(), 1000);
+    } else {
+      const err = await res.json();
+      alert('Gagal menyimpan nilai: ' + (err.detail || 'Terjadi kesalahan sistem.'));
     }
+  }
+
+  // Tutup modal jika klik backdrop
+  document.getElementById('modalInterview').addEventListener('click', function(e) {
+    if (e.target === this) tutupModalInterview();
+  });
 </script>
 {% endblock %}
