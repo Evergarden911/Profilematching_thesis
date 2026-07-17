@@ -24,7 +24,7 @@ from backend.schemas.division import (
 )
 
 router = APIRouter(prefix="/api/divisions", tags=["divisions"])
-_hrd = require_role("kepala_hrd")
+_hrd = require_role("kepala_hrd", "kepala_cabang", "kepala_divisi")
 
 # ---------------------------------------------------------------------------
 # Division CRUD
