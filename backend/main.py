@@ -71,30 +71,53 @@ app.include_router(constraints.router)
 # ---------------------------------------------------------------------------
 
 def get_current_user_from_cookie(request: Request, db: Session):
-    """
-    Mengekstrak token JWT secara langsung dari Cookie menggunakan fungsi keamanan utama.
-    """
+    """Mengekstrak token JWT secara langsung dari Cookie menggunakan fungsi keamanan utama.[cite: 7]"""
     try:
         return get_current_user(request, db)
     except HTTPException:
-        return None
+        return None 
 
 @app.get("/", response_class=HTMLResponse)
-async def view_login_root(request: Request):  # <-- FIXED name
-    if request.cookies.get("access_token"):
+async def view_login_root(
+    request: Request, db: Session = Depends(get_db)
+):  # <-- Tambahkan db Session
+    # 1. Jangan cuma cek string cookie, validasi juga isinya!
+    user = get_current_user_from_cookie(request, db)
+    if user:
         return RedirectResponse(url="/dashboard", status_code=302)
-    return templates.TemplateResponse("login.html", {"request": request})
 
-@app.get("/login")
-async def view_login_page(request: Request):  # <-- FIXED name
+    # 2. Jika token ada tapi TIDAK VALID / EXPIRED, bersihkan cookie-nya lalu tampilkan login
+    response = templates.TemplateResponse("login.html", {"request": request})
     if request.cookies.get("access_token"):
+        response.delete_cookie(
+            key="access_token", httponly=True, samesite="lax"  #  #
+        )
+    return response
+
+@app.get("/login", response_class=HTMLResponse)
+async def view_login_page(
+    request: Request, db: Session = Depends(get_db)
+):  # <-- Tambahkan db Session
+    user = get_current_user_from_cookie(request, db)
+    if user:
         return RedirectResponse(url="/dashboard", status_code=302)
-    return templates.TemplateResponse("login.html", {"request": request})
+
+    response = templates.TemplateResponse("login.html", {"request": request})
+    if request.cookies.get("access_token"):
+        response.delete_cookie(
+            key="access_token", httponly=True, samesite="lax"  #  #[cite: 8]
+        )
+    return response
 
 @app.get("/logout")
 async def logout(response: Response):
-    # Menghapus cookie otentikasi
-    response.delete_cookie(key="access_token")
+    # Menghapus cookie otentikasi[cite: 7]
+    response.delete_cookie(
+        key="access_token",
+        httponly=True,  # <-- Tambahkan proteksi agar sinkron dengan auth.py
+        samesite="lax",  #[cite: 8]  #[cite: 8]
+        secure=False,  #[cite: 8]
+    )
     return RedirectResponse(url="/", status_code=302)
 
 @app.get("/dashboard", response_class=HTMLResponse)
