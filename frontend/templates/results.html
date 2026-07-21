@@ -129,15 +129,27 @@
      BLOK B: TABEL ANALISIS GAP & KONVERSI KOMPETENSI (INTERAKTIF & DINAMIS)
      ========================================================================= -->
 <div class="card" style="margin-bottom: 24px; padding: 24px;">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
     <div>
       <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #0f172a;">
         📊 Perbandingan Kompetensi: Aktual vs Standar Jabatan
       </h3>
       <p style="margin: 4px 0 0 0; font-size: 12.5px; color: #64748b;">
-        Analisis rincian atribut kompetensi untuk kandidat peringkat teratas ({{ candidates[0].employee_name if candidates else 'N/A' }}).
+        Analisis rincian atribut kompetensi dan konversi bobot untuk karyawan yang dipilih.
       </p>
     </div>
+
+    <!-- FITUR BARU: DROPDOWN PILIH KARYAWAN -->
+    {% if candidates and candidates|length > 0 %}
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <label for="employeeSelect" style="font-size: 13px; font-weight: 600; color: #475569;">Pilih Karyawan:</label>
+      <select id="employeeSelect" onchange="renderEmployeeDetails(this.value)" class="form-control" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid #cbd5e1; border-radius: 6px; background-color: #f8fafc; color: #0f172a; cursor: pointer; min-width: 220px;">
+        {% for cand in candidates %}
+          <option value="{{ loop.index0 }}">{{ loop.index }}. {{ cand.employee_name }} ({{ cand.employee_code }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
   </div>
 
   {% if current_role in ['kepala_cabang', 'eksekutif'] %}
@@ -161,43 +173,39 @@
           <th style="padding: 12px; text-align: right;">KONVERSI BOBOT</th>
         </tr>
       </thead>
-      <tbody>
-        {% if candidates and candidates|length > 0 and target_criteria %}
-          {% set top_cand = candidates[0] %}
-          {% for tc in target_criteria %}
-            {% set crit = tc.group_criteria %}
-            {% set gap_val = top_cand.gap_detail.get(crit.id, 0.0) %}
-            
-            <tr style="border-bottom: 1px solid #f1f5f9;">
-              <td style="padding: 12px; font-weight: 500; text-transform: uppercase; color: {% if crit.factor_type.value == 'core' %}#1d4ed8{% else %}#64748b{% endif %};">
-                {{ crit.factor_type.value }}
-              </td>
-              <td style="padding: 12px; font-weight: 500;">{{ crit.name }}</td>
-              <td style="padding: 12px; text-align: center; color: #64748b;">{{ "%.0f"|format(tc.weight * 100) }}%</td>
-              <td style="padding: 12px; text-align: center; font-weight: 600;">{{ crit.target_value }}</td>
-              <td style="padding: 12px; text-align: center;">
-                {% if gap_val >= 4.0 %}
-                  <span style="background: #dcfce7; color: #16a34a; padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 11.5px;">✓ Optimal</span>
-                {% elif gap_val >= 3.0 %}
-                  <span style="background: #fef9c3; color: #854d0e; padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 11.5px;">○ Toleransi</span>
-                {% else %}
-                  <span style="background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 11.5px;">⚠️ Kesenjangan</span>
-                {% endif %}
-              </td>
-              <td style="padding: 12px; text-align: right; font-weight: 700; color: #0f172a;">
-                {{ "%.2f"|format(gap_val) }}
-              </td>
-            </tr>
-          {% endfor %}
-        {% else %}
-          <tr>
-            <td colspan="6" style="text-align: center; padding: 32px; color: #64748b; background: #f8fafc;">
-              Belum ada data kalkulasi rincian kriteria untuk pengajuan ini.
-            </td>
-          </tr>
-        {% endif %}
+      <tbody id="gap-table-body">
+        <!-- Akan diisi secara dinamis oleh JavaScript -->
       </tbody>
     </table>
+  </div>
+</div>
+
+<!-- =========================================================================
+     FITUR BARU: BLOK B2: DETAIL PERHITUNGAN CORE & SECONDARY FACTOR
+     ========================================================================= -->
+<div class="card" style="margin-bottom: 24px; padding: 24px; background: #f8fafc; border: 1px solid #e2e8f0;">
+  <h3 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 600; color: #0f172a;">
+    📈 Rincian Kalkulasi Akhir Karyawan Terpilih
+  </h3>
+  
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 16px;">
+    <div style="background: white; padding: 16px; border-radius: 8px; border: 1px solid #cbd5e1;">
+      <span style="font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase;">Core Factor (CF)</span>
+      <div id="detail-cf" style="font-size: 22px; font-weight: 700; color: #1d4ed8; margin-top: 4px;">0.00</div>
+      <span style="font-size: 11px; color: #94a3b8;">Kompetensi Utama (Bobot 60%)</span>
+    </div>
+
+    <div style="background: white; padding: 16px; border-radius: 8px; border: 1px solid #cbd5e1;">
+      <span style="font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase;">Secondary Factor (SF)</span>
+      <div id="detail-sf" style="font-size: 22px; font-weight: 700; color: #64748b; margin-top: 4px;">0.00</div>
+      <span style="font-size: 11px; color: #94a3b8;">Kompetensi Pendukung (Bobot 40%)</span>
+    </div>
+
+    <div style="background: white; padding: 16px; border-radius: 8px; border: 1px solid #22c55e; background-color: #f0fdf4;">
+      <span style="font-size: 12px; font-weight: 600; color: #16a34a; text-transform: uppercase;">Total Nilai Akhir</span>
+      <div id="detail-total" style="font-size: 22px; font-weight: 700; color: #16a34a; margin-top: 4px;">0.00</div>
+      <span style="font-size: 11px; color: #15803d;">(CF × 60%) + (SF × 40%)</span>
+    </div>
   </div>
 </div>
 
@@ -276,16 +284,87 @@
 {% block extra_js %}
 <script>
 // ============================================================================
-// 0. FITUR SAFETY NET: AUTO-POPULATE DROPDOWN PENGAJUAN
+// DATA STATE UNTUK DROPDOWN & DETIL EVALUASI KARYAWAN
+// ============================================================================
+const criteriaData = {{ target_criteria | default([], true) | tojson }};
+const candidatesData = {{ candidates | default([], true) | tojson }};
+
+function renderEmployeeDetails(index) {
+    const tbody = document.getElementById("gap-table-body");
+    const cand = candidatesData[index];
+    
+    if (!cand || !criteriaData.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 32px; color: #64748b;">Belum ada data kalkulasi rincian kriteria.</td></tr>`;
+        return;
+    }
+
+    let html = "";
+    let totalCF = 0, countCF = 0;
+    let totalSF = 0, countSF = 0;
+
+    criteriaData.forEach(tc => {
+        const crit = tc.group_criteria || {};
+        const critId = crit.id;
+        const gapVal = cand.gap_detail ? (cand.gap_detail[critId] || 0.0) : 0.0;
+        const isCore = (crit.factor_type && (crit.factor_type.value === 'core' || crit.factor_type === 'core'));
+
+        // Hitung CF & SF untuk panel rincian di Blok B2
+        if (isCore) {
+            totalCF += gapVal;
+            countCF++;
+        } else {
+            totalSF += gapVal;
+            countSF++;
+        }
+
+        let badge = `<span style="background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 11.5px;">⚠️ Kesenjangan</span>`;
+        if (gapVal >= 4.0) {
+            badge = `<span style="background: #dcfce7; color: #16a34a; padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 11.5px;">✓ Optimal</span>`;
+        } else if (gapVal >= 3.0) {
+            badge = `<span style="background: #fef9c3; color: #854d0e; padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 11.5px;">○ Toleransi</span>`;
+        }
+
+        html += `
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 12px; font-weight: 500; text-transform: uppercase; color: ${isCore ? '#1d4ed8' : '#64748b'};">
+            ${isCore ? 'core' : 'secondary'}
+          </td>
+          <td style="padding: 12px; font-weight: 500;">${crit.name || '-'}</td>
+          <td style="padding: 12px; text-align: center; color: #64748b;">${Math.round((tc.weight || 0) * 100)}%</td>
+          <td style="padding: 12px; text-align: center; font-weight: 600;">${crit.target_value || '-'}</td>
+          <td style="padding: 12px; text-align: center;">${badge}</td>
+          <td style="padding: 12px; text-align: right; font-weight: 700; color: #0f172a;">
+            ${Number(gapVal).toFixed(2)}
+          </td>
+        </tr>`;
+    });
+
+    tbody.innerHTML = html;
+
+    // Tampilkan rincian skor pada blok perhitungan (CF, SF, Total)
+    const cfScore = countCF > 0 ? (totalCF / countCF) : 0;
+    const sfScore = countSF > 0 ? (totalSF / countSF) : 0;
+    
+    document.getElementById("detail-cf").innerText = cfScore.toFixed(2);
+    document.getElementById("detail-sf").innerText = sfScore.toFixed(2);
+    document.getElementById("detail-total").innerText = Number(cand.final_score || 0).toFixed(2);
+}
+
+// ============================================================================
+// 0. FITUR SAFETY NET & INITIAL RENDER
 // ============================================================================
 document.addEventListener("DOMContentLoaded", async function() {
+    // Render otomatis untuk kandidat peringkat pertama saat halaman dibuka
+    if (candidatesData && candidatesData.length > 0) {
+        renderEmployeeDetails(0);
+    }
+
     const dropdown = document.getElementById("quickSwitchDropdown");
     if (!dropdown) return;
 
     try {
-        // Mengambil daftar pengajuan aktif dari endpoint API standar Pramita Lab
         const response = await fetch("/api/sdm/requests", { credentials: 'same-origin' });
-        if (!response.ok) return; // Silent fail jika endpoint berbeda
+        if (!response.ok) return; 
         
         const data = await response.json();
         const list = Array.isArray(data) ? data : (data.data || []);
@@ -300,7 +379,6 @@ document.addEventListener("DOMContentLoaded", async function() {
                 option.value = reqId;
                 option.innerText = `#SDM-2026-${String(reqId).padStart(3, '0')} (${divName}) [${status}]`;
                 
-                // Pilih otomatis item yang sedang aktif saat ini
                 if (reqId == "{{ request_data.id | default(0) }}") {
                     option.selected = true;
                 }
@@ -378,7 +456,6 @@ async function eksekusiKC(requestId, actionType) {
     try {
         if (btn) { btn.disabled = true; btn.innerText = '⏳ Menerbitkan SK...'; }
 
-        // PERBAIKAN KRITIS ENUM: Gunakan 'approved' (sah di DB), BUKAN 'completed'
         const targetStatus = actionType === 'approve' ? 'approved' : 'under_review';
         const notesPrefix = actionType === 'approve' ? '[PENGESAHAN KC]: ' : '[REVISI KC]: ';
 

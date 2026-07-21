@@ -214,95 +214,6 @@ async def view_requests(
         "search_query": search
     })
 
-@app.get("/results/{request_id}", response_class=HTMLResponse)
-async def view_results_detail(
-    request_id: int,
-    request: Request, 
-    db: Session = Depends(get_db)
-):
-    user = get_current_user_from_cookie(request, db)
-    if not user: return RedirectResponse(url="/", status_code=302)
-    
-    req_data = db.query(SDMRequest).filter(SDMRequest.id == request_id).first()
-    if not req_data:
-        raise HTTPException(status_code=404, detail="Request tidak ditemukan")
-
-    # 1. TARIK KRITERIA STANDAR DIVISI TARGET (Untuk render dinamis Tabel Gap)
-    target_criteria_weights = (
-        db.query(DivisionCriteriaWeight)
-        .join(GroupCriteria)
-        .filter(
-            DivisionCriteriaWeight.division_id == req_data.target_division_id,
-            GroupCriteria.is_active == True
-        )
-        .options(contains_eager(DivisionCriteriaWeight.group_criteria))
-        .all()
-    )
-
-    candidates = (
-        db.query(MatchingResult)
-        .filter(MatchingResult.sdm_request_id == request_id)
-        .options(contains_eager(MatchingResult.employee).contains_eager(Employee.division))
-        .join(Employee)
-        .join(Division)
-        .order_by(MatchingResult.rank)
-        .all()
-    )
-
-    # 2. TRANSFORMATION & INJEKSI GAP DETAIL
-    from backend.services.profile_matching import compute_match, CriteriaInput
-    formatted_candidates = []
-    
-    for cand in candidates:
-        emp = cand.employee
-        # Ekstrak skor kompetensi aktual karyawan dari database
-        emp_scores = {es.criteria_id: es.score for es in emp.scores}
-        
-        inputs = []
-        for dw in target_criteria_weights:
-            gc = dw.group_criteria
-            inputs.append(CriteriaInput(
-                criteria_id=gc.id,
-                employee_score=emp_scores.get(gc.id, 1.0), # Safety fallback ke 1.0 jika belum dinilai
-                target_value=gc.target_value,
-                weight=dw.weight,
-                factor_type=gc.factor_type.value
-            ))
-        
-        # Panggil compute_match murni untuk mendapatkan struktur gap_detail
-        pm_calc = compute_match(emp.id, inputs)
-
-        formatted_candidates.append({
-            "id": emp.id,
-            "employee_name": emp.full_name,
-            "employee_code": emp.employee_code,
-            "employee_role": emp.position,
-            "origin_division": emp.division.name if emp.division else "Internal",
-            "origin_division_code": emp.division.code if emp.division else "-",
-            "ncf_score": cand.ncf_score,
-            "nsf_score": cand.nsf_score,
-            "final_score": cand.final_score,
-            "gap_detail": pm_calc.gap_detail  # <-- MEMUTUS BLIND SPOT: INJEKSI GAP
-        })
-
-    return templates.TemplateResponse("results.html", {
-        "request": request,
-        "current_user": user,
-        "active_page": "results",
-        "request_data": {
-            "id": req_data.id,
-            "code": f"REQ-{req_data.id:04d}",
-            "target_division_name": req_data.target_division.name if req_data.target_division else "Unknown",
-            "quantity": req_data.quantity,  # <-- PATCH BUG #1: KUOTA ASLI DISALURKAN KE UI
-            "status": req_data.status.value if hasattr(req_data.status, 'value') else str(req_data.status)
-        },
-        "candidates": formatted_candidates,
-        "target_criteria": target_criteria_weights,  # <-- INJEKSI KRITERIA STANDAR KE UI
-        "calculated_at": candidates[0].computed_at.strftime('%d %b %Y, %H:%M') if candidates else "Belum dikalkulasi",
-        "ncf_weight": 60,
-        "nsf_weight": 40,
-        "total_criteria": len(target_criteria_weights)
-    })
 
 @app.get("/criteria", response_class=HTMLResponse)
 async def view_criteria(
@@ -437,52 +348,117 @@ async def view_wla(request: Request, db: Session = Depends(get_db)):
     })
 
 @app.get("/results", response_class=HTMLResponse)
-async def view_results_list(  # <-- FIXED BUG-02 (Nama diubah)
+@app.get("/results/{request_id}", response_class=HTMLResponse)
+async def view_results_page(
     request: Request, 
     request_id: Optional[int] = None, 
     db: Session = Depends(get_db)
 ):
     user = get_current_user_from_cookie(request, db)
-    if not user: return RedirectResponse(url="/", status_code=302)
+    if not user: 
+        return RedirectResponse(url="/login", status_code=302)
 
-    request_data = {}
-    candidates = []
+    # 1. STATE KOSONG: Akses /results tanpa ID
+    if not request_id:
+        return templates.TemplateResponse("results.html", {
+            "request": request,
+            "current_user": user,
+            "active_page": "results",
+            "request_data": {},
+            "candidates": [],
+            "target_criteria": []  # List kosong primitif, aman dari error JSON
+        })
 
-    if request_id:
-        # Menarik data pengajuan
-        sdm_req = db.query(SDMRequest).filter(SDMRequest.id == request_id).first()
-        if sdm_req:
-            request_data = {
-                "code": str(sdm_req.id),
-                "target_division_name": sdm_req.target_division.name if sdm_req.target_division else "Tidak Diketahui"
+    # 2. STATE DETAIL: Akses /results/{request_id}
+    req_data = db.query(SDMRequest).filter(SDMRequest.id == request_id).first()
+    if not req_data:
+        raise HTTPException(status_code=404, detail="ID Pengajuan SDM tidak ditemukan.")
+
+    target_criteria_weights = (
+        db.query(DivisionCriteriaWeight)
+        .join(GroupCriteria)
+        .filter(
+            DivisionCriteriaWeight.division_id == req_data.target_division_id,
+            GroupCriteria.is_active == True
+        )
+        .options(contains_eager(DivisionCriteriaWeight.group_criteria))
+        .all()
+    )
+
+    candidates = (
+        db.query(MatchingResult)
+        .filter(MatchingResult.sdm_request_id == request_id)
+        .options(contains_eager(MatchingResult.employee).contains_eager(Employee.division))
+        .join(Employee)
+        .join(Division, isouter=True)
+        .order_by(MatchingResult.rank.asc())
+        .all()
+    )
+
+    from backend.services.profile_matching import compute_match, CriteriaInput
+    formatted_candidates = []
+    
+    for cand in candidates:
+        emp = cand.employee
+        emp_scores = {es.criteria_id: es.score for es in emp.scores} if hasattr(emp, 'scores') else {}
+        
+        inputs = []
+        for dw in target_criteria_weights:
+            gc = dw.group_criteria
+            inputs.append(CriteriaInput(
+                criteria_id=gc.id,
+                employee_score=emp_scores.get(gc.id, 1.0),
+                target_value=gc.target_value,
+                weight=dw.weight,
+                factor_type=gc.factor_type.value if hasattr(gc.factor_type, 'value') else str(gc.factor_type)
+            ))
+        
+        pm_calc = compute_match(emp.id, inputs)
+
+        formatted_candidates.append({
+            "id": emp.id,
+            "employee_name": emp.full_name,
+            "employee_code": emp.employee_code,
+            "employee_role": emp.position,
+            "origin_division": emp.division.name if emp.division else "Internal",
+            "origin_division_code": emp.division.code if emp.division else "-",
+            "ncf_score": float(cand.ncf_score),
+            "nsf_score": float(cand.nsf_score),
+            "final_score": float(cand.final_score),
+            "rank": cand.rank,
+            "gap_detail": pm_calc.gap_detail
+        })
+
+    # --- SERIALISASI MUTLAK OBJEK ORM KE DICTIONARY PRIMITIF ---
+    formatted_criteria = []
+    for tc in target_criteria_weights:
+        formatted_criteria.append({
+            "weight": float(tc.weight),
+            "group_criteria": {
+                "id": int(tc.group_criteria.id),
+                "name": str(tc.group_criteria.name),
+                "target_value": float(tc.group_criteria.target_value) if tc.group_criteria.target_value is not None else 0.0,
+                "factor_type": tc.group_criteria.factor_type.value if hasattr(tc.group_criteria.factor_type, 'value') else str(tc.group_criteria.factor_type)
             }
-
-            # Menarik hasil Profile Matching yang sudah diurutkan berdasarkan peringkat (Rank)
-            results_db = (
-                db.query(MatchingResult)
-                .filter(MatchingResult.sdm_request_id == request_id)
-                .order_by(MatchingResult.rank.asc())
-                .all()
-            )
-
-            # Memformat data untuk dikonsumsi oleh Jinja2 HTML
-            for r in results_db:
-                candidates.append({
-                    "id": r.employee.id,
-                    "employee_name": r.employee.full_name,  # <--- FIXED BUG-14 & BUG-22: Ganti 'name' ke 'employee_name'
-                    "employee_code": r.employee.employee_code,
-                    "ncf_score": round(r.ncf_score, 2),
-                    "nsf_score": round(r.nsf_score, 2),
-                    "final_score": round(r.final_score, 2),
-                    "rank": r.rank
-                })
+        })
 
     return templates.TemplateResponse("results.html", {
-        "request": request, 
-        "current_user": user, 
+        "request": request,
+        "current_user": user,
         "active_page": "results",
-        "request_data": request_data,
-        "candidates": candidates
+        "request_data": {
+            "id": req_data.id,
+            "code": f"REQ-{req_data.id:04d}",
+            "target_division_name": req_data.target_division.name if req_data.target_division else "Unknown",
+            "quantity": req_data.quantity,
+            "status": req_data.status.value if hasattr(req_data.status, 'value') else str(req_data.status)
+        },
+        "candidates": formatted_candidates,
+        "target_criteria": formatted_criteria,  # <-- KUNCI SUKSES: Wajib mengirim formatted_criteria!
+        "calculated_at": candidates[0].computed_at.strftime('%d %b %Y, %H:%M') if candidates and hasattr(candidates[0], 'computed_at') and candidates[0].computed_at else "-",
+        "ncf_weight": 60,
+        "nsf_weight": 40,
+        "total_criteria": len(target_criteria_weights)
     })
     
 @app.get("/constraints", response_class=HTMLResponse)
