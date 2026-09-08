@@ -28,8 +28,9 @@ body {
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 100;
+  z-index: 300;
   border-right: 1px solid rgba(255, 255, 255, 0.05);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-brand {
@@ -198,3 +199,132 @@ body {
   width: 100%;
   margin: 0 auto;
 }
+
+/* ============================================================
+   HAMBURGER BUTTON — hanya muncul di mobile
+   ============================================================ */
+.sidebar-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  padding: 8px;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+}
+
+.sidebar-toggle:hover {
+  background-color: var(--ink-10);
+}
+
+.sidebar-toggle span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background-color: var(--ink);
+  border-radius: 2px;
+  transition: all 0.25s ease;
+  transform-origin: center;
+}
+
+/* Animasi X saat sidebar terbuka */
+body.sidebar-open .sidebar-toggle span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+body.sidebar-open .sidebar-toggle span:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+body.sidebar-open .sidebar-toggle span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ============================================================
+   SIDEBAR OVERLAY — backdrop gelap di belakang sidebar mobile
+   ============================================================ */
+#sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 290;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+
+#sidebar-overlay.active {
+  display: block;
+  opacity: 1;
+}
+
+/* ============================================================
+   MOBILE BREAKPOINT ≤ 768px
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Sidebar slide keluar layar saat tertutup */
+  .sidebar {
+    transform: translateX(-100%);
+    z-index: 300;
+  }
+
+  /* Sidebar slide masuk saat terbuka */
+  body.sidebar-open .sidebar {
+    transform: translateX(0);
+  }
+
+  /* Main konten penuh lebar — tidak ada margin-left sidebar */
+  .main {
+    margin-left: 0;
+  }
+
+  /* Topbar: tampilkan hamburger, kurangi padding */
+  .topbar {
+    padding: 0 16px;
+    gap: 12px;
+    z-index: 200;
+  }
+
+  /* Tampilkan hamburger button */
+  .sidebar-toggle {
+    display: flex;
+  }
+
+  /* Kurangi ukuran judul di topbar */
+  .topbar-title h1 {
+    font-size: 15px;
+  }
+
+  .topbar-title p {
+    display: none; /* Sembunyikan subtitle di mobile untuk space */
+  }
+
+  /* Kurangi padding page-content */
+  .page-content {
+    padding: 16px;
+  }
+
+  /* Prevent overflow scroll horizontal di body saat sidebar open */
+  body.sidebar-open {
+    overflow: hidden;
+  }
+}
+
+/* ============================================================
+   TABLET BREAKPOINT ≤ 1023px (bukan mobile, tapi perlu sedikit adjustment)
+   ============================================================ */
+@media (max-width: 1023px) and (min-width: 769px) {
+  .page-content {
+    padding: 24px;
+  }
+
+  .topbar {
+    padding: 0 24px;
+  }
+}

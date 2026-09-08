@@ -282,6 +282,61 @@ def delete_wla(db: Session, wla_id: int) -> bool:
     db.commit()
     return True
 
+
+# ---------------------------------------------------------------------------
+# Sourcing Surplus (Fitur Underload / Overstaffed → Donor Kandidat)
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class OverstaffedDivisionInfo:
+    """Ringkasan divisi yang berstatus surplus (WLA < 1.0) pada periode terbaru."""
+    division_id: int
+    division_name: str
+    division_code: str
+    wla_value: float
+    headcount: int
+    period: str
+    surplus_capacity: int   # estimasi jumlah orang yang bisa direlokasi
+
+
+def get_active_overstaffed_divisions(db: Session) -> list[OverstaffedDivisionInfo]:
+    """
+    Mengambil seluruh divisi yang saat ini berstatus SURPLUS (is_overstaffed=True)
+    pada rekam WLA terbaru mereka.
+
+    Digunakan sebagai sumber data untuk endpoint /api/wla/overstaffed agar
+    antarmuka wla.html dapat merender tombol "Jadikan Donor" secara data-driven.
+    """
+    all_divisions = db.query(Division).all()
+    result: list[OverstaffedDivisionInfo] = []
+
+    for div in all_divisions:
+        latest_wla = get_latest_wla(db, div.id)
+        if latest_wla and latest_wla.is_overstaffed:
+            # Estimasi jumlah orang yang bisa direlokasi tanpa menyebabkan divisi
+            # jatuh ke underload: hitung selisih headcount vs ideal staf (WLA = 1.0)
+            ideal_headcount = max(
+                1,
+                int(latest_wla.total_workload_hours / HOURS_PER_PERSON_PER_MONTH)
+            )
+            surplus_capacity = max(0, latest_wla.headcount - ideal_headcount)
+
+            result.append(OverstaffedDivisionInfo(
+                division_id=div.id,
+                division_name=div.name,
+                division_code=div.code,
+                wla_value=latest_wla.wla_value,
+                headcount=latest_wla.headcount,
+                period=latest_wla.period,
+                surplus_capacity=surplus_capacity,
+            ))
+
+    # Urutkan dari surplus paling besar (WLA terendah) ke terkecil
+    result.sort(key=lambda x: x.wla_value)
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

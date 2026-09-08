@@ -154,6 +154,11 @@
 
     <div class="main">
       <div class="topbar">
+        <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Buka menu navigasi">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
         <div class="topbar-title">
           <h1 id="topbar-title-text">{% block page_title %}Sistem{% endblock %}</h1>
           <p id="topbar-subtitle-text">{% block page_subtitle %}Pramita Lab — Panel Utama{% endblock %}</p>
@@ -169,6 +174,9 @@
     </div>
 
   </div>
+
+  <!-- Sidebar overlay untuk mobile — klik untuk tutup -->
+  <div id="sidebar-overlay"></div>
 
   <div id="modal-container"></div>
 
@@ -197,5 +205,46 @@
   </script>
   
   {% block extra_js %}{% endblock %}
+
+  <script>
+    /* ── Mobile Sidebar Toggle ─────────────────────────────── */
+    (function () {
+      const toggle   = document.getElementById('sidebar-toggle');
+      const sidebar  = document.querySelector('.sidebar');
+      const overlay  = document.getElementById('sidebar-overlay');
+      const body     = document.body;
+
+      if (!toggle || !sidebar || !overlay) return;
+
+      function openSidebar() {
+        body.classList.add('sidebar-open');
+        overlay.classList.add('active');
+      }
+
+      function closeSidebar() {
+        body.classList.remove('sidebar-open');
+        overlay.classList.remove('active');
+      }
+
+      toggle.addEventListener('click', function () {
+        body.classList.contains('sidebar-open') ? closeSidebar() : openSidebar();
+      });
+
+      /* Klik overlay → tutup sidebar */
+      overlay.addEventListener('click', closeSidebar);
+
+      /* Klik nav item → tutup sidebar otomatis (untuk mobile UX) */
+      sidebar.querySelectorAll('.nav-item').forEach(function (item) {
+        item.addEventListener('click', function () {
+          if (window.innerWidth <= 768) closeSidebar();
+        });
+      });
+
+      /* Resize ke desktop → reset state */
+      window.addEventListener('resize', function () {
+        if (window.innerWidth > 768) closeSidebar();
+      });
+    })();
+  </script>
 </body>
 </html>

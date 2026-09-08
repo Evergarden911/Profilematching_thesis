@@ -25,9 +25,13 @@ from backend.core.security import get_current_user
 # Import API Routers
 from backend.routers import auth, calculation, criteria, divisions, employees, gates, sdm, wla, constraints
 
+
+app = FastAPI()
+
 logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend"
+app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR / "static")), name="static")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -194,6 +198,7 @@ async def view_requests(
     request: Request, 
     status: Optional[str] = None,
     search: Optional[str] = None,
+    donor_division: Optional[int] = None,   # Fitur Surplus: ID divisi overstaffed sebagai donor
     db: Session = Depends(get_db)
 ):
     user = get_current_user_from_cookie(request, db)
@@ -205,13 +210,22 @@ async def view_requests(
         
     reqs = query.order_by(SDMRequest.created_at.desc()).all()
 
+    # Jika mode sourcing surplus aktif, ambil metadata divisi donor untuk tampilan banner
+    donor_division_name = None
+    if donor_division:
+        donor_div = db.query(Division).filter(Division.id == donor_division).first()
+        if donor_div:
+            donor_division_name = donor_div.name
+
     return templates.TemplateResponse("requests.html", {
         "request": request,
         "current_user": user,
         "active_page": "requests",
         "requests": reqs,
         "current_filter": status,
-        "search_query": search
+        "search_query": search,
+        "donor_division_id": donor_division,         # None jika alur reguler
+        "donor_division_name": donor_division_name,  # Nama divisi untuk banner
     })
 
 
@@ -429,6 +443,39 @@ async def view_results_page(
             "gap_detail": pm_calc.gap_detail
         })
 
+    # -----------------------------------------------------------------------
+    # GATE 2 TRANSPARANSI: Kandidat yang diblok oleh WLA Stress-Test (Gate 2)
+    # Tampilkan di results.html dengan alasan human-readable agar HRD tahu
+    # kenapa kandidat tersebut tidak lolos (bukan hilang begitu saja).
+    # -----------------------------------------------------------------------
+    matching_result_employee_ids = {c.employee.id for c in candidates}
+    all_gates = (
+        db.query(RotationGate)
+        .join(Employee)
+        .join(Division, Employee.division_id == Division.id, isouter=True)
+        .filter(
+            RotationGate.sdm_request_id == request_id,
+            RotationGate.is_eligible_for_matching == False,
+        )
+        .options(contains_eager(RotationGate.employee))
+        .all()
+    )
+
+    eliminated_candidates = []
+    for gate in all_gates:
+        emp = gate.employee
+        if emp is None:
+            continue
+        notes = gate.interview_gate_notes or ""
+        # Hanya tampilkan yang memiliki catatan WLA (bukan yang gugur di Gate A/B)
+        if "[WLA" in notes:
+            eliminated_candidates.append({
+                "employee_name": emp.full_name,
+                "employee_code": emp.employee_code,
+                "origin_division": emp.division.name if emp.division else "Internal",
+                "wla_reason": notes,
+            })
+
     # --- SERIALISASI MUTLAK OBJEK ORM KE DICTIONARY PRIMITIF ---
     formatted_criteria = []
     for tc in target_criteria_weights:
@@ -454,6 +501,7 @@ async def view_results_page(
             "status": req_data.status.value if hasattr(req_data.status, 'value') else str(req_data.status)
         },
         "candidates": formatted_candidates,
+        "eliminated_candidates": eliminated_candidates,  # Kandidat gagal Gate 2 (WLA)
         "target_criteria": formatted_criteria,  # <-- KUNCI SUKSES: Wajib mengirim formatted_criteria!
         "calculated_at": candidates[0].computed_at.strftime('%d %b %Y, %H:%M') if candidates and hasattr(candidates[0], 'computed_at') and candidates[0].computed_at else "-",
         "ncf_weight": 60,

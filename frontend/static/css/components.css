@@ -366,3 +366,111 @@ tbody td {
   color: var(--ink-40);
   border-color: var(--border);
 }
+
+/* ============================================================
+   MOBILE RESPONSIVE — Components  (≤ 768px)
+   ============================================================ */
+@media (max-width: 768px) {
+
+  /* ── Form Grid: 2-kolom → 1-kolom ── */
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid .full {
+    grid-column: span 1;
+  }
+
+  /* ── Card padding dikurangi ── */
+  .card-body {
+    padding: 16px;
+  }
+
+  .card-header {
+    padding: 14px 16px;
+  }
+
+  /* ── Modal: muat di layar kecil ── */
+  .modal {
+    max-width: 95vw;
+    margin: 0 8px;
+    max-height: 92vh;
+    overflow-y: auto;
+    border-radius: var(--radius-md);
+  }
+
+  .modal-header {
+    padding: 16px 18px;
+  }
+
+  .modal-body {
+    padding: 18px;
+  }
+
+  .modal-footer {
+    padding: 12px 18px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .modal-footer .btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* ── Tabel: padding dikurangi, lebih padat ── */
+  thead th {
+    padding: 10px 12px;
+    font-size: 10px;
+  }
+
+  tbody td {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  /* Helper: sembunyikan kolom kurang penting di mobile */
+  .hide-mobile {
+    display: none !important;
+  }
+
+  /* ── Tabs: scroll horizontal jika terlalu banyak ── */
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab {
+    white-space: nowrap;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  /* ── Buttons: topbar actions wrap nicely ── */
+  .topbar-actions {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .topbar-actions .btn {
+    font-size: 12.5px;
+    padding: 7px 12px;
+  }
+
+  /* ── Badge: sedikit lebih kecil ── */
+  .badge {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+
+  /* ── Empty state: padding dikurangi ── */
+  .empty-state {
+    padding: 32px 16px;
+  }
+}

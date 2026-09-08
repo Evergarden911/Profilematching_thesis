@@ -32,8 +32,7 @@
     </div>
 
     <!-- TAB 1: AKUN BARU (Split 2-Column Layout) -->
-    <div id="tab-akun" class="tab-pane active"
-        style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
+    <div id="tab-akun" class="tab-pane page-grid-2col active">
 
         <!-- Left Column: Registrasi Form (Sudah Diselaraskan dengan models.py) -->
         <div
@@ -203,7 +202,8 @@
     </div>
 
     <!-- TAB 4: PEMELIHARAAN DB (Maintenance & Audit Logs) -->
-    <div id="tab-db" class="tab-pane" style="display: none; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+    <div id="tab-db" class="tab-pane page-grid-2col" style="display: none;">
+
         <div
             style="background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px;">
             <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: var(--ink);">Backup & Restore Basis

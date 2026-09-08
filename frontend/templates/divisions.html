@@ -19,6 +19,7 @@
     </div>
 </div>
 
+<!-- Modal Tambah / Edit Grup Induk -->
 <div id="groupModal" class="modal-backdrop">
     <div class="modal">
         <div class="modal-header">
@@ -52,6 +53,7 @@
     </div>
 </div>
 
+<!-- Modal Tambah / Edit Sub-Divisi -->
 <div id="divisionModal" class="modal-backdrop">
     <div class="modal">
         <div class="modal-header">
@@ -91,35 +93,92 @@
     </div>
 </div>
 
+<!-- Modal Atur Bobot Kriteria Sub-Divisi (Redesain 2 Tingkat & Ubah Rasio Cepat) -->
 <div id="weightsModal" class="modal-backdrop">
-    <div class="modal" style="max-width: 750px;">
+    <div class="modal" style="max-width: 850px;">
         <div class="modal-header" style="background: var(--ink); color: var(--white);">
             <h5 class="modal-title" style="color: var(--white);">Atur Bobot Kriteria Sub-Divisi</h5>
             <button onclick="closeWeightsModal()" class="modal-close" style="color: var(--white); font-size: 20px;">&times;</button>
         </div>
         <form id="weightsForm">
-            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+            <div class="modal-body" style="max-height: 65vh; overflow-y: auto; padding: 20px;">
                 <input type="hidden" id="weight_div_id">
-                <p style="font-size: 13px; color: var(--ink-60); margin-top: 0; margin-bottom: 20px;">Total akumulasi untuk masing-masing kelompok kriteria wajib bernilai 1.0 (100%).</p>
                 
-                <div style="display: flex; gap: 20px;">
-                    <div style="flex: 1; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px;">
-                        <h6 style="margin: 0 0 12px 0; color: var(--red); font-weight: 600; border-bottom: 1px solid var(--border); padding-bottom: 8px;">Core Factor</h6>
-                        <div id="coreFactorsContainer"></div>
-                        <div style="text-align: right; margin-top: 16px; font-size: 13px; font-weight: 600;">
-                            Total: <span id="coreTotalLabel">0.00</span> / 1.00
+                <!-- Baris Informasi & Tombol Ubah Rasio Level 2 -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 12px 16px; background: var(--surface); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                    <div>
+                        <span style="font-size: 13px; font-weight: 600; color: var(--ink);">Rasio Evaluasi Rumpun Divisi</span>
+                        <div style="font-size: 12px; color: var(--ink-60); margin-top: 2px;">
+                            Individu: <strong id="valIndWeight" style="color: #1D4ED8;">80%</strong> | Tambahan/Tim: <strong id="valAddWeight" style="color: #B45309;">20%</strong>
                         </div>
                     </div>
-                    <div style="flex: 1; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px;">
-                        <h6 style="margin: 0 0 12px 0; color: var(--green); font-weight: 600; border-bottom: 1px solid var(--border); padding-bottom: 8px;">Secondary Factor</h6>
-                        <div id="secondaryFactorsContainer"></div>
-                        <div style="text-align: right; margin-top: 16px; font-size: 13px; font-weight: 600;">
-                            Total: <span id="secondaryTotalLabel">0.00</span> / 1.00
+                    <button type="button" class="btn btn-outline btn-sm" onclick="bukaEditRasioGrup()" style="font-size: 12px; padding: 6px 12px; border-color: #3B82F6; color: #1D4ED8; background: #EFF6FF; font-weight: 600; cursor: pointer;">
+                        ⚙️ Ubah Rasio (80:20)
+                    </button>
+                </div>
+
+                <p style="font-size: 13px; color: var(--ink-60); margin-top: 0; margin-bottom: 16px;">
+                    Atur bobot parameter internal. Total akumulasi bobot untuk masing-masing rumpun container wajib bernilai <strong>1.0 (100%)</strong>.
+                </p>
+                
+                <!-- Grid 2 Kolom Kriteria Utama -->
+                <div class="page-grid-2col" style="gap: 20px;">
+                    
+                    <!-- KOLOM KIRI: KINERJA INDIVIDU -->
+                    <div style="border: 1px solid #BFDBFE; border-radius: var(--radius-sm); padding: 16px; background: #F8FAFC; display: flex; flex-direction: column; justify-content: space-between;">
+                        <div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid #3B82F6;">
+                                <h6 style="margin: 0; font-size: 13.5px; font-weight: 700; color: #1E3A8A;">KINERJA INDIVIDU</h6>
+                                <span class="badge" style="background: #DBEAFE; color: #1D4ED8; font-weight: 700; font-size: 11px;" id="badgeIndWeight">80%</span>
+                            </div>
+                            
+                            <!-- Section CF Individu -->
+                            <div style="margin-bottom: 14px;">
+                                <span style="display: inline-block; font-size: 11px; font-weight: 700; color: var(--red); text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Core Factor (CF)</span>
+                                <div id="containerIndividuCF"></div>
+                            </div>
+                            
+                            <!-- Section SF Individu -->
+                            <div>
+                                <span style="display: inline-block; font-size: 11px; font-weight: 700; color: #065F46; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Secondary Factor (SF)</span>
+                                <div id="containerIndividuSF"></div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 16px; padding-top: 10px; border-top: 1px dashed #CBD5E1; text-align: right; font-size: 12.5px; font-weight: 600;">
+                            Total Bobot: <span id="labelTotalIndividu" style="color: var(--red);">0.00</span> / 1.00
                         </div>
                     </div>
+
+                    <!-- KOLOM KANAN: KINERJA TAMBAHAN -->
+                    <div style="border: 1px solid #FDE68A; border-radius: var(--radius-sm); padding: 16px; background: #FFFBEB; display: flex; flex-direction: column; justify-content: space-between;">
+                        <div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid #F59E0B;">
+                                <h6 style="margin: 0; font-size: 13.5px; font-weight: 700; color: #78350F;">KINERJA TAMBAHAN / TIM</h6>
+                                <span class="badge" style="background: #FEF3C7; color: #B45309; font-weight: 700; font-size: 11px;" id="badgeAddWeight">20%</span>
+                            </div>
+                            
+                            <!-- Section CF Tambahan -->
+                            <div style="margin-bottom: 14px;">
+                                <span style="display: inline-block; font-size: 11px; font-weight: 700; color: var(--red); text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Core Factor (CF)</span>
+                                <div id="containerTambahanCF"></div>
+                            </div>
+                            
+                            <!-- Section SF Tambahan -->
+                            <div>
+                                <span style="display: inline-block; font-size: 11px; font-weight: 700; color: #065F46; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Secondary Factor (SF)</span>
+                                <div id="containerTambahanSF"></div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 16px; padding-top: 10px; border-top: 1px dashed #FCD34D; text-align: right; font-size: 12.5px; font-weight: 600;">
+                            Total Bobot: <span id="labelTotalTambahan" style="color: var(--red);">0.00</span> / 1.00
+                        </div>
+                    </div>
+
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" style="padding: 16px 20px; background: #F9FAFB; border-top: 1px solid var(--border);">
                 <button type="button" class="btn btn-outline" onclick="closeWeightsModal()">Batal</button>
                 <button type="submit" id="btnSaveWeights" class="btn btn-success">Terapkan Bobot</button>
             </div>
@@ -282,12 +341,11 @@
         } catch (error) { alert(error.message); }
     }
 
-    // --- KONTROL CRUD SUB-DIVISI (Contextual) ---
+    // --- KONTROL CRUD SUB-DIVISI ---
     function openDivisionModal(groupId, groupName) {
         document.getElementById('divisionForm').reset();
         document.getElementById('div_id').value = '';
         
-        // Pola Contextual: Atur ID grup tersembunyi
         document.getElementById('div_group_id').value = groupId;
         document.getElementById('div_group_name_display').innerText = groupName;
         
@@ -320,7 +378,7 @@
         const payload = {
             code: document.getElementById('div_code').value,
             name: document.getElementById('div_name').value,
-            group_id: parseInt(document.getElementById('div_group_id').value), // Diambil dari hidden input
+            group_id: parseInt(document.getElementById('div_group_id').value),
             description: document.getElementById('div_desc').value
         };
 
@@ -353,18 +411,37 @@
         } catch (error) { alert(error.message); }
     }
 
-    // --- MANAJEMEN BOBOT KRITERIA (Sama seperti sebelumnya) ---
+    // --- MANAJEMEN BOBOT KRITERIA & RASIO LEVEL 2 ---
+    let currentActiveGroupId = null;
 
-    async function closeWeightsModal() {
-            document.getElementById('weightsModal').classList.remove('open');
-        }
+    function closeWeightsModal() {
+        document.getElementById('weightsModal').classList.remove('open');
+    }
 
     async function configureWeights(divisionId, groupId) {
         document.getElementById('weight_div_id').value = divisionId;
-        const coreCont = document.getElementById('coreFactorsContainer');
-        const secCont = document.getElementById('secondaryFactorsContainer');
+        currentActiveGroupId = groupId;
+        
+        const contIndCF = document.getElementById('containerIndividuCF');
+        const contIndSF = document.getElementById('containerIndividuSF');
+        const contAddCF = document.getElementById('containerTambahanCF');
+        const contAddSF = document.getElementById('containerTambahanSF');
         
         try {
+            // 1. Ambil Data Rumpun Divisi untuk menampilkan rasio 80:20 saat ini
+            const resGroup = await fetch(`/api/divisions/groups/${groupId}`);
+            if (resGroup.ok) {
+                const groupData = await resGroup.json();
+                const indPercent = Math.round((groupData.individual_weight !== undefined ? groupData.individual_weight : 0.8) * 100);
+                const addPercent = Math.round((groupData.additional_weight !== undefined ? groupData.additional_weight : 0.2) * 100);
+                
+                document.getElementById('valIndWeight').innerText = `${indPercent}%`;
+                document.getElementById('valAddWeight').innerText = `${addPercent}%`;
+                document.getElementById('badgeIndWeight').innerText = `${indPercent}%`;
+                document.getElementById('badgeAddWeight').innerText = `${addPercent}%`;
+            }
+
+            // 2. Ambil Daftar Kriteria dan Bobot Eksisting
             const resCriteria = await fetch(`/api/divisions/groups/${groupId}/criteria`);
             const criteriaList = await resCriteria.json();
             
@@ -372,43 +449,128 @@
             const existingWeights = resWeights.ok ? await resWeights.json() : [];
             const weightMap = new Map(existingWeights.map(w => [w.group_criteria_id, w.weight]));
 
-            coreCont.innerHTML = ''; secCont.innerHTML = '';
+            contIndCF.innerHTML = ''; contIndSF.innerHTML = '';
+            contAddCF.innerHTML = ''; contAddSF.innerHTML = '';
 
             criteriaList.forEach(c => {
                 const weight = weightMap.get(c.id) || 0.0;
+                const isAdditional = (c.container_type === 'additional' || c.container_type === 'Kinerja Tambahan');
+                const containerType = isAdditional ? 'additional' : 'individual';
+                
                 const html = `
-                    <div style="background: var(--surface); padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px;">
+                    <div style="background: var(--white); padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                         <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--ink);">${c.name}</label>
-                        <input type="number" class="weight-input" data-id="${c.id}" data-type="${c.factor_type}" 
+                        <input type="number" class="weight-input" 
+                               data-id="${c.id}" 
+                               data-container="${containerType}" 
+                               data-factor="${c.factor_type}" 
                                step="0.05" min="0" max="1" value="${weight}" onchange="calcWeights()"
-                               style="width: 100%; padding: 6px; border: 1px solid var(--border-mid); border-radius: var(--radius-sm);">
+                               style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-mid); border-radius: 4px; font-size: 13px; outline: none;">
                     </div>
                 `;
-                if (c.factor_type === 'core') coreCont.insertAdjacentHTML('beforeend', html);
-                else secCont.insertAdjacentHTML('beforeend', html);
+                
+                if (!isAdditional) {
+                    if (c.factor_type === 'core') contIndCF.insertAdjacentHTML('beforeend', html);
+                    else contIndSF.insertAdjacentHTML('beforeend', html);
+                } else {
+                    if (c.factor_type === 'core') contAddCF.insertAdjacentHTML('beforeend', html);
+                    else contAddSF.insertAdjacentHTML('beforeend', html);
+                }
             });
+
+            const emptyMsg = `<div style="font-size: 11.5px; color: var(--ink-60); font-style: italic; padding: 4px 0;">Belum ada parameter.</div>`;
+            if (!contIndCF.innerHTML) contIndCF.innerHTML = emptyMsg;
+            if (!contIndSF.innerHTML) contIndSF.innerHTML = emptyMsg;
+            if (!contAddCF.innerHTML) contAddCF.innerHTML = emptyMsg;
+            if (!contAddSF.innerHTML) contAddSF.innerHTML = emptyMsg;
 
             document.getElementById('weightsModal').classList.add('open');
             calcWeights();
-        } catch (error) { alert("Gagal mengambil daftar kriteria."); }
+        } catch (error) { 
+            alert("Gagal memuat parameter kriteria dari peladen."); 
+            console.error(error);
+        }
     }
 
     function calcWeights() {
-        let core = 0.0, sec = 0.0;
-        document.querySelectorAll('.weight-input').forEach(i => {
-            const v = parseFloat(i.value) || 0;
-            i.dataset.type === 'core' ? core += v : sec += v;
-        });
-        document.getElementById('coreTotalLabel').innerText = core.toFixed(2);
-        document.getElementById('secondaryTotalLabel').innerText = sec.toFixed(2);
+        let totalInd = 0.0, totalAdd = 0.0;
         
-        document.getElementById('coreTotalLabel').style.color = Math.abs(core - 1.0) < 1e-5 ? 'var(--green)' : 'var(--red)';
-        document.getElementById('secondaryTotalLabel').style.color = Math.abs(sec - 1.0) < 1e-5 ? 'var(--green)' : 'var(--red)';
+        document.querySelectorAll('.weight-input').forEach(i => {
+            const val = parseFloat(i.value) || 0;
+            if (i.dataset.container === 'individual') totalInd += val;
+            else if (i.dataset.container === 'additional') totalAdd += val;
+        });
+
+        const lblInd = document.getElementById('labelTotalIndividu');
+        const lblAdd = document.getElementById('labelTotalTambahan');
+
+        lblInd.innerText = totalInd.toFixed(2);
+        lblAdd.innerText = totalAdd.toFixed(2);
+        
+        lblInd.style.color = Math.abs(totalInd - 1.0) < 1e-4 ? 'var(--green)' : 'var(--red)';
+        lblAdd.style.color = Math.abs(totalAdd - 1.0) < 1e-4 ? 'var(--green)' : 'var(--red)';
+    }
+
+    async function bukaEditRasioGrup() {
+        if (!currentActiveGroupId) return;
+
+        let currentInd = parseInt(document.getElementById('valIndWeight').innerText) || 80;
+        let inputInd = prompt(
+            "MASUKKAN PERSENTASE KINERJA INDIVIDU (1 - 99):\n\n" +
+            "*Catatan: Kinerja Tambahan / Tim akan otomatis menyesuaikan sisanya menjadi 100%.", 
+            currentInd
+        );
+
+        if (inputInd === null || inputInd.trim() === "") return;
+
+        let indVal = parseInt(inputInd);
+        if (isNaN(indVal) || indVal < 1 || indVal > 99) {
+            alert("Persentase tidak valid! Harap masukkan angka bulat antara 1 sampai 99.");
+            return;
+        }
+
+        let addVal = 100 - indVal;
+
+        if (!confirm(`Terapkan rasio evaluasi baru untuk rumpun divisi ini?\n\n• Kinerja Individu: ${indVal}%\n• Kinerja Tambahan / Tim: ${addVal}%`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/divisions/groups/${currentActiveGroupId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    individual_weight: indVal / 100, 
+                    additional_weight: addVal / 100 
+                })
+            });
+
+            if (!response.ok) throw new Error("Peladen menolak pembaruan rasio evaluasi.");
+
+            document.getElementById('valIndWeight').innerText = `${indVal}%`;
+            document.getElementById('valAddWeight').innerText = `${addVal}%`;
+            document.getElementById('badgeIndWeight').innerText = `${indVal}%`;
+            document.getElementById('badgeAddWeight').innerText = `${addVal}%`;
+
+            if (window.App) App.showToast("Rasio bobot evaluasi berhasil diperbarui!", "success");
+            else alert("Sukses: Rasio bobot baru berhasil diterapkan!");
+        } catch (error) {
+            alert("Gagal memperbarui rasio:\n" + error.message);
+        }
     }
 
     document.getElementById('weightsForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const divId = document.getElementById('weight_div_id').value;
+        
+        const totalInd = parseFloat(document.getElementById('labelTotalIndividu').innerText);
+        const totalAdd = parseFloat(document.getElementById('labelTotalTambahan').innerText);
+
+        if (Math.abs(totalInd - 1.0) > 1e-4 || Math.abs(totalAdd - 1.0) > 1e-4) {
+            alert("Peringatan: Total akumulasi bobot untuk masing-masing kolom (Kinerja Individu dan Kinerja Tambahan) wajib bernilai tepat 1.00 (100%).");
+            return;
+        }
+
         const payload = Array.from(document.querySelectorAll('.weight-input')).map(i => ({
             division_id: parseInt(divId),
             group_criteria_id: parseInt(i.dataset.id),
@@ -421,7 +583,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            if (!response.ok) throw new Error('Gagal menyimpan bobot. Pastikan total per kelompok bernilai tepat 1.0');
+            if (!response.ok) throw new Error('Gagal menyimpan bobot parameter ke basis data.');
             
             closeWeightsModal();
             if(window.App) App.showToast('Konfigurasi bobot berhasil disimpan.', 'success');

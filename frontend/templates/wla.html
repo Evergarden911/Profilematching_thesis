@@ -41,7 +41,8 @@ endblock %}
      Form ini selalu ditampilkan — tombol Simpan dikondisikan secara terpisah
      ========================================================================= -->
 {% if can_calculate or can_edit %}
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+<div class="wla-calc-grid">
+
 
   <!-- KOLOM KIRI: FORM INPUT BEBAN KERJA -->
   <div class="card"
@@ -69,7 +70,7 @@ endblock %}
         </select>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+      <div class="form-grid-2col">
         <div class="form-group">
           <label
             style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 6px;">Total
@@ -221,6 +222,8 @@ endblock %}
   const canShowActionCol = canEditWLA || canRequestSDM;
 
   let divisionsMap = {};
+  // Map division_id → {surplus_capacity, wla_percent} dari endpoint /api/wla/overstaffed
+  let overstaffedMap = {};
 
   document.addEventListener("DOMContentLoaded", async () => {
     // 1. Identifikasi kebutuhan DOM secara mandiri (Defensive Programming)
@@ -234,13 +237,46 @@ endblock %}
         // Jika elemen tidak ada, cukup tarik kamus metadata
         await fetchDivisionsMapOnly();
       }
+      // 3. Muat peta divisi surplus untuk enrich tombol donor
+      if (canRequestSDM || canEditWLA) {
+        await loadOverstaffedMap();
+      }
     } catch (error) {
       console.error("[INIT ERROR] Gagal mempersiapkan data divisi:", error);
     } finally {
-      // 3. Pastikan tabel riwayat tetap dimuat terlepas dari status dropdown (Fault Tolerance)
+      // 4. Pastikan tabel riwayat tetap dimuat terlepas dari status dropdown (Fault Tolerance)
       await loadWLAData();
     }
   });
+
+  // ─── Fitur Surplus: Muat Map Divisi Overstaffed ───────────────────────────
+
+  async function loadOverstaffedMap() {
+    try {
+      const res = await fetch('/api/wla/overstaffed', { credentials: 'same-origin' });
+      if (!res.ok) return; // Bukan admin/HRD → 403, abaikan dengan senyap
+      const data = await res.json();
+      data.forEach(item => {
+        overstaffedMap[item.division_id] = {
+          surplus_capacity: item.surplus_capacity,
+          wla_percent: item.wla_percent,
+        };
+      });
+    } catch (e) {
+      console.warn("[Surplus Map] Gagal memuat peta divisi overstaffed:", e);
+    }
+  }
+
+  /**
+   * Menginisiasi Mode Sourcing Surplus:
+   * Menampilkan konfirmasi lalu redirect ke /requests?donor_division={id}
+   * agar halaman requests.html tahu bahwa ini alur surplus (filter kandidat absolut).
+   */
+  function inisiasiModeSourcing(divisionId, divisionName, surplusCount) {
+    const pesan = `Divisi "${divisionName}" terdeteksi memiliki surplus tenaga kerja (estimasi ~${surplusCount} orang dapat direlokasi).\n\nMembuka halaman Pengajuan Mutasi dalam Mode Sourcing Surplus.\nKandidat akan DIKUNCI hanya dari divisi ini.\n\nLanjutkan?`;
+    if (!confirm(pesan)) return;
+    window.location.href = `/requests?donor_division=${divisionId}`;
+  }
 
   async function fetchDivisionsMapOnly() {
     try {
@@ -263,8 +299,8 @@ endblock %}
 
       divs.forEach(d => {
         divisionsMap[d.id] = { name: d.name, code: d.code };
-        const staffCount = (d.employees && d.employees.length > 0) ? d.employees.length : (d.employee_count || 1);
-        select.innerHTML += `<option value="${d.id}" data-staff="${staffCount}">${d.name} (${d.code})</option>`;
+       // Hapus logika staffCount yang cacat di sini
+        select.innerHTML += `<option value="${d.id}">${d.name} (${d.code})</option>`;
       });
     } catch (e) {
       console.error("Gagal memuat daftar divisi:", e);
@@ -273,16 +309,40 @@ endblock %}
     }
   }
 
-  function tarikPersonelAktif() {
-    const select = document.getElementById('wla_division_id');
-    if (!select) return;
-    const selectedOpt = select.options[select.selectedIndex];
-    const staffCount = selectedOpt ? selectedOpt.getAttribute('data-staff') : 1;
+  async function tarikPersonelAktif() {
+  const select = document.getElementById('wla_division_id');
+  const staffInput = document.getElementById('wla_staff_count');
+  
+  if (!select || !staffInput) return;
+  
+  const divisionId = select.value;
 
-    const staffInput = document.getElementById('wla_staff_count');
-    if (staffInput) staffInput.value = staffCount || 1;
-    liveCalculate();
+  if (!divisionId) {
+      staffInput.value = 1;
+      liveCalculate();
+      return;
   }
+
+  try {
+      // Fetch langsung ke endpoint karyawan berdasarkan divisi yang dipilih
+      const res = await fetch(`/api/employees/?division_id=${divisionId}`, { credentials: 'same-origin' });
+      
+      if (!res.ok) throw new Error("Gagal menarik data personel.");
+      
+      const employees = await res.json();
+      
+      // Hitung jumlah riil (endpoint backend sudah menjamin is_active == True)
+      const realStaffCount = employees.length > 0 ? employees.length : 1; 
+      
+      staffInput.value = realStaffCount;
+      liveCalculate();
+      
+  } catch (error) {
+      console.error("[WLA Error]:", error);
+      staffInput.value = 1; // Fallback darurat jika server error
+      liveCalculate();
+  }
+}
 
   function liveCalculate() {
     // Kalkulasi live tersedia untuk semua role (tidak diblokir oleh canEditWLA)
@@ -396,8 +456,19 @@ endblock %}
           // kepala_cabang: tidak ada actionHtml, kolom aksi tidak muncul
         } else if (wlaVal < 0.80) {
           badgeHtml = `<span style="background: #fef3c7; color: #d97706; font-weight: 700; font-size: 11px; padding: 4px 10px; border-radius: 12px;">SURPLUS (${ratioPercent}%)</span>`;
-          if (canEditWLA) {
-            actionHtml = `<span style="color: #64748b; font-size: 12px; font-style: italic;">Siap menjadi donor staf</span>`;
+          if (canRequestSDM || canEditWLA) {
+            // FITUR SURPLUS: Tombol "Jadikan Donor" yang menginisiasi alur sourcing
+            // Redirect ke /requests?donor_division=ID agar kandidat difilter ke divisi ini
+            const surplusCount = overstaffedMap[row.division_id]?.surplus_capacity || '?';
+            actionHtml = `
+              <button type="button"
+                onclick="inisiasiModeSourcing(${row.division_id}, '${divName.replace(/'/g, "\\'")}', ${surplusCount})"
+                class="btn btn-sm"
+                title="Klik untuk membuka halaman pengajuan dengan kandidat dari divisi ini"
+                style="background: #d97706; color: white; font-size: 11.5px; font-weight: 600; padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer; white-space: nowrap;">
+                ↗ Jadikan Donor (~${surplusCount} org)
+              </button>
+            `;
           }
         } else {
           badgeHtml = `<span style="background: #dcfce7; color: #16a34a; font-weight: 700; font-size: 11px; padding: 4px 10px; border-radius: 12px;">OPTIMAL (${ratioPercent}%)</span>`;

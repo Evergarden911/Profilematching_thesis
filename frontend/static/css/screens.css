@@ -100,3 +100,139 @@
   background-color: var(--border-mid);
   z-index: 1;
 }
+
+/* ── WLA Kalkulasi Grid ────────────────────────────────────── */
+/* Menggantikan inline style grid di wla.html agar bisa di-override mobile */
+.wla-calc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+/* ── Form 2-Column Helper ──────────────────────────────────── */
+/* Dipakai di form modal (employees, requests, criteria, dll) */
+.form-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* ── Page-Level 2-Column Layout (admin, dll) ────────────────── */
+.page-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* ── Login Page ────────────────────────────────────────────── */
+/* Rule tambahan untuk elemen login yang pakai class CSS */
+.login-left {
+  flex: 1;
+  background-color: #0f172a;
+  color: #ffffff;
+  padding: 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.login-right {
+  flex: 1;
+  background-color: #ffffff;
+  padding: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================================
+   TABLET BREAKPOINT ≤ 1023px
+   ============================================================ */
+@media (max-width: 1023px) {
+  .dashboard-layout-split {
+    grid-template-columns: 1fr;
+  }
+
+  /* Stats grid: 4-kolom → 2-kolom di tablet */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  /* WLA: dua kolom → satu kolom di tablet */
+  .wla-calc-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Form/page 2-col: → 1 kolom di tablet */
+  .form-grid-2col,
+  .page-grid-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   MOBILE BREAKPOINT ≤ 768px
+   ============================================================ */
+@media (max-width: 768px) {
+
+  /* ── Stats Grid: 2-kolom di mobile ── */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-value {
+    font-size: 24px;
+  }
+
+  /* ── Login: sembunyikan panel kiri, form full width ── */
+  .login-left {
+    display: none;
+  }
+
+  .login-right {
+    flex: 1;
+    padding: 32px 24px;
+  }
+
+  /* Fallback untuk login yang pakai inline style — override via container class */
+  .login-container {
+    flex-direction: column;
+  }
+
+  /* ── WLA: satu kolom di mobile ── */
+  .wla-calc-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  /* ── Form & page grids: 1 kolom di mobile ── */
+  .form-grid-2col,
+  .page-grid-2col {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* ── Dashboard layout split sudah di-handle oleh 1024px rule ── */
+
+  /* ── Stat label: sedikit lebih kecil ── */
+  .stat-label {
+    font-size: 10px;
+  }
+
+  /* ── Timeline: tighter ── */
+  .timeline-container {
+    gap: 14px;
+  }
+}
+

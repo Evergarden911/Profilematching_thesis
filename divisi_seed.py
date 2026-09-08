@@ -1,11 +1,16 @@
 """
-seed_org_and_criteria.py — Seeder Master Terintegrasi Pramita Lab
-=================================================================
+seed_org_and_criteria.py — Seeder Master Terintegrasi Pramita Lab (REVISI)
+==========================================================================
 Menyuntikkan data:
 1. Rumpun Divisi Besar (DivisionGroup) beserta bobot standar CF/SF
 2. Sub-Divisi Aktual / Stasiun Kerja (Division) beserta kode unik & budget awal
 3. Kriteria Penilaian (GroupCriteria) sesuai 5 Rumpun Divisi dari Excel
 4. Bobot Kriteria per Sub-Divisi (DivisionCriteriaWeight)
+
+PERBAIKAN:
+- Menambahkan parameter `container_type` ("individual" atau "additional").
+- Normalisasi bobot matematis: Total Kinerja Individu = 1.0, Total Kinerja Tambahan = 1.0.
+- Kriteria spesifik divisi disesuaikan dengan konteks operasional nyata (bukan sekadar copy-paste).
 """
 
 import sys
@@ -30,7 +35,6 @@ def seed_master(db: Session):
     # ==========================================
     # 1. DATA MASTER: STRUKTUR ORGANISASI
     # ==========================================
-    # Format: "NAMA GRUP": {"code": "KODE_GRUP", "divisions": [ ("Nama Sub-Divisi", "KODE_SUB"), ... ]}
     org_data = {
         "LABORATORIUM": {
             "code": "LAB",
@@ -105,98 +109,79 @@ def seed_master(db: Session):
     }
 
     # ==========================================
-    # 2. DATA MASTER: KRITERIA (FROM EXCEL)
+    # 2. DATA MASTER: KRITERIA (DIPERBAIKI)
     # ==========================================
+    # Format Baru: ("Nama", Target, FactorType, Bobot, "container_type")
+    # Syarat Mutlak: Total Bobot Kinerja Individu = 1.0, Total Kinerja Tambahan = 1.0
     criteria_data = {
         "LABORATORIUM": [
-            ("Index Kepuasan Pelanggan", 5.0, FactorType.core, 0.05),
-            ("Turn Around Time proses Lab IVD", 5.0, FactorType.core, 0.05),
-            ("OTP Hasil Pemeriksaan Lab IVD", 5.0, FactorType.core, 0.10),
-            ("Kuantitas pekerjaan analisa", 5.0, FactorType.core, 0.10),
-            ("Kesesuaian penyimpanan spesimen", 5.0, FactorType.core, 0.05),
-            ("Kepatuhan pelaporan hasil kritis", 5.0, FactorType.core, 0.05),
-            ("Kepatuhan Identifikasi pasien/spesimen", 5.0, FactorType.core, 0.05),
-            ("Tingkat ketidaksesuaian spesimen", 1.0, FactorType.core, 0.05),
-            ("Kejadian sample/spesimen hilang atau rusak", 1.0, FactorType.core, 0.05),
-            ("Pengulangan pemeriksaan bahan kontrol", 3.0, FactorType.core, 0.05),
-            ("Tingkat Ketidaksesuaian hasil pemeriksaan", 1.0, FactorType.core, 0.10),
-            ("Tingkat realisasi program maintenance alat", 5.0, FactorType.core, 0.05),
-            ("Pengulangan pemeriksaan", 4.0, FactorType.core, 0.05),
-            ("Pencapaian waktu pembelajaran", 1.0, FactorType.secondary, 0.05),
-            ("Realisasi kegiatan control lingkungan", 5.0, FactorType.secondary, 0.02),
-            ("Kepatuhan kebersihan tangan", 5.0, FactorType.secondary, 0.03),
-            ("Kepatuhan penggunaan APD", 5.0, FactorType.secondary, 0.04),
-            ("Tingkat ketidaksesuaian proses administratif", 1.0, FactorType.secondary, 0.03),
-            ("Kesesuaian pemilahan limbah padat", 5.0, FactorType.secondary, 0.03),
+            # KINERJA INDIVIDU (Total = 1.0)
+            ("Index Kepuasan Pelanggan", 5.0, FactorType.core, 0.15, "individual"),
+            ("Turn Around Time proses Lab IVD", 5.0, FactorType.core, 0.15, "individual"),
+            ("OTP Hasil Pemeriksaan Lab IVD", 5.0, FactorType.core, 0.20, "individual"),
+            ("Kuantitas pekerjaan analisa", 5.0, FactorType.core, 0.10, "individual"),
+            ("Kesesuaian penyimpanan spesimen", 5.0, FactorType.core, 0.10, "individual"),
+            ("Tingkat Ketidaksesuaian hasil pemeriksaan", 1.0, FactorType.core, 0.10, "individual"),
+            ("Pencapaian waktu pembelajaran", 1.0, FactorType.secondary, 0.10, "individual"),
+            ("Kepatuhan penggunaan APD", 5.0, FactorType.secondary, 0.10, "individual"),
+            
+            # KINERJA TAMBAHAN / TIM (Total = 1.0)
+            ("Realisasi kegiatan control lingkungan", 5.0, FactorType.core, 0.40, "additional"),
+            ("Kesesuaian pemilahan limbah padat", 5.0, FactorType.core, 0.30, "additional"),
+            ("Inisiatif Pemeliharaan Alat Lab", 5.0, FactorType.secondary, 0.30, "additional"),
         ],
         "ELEKTRODIAGNOSTIK": [
-            ("TTR Hasil pemeriksaan Elektrodiagnostik", 5.0, FactorType.core, 0.05),
-            ("Pencapaian target waktu tunggu walk-in", 5.0, FactorType.core, 0.05),
-            ("Waktu tunggu pelayanan elektrodiagnostik walk-in", 5.0, FactorType.core, 0.05),
-            ("OTP Hasil Elektrodiagnostik", 5.0, FactorType.core, 0.05),
-            ("Performance layanan pelanggan individual", 5.0, FactorType.core, 0.04),
-            ("TTR pengambilan spesimen", 5.0, FactorType.core, 0.04),
-            ("Tingkat kesesuaian output verifikasi spesimen", 5.0, FactorType.core, 0.04),
-            ("TTR verifikasi spesimen", 5.0, FactorType.core, 0.04),
-            ("TAT waktu tunggu Pemeriksaan ECG", 5.0, FactorType.core, 0.04),
-            ("TAT waktu tunggu Pemeriksaan Audiogram", 5.0, FactorType.core, 0.04),
-            ("TAT waktu tunggu Pemeriksaan Spirometri", 5.0, FactorType.core, 0.04),
-            ("Kuantitas pemeriksaan ECG", 5.0, FactorType.core, 0.04),
-            ("Kuantitas pemeriksaan Audiogram", 5.0, FactorType.core, 0.04),
-            ("Kuantitas pemeriksaan Spirometri", 5.0, FactorType.core, 0.04),
-            ("TAT proses elektrodiagnostik", 5.0, FactorType.core, 0.04),
-            ("Tingkat ketidaksesuaian imaging/rekaman", 1.0, FactorType.core, 0.04),
-            ("Pengulangan pemeriksaan", 1.0, FactorType.core, 0.04),
-            ("Rata-rata tingkat utilitas alat Elektrodiagnostik", 5.0, FactorType.core, 0.04),
-            ("Pencapaian waktu pembelajaran", 1.0, FactorType.secondary, 0.02),
-            ("Realisasi kegiatan pemeliharaan alat", 5.0, FactorType.secondary, 0.04),
-            ("Realisasi kegiatan control lingkungan", 5.0, FactorType.secondary, 0.04),
-            ("Kuantitas pendampingan treadmill", 5.0, FactorType.secondary, 0.04),
-            ("Kuantitas pendampingan Echocardiografi", 5.0, FactorType.secondary, 0.04),
-            ("Kepatuhan kebersihan tangan", 5.0, FactorType.secondary, 0.02),
-            ("Kepatuhan penggunaan APD", 5.0, FactorType.secondary, 0.02),
-            ("Kesesuaian pemilahan limbah padat", 5.0, FactorType.secondary, 0.02),
+            # KINERJA INDIVIDU (Total = 1.0)
+            ("TTR Hasil pemeriksaan Elektrodiagnostik", 5.0, FactorType.core, 0.20, "individual"),
+            ("Pencapaian target waktu tunggu walk-in", 5.0, FactorType.core, 0.20, "individual"),
+            ("Kuantitas pemeriksaan terpadu", 5.0, FactorType.core, 0.20, "individual"),
+            ("Tingkat ketidaksesuaian imaging/rekaman", 1.0, FactorType.core, 0.15, "individual"),
+            ("Pengulangan pemeriksaan", 1.0, FactorType.core, 0.15, "individual"),
+            ("Pencapaian waktu pembelajaran", 1.0, FactorType.secondary, 0.10, "individual"),
+            
+            # KINERJA TAMBAHAN / TIM (Total = 1.0)
+            ("Realisasi kegiatan pemeliharaan alat", 5.0, FactorType.core, 0.40, "additional"),
+            ("Kuantitas pendampingan medis", 5.0, FactorType.core, 0.40, "additional"),
+            ("Kepatuhan kebersihan & APD", 5.0, FactorType.secondary, 0.20, "additional"),
         ],
         "CUSTOMER SERVICE": [
-            ("Index Kepuasan Pelanggan", 5.0, FactorType.core, 0.05),
-            ("Turn Around Time proses Lab IVD", 5.0, FactorType.core, 0.05),
-            ("OTP Hasil Pemeriksaan Lab IVD", 5.0, FactorType.core, 0.10),
-            ("Kuantitas pekerjaan analisa", 5.0, FactorType.core, 0.10),
-            ("Kesesuaian penyimpanan spesimen", 5.0, FactorType.core, 0.05),
-            ("Kepatuhan pelaporan hasil kritis", 5.0, FactorType.core, 0.05),
-            ("Kepatuhan Identifikasi pasien/spesimen", 5.0, FactorType.core, 0.05),
-            ("Tingkat ketidaksesuaian spesimen", 1.0, FactorType.core, 0.05),
-            ("Kejadian sample/spesimen hilang atau rusak", 1.0, FactorType.core, 0.05),
-            ("Pengulangan pemeriksaan bahan kontrol", 3.0, FactorType.core, 0.05),
-            ("Tingkat Ketidaksesuaian hasil pemeriksaan", 1.0, FactorType.core, 0.10),
-            ("Tingkat realisasi program maintenance alat", 5.0, FactorType.core, 0.05),
-            ("Pengulangan pemeriksaan", 4.0, FactorType.core, 0.05),
-            ("Pencapaian waktu pembelajaran", 1.0, FactorType.secondary, 0.05),
-            ("Realisasi kegiatan control lingkungan", 5.0, FactorType.secondary, 0.02),
-            ("Kepatuhan kebersihan tangan", 5.0, FactorType.secondary, 0.03),
-            ("Kepatuhan penggunaan APD", 5.0, FactorType.secondary, 0.04),
-            ("Tingkat ketidaksesuaian proses administratif", 1.0, FactorType.secondary, 0.03),
-            ("Kesesuaian pemilahan limbah padat", 5.0, FactorType.secondary, 0.03),
+            # KINERJA INDIVIDU (Total = 1.0)
+            ("Index Kepuasan Pelanggan", 5.0, FactorType.core, 0.30, "individual"),
+            ("Tingkat Resolusi Komplain Pertama", 5.0, FactorType.core, 0.30, "individual"),
+            ("Kecepatan Respon Pelayanan (SLA)", 5.0, FactorType.core, 0.20, "individual"),
+            ("Tingkat Kesalahan Edukasi Layanan", 1.0, FactorType.secondary, 0.10, "individual"),
+            ("Pencapaian waktu pembelajaran", 1.0, FactorType.secondary, 0.10, "individual"),
+            
+            # KINERJA TAMBAHAN / TIM (Total = 1.0)
+            ("Pencapaian Target Cross-Selling", 5.0, FactorType.core, 0.50, "additional"),
+            ("Akuisisi Pelanggan Baru / Instansi", 5.0, FactorType.core, 0.30, "additional"),
+            ("Inisiatif Kolaborasi Antar Divisi", 5.0, FactorType.secondary, 0.20, "additional"),
         ],
         "KEUANGAN": [
-            ("Cash Count (frekuensi)", 4.0, FactorType.core, 0.15),
-            ("Penyajian Laporan Harian Kasir", 5.0, FactorType.core, 0.10),
-            ("Kebenaran Laporan Harian Kasir & Posisi Kas", 5.0, FactorType.core, 0.15),
-            ("Ketepatan penyajian laporan mutasi Bank", 5.0, FactorType.core, 0.10),
-            ("Kebenaran laporan mutasi Bank", 5.0, FactorType.core, 0.10),
-            ("Pencapaian waktu pembelajaran", 1.0, FactorType.secondary, 0.10),
-            ("Penyajian Laporan Harian Tunai Kantor Pusat", 5.0, FactorType.secondary, 0.10),
-            ("Ketepatan pembayaran installment Kantor Pusat", 5.0, FactorType.secondary, 0.10),
-            ("Penyajian laporan progress instalment Kantor Pusat", 5.0, FactorType.secondary, 0.10),
+            # KINERJA INDIVIDU (Total = 1.0)
+            ("Kebenaran Laporan Harian Kasir & Posisi Kas", 5.0, FactorType.core, 0.30, "individual"),
+            ("Kebenaran laporan mutasi Bank", 5.0, FactorType.core, 0.30, "individual"),
+            ("Ketepatan waktu penyajian laporan", 5.0, FactorType.core, 0.20, "individual"),
+            ("Akurasi Cash Count Harian", 4.0, FactorType.secondary, 0.10, "individual"),
+            ("Pencapaian waktu pembelajaran", 1.0, FactorType.secondary, 0.10, "individual"),
+            
+            # KINERJA TAMBAHAN / TIM (Total = 1.0)
+            ("Efisiensi Biaya Operasional Cabang", 5.0, FactorType.core, 0.50, "additional"),
+            ("Ketepatan pembayaran installment Pusat", 5.0, FactorType.core, 0.30, "additional"),
+            ("Dukungan Audit Internal/Eksternal", 5.0, FactorType.secondary, 0.20, "additional"),
         ],
         "SDM & UMUM": [
-            ("Ketertiban Administrasi dan Laporan", 5.0, FactorType.core, 0.15),
-            ("Tingkat kesesuaian administrasi barang fix asset", 5.0, FactorType.core, 0.15),
-            ("Tingkat Kesesuaian stock opname Fix Asset", 5.0, FactorType.core, 0.15),
-            ("Tingkat Kesesuaian administrasi kepegawaian (ACK)", 5.0, FactorType.core, 0.20),
-            ("Tingkat ketepatan laporan BPJS/DPLK", 5.0, FactorType.core, 0.15),
-            ("Pencapaian waktu pembelajaran", 1.0, FactorType.secondary, 0.10),
-            ("Kesesuaian Pengelolaan Surat Masuk dan Keluar", 5.0, FactorType.secondary, 0.10),
+            # KINERJA INDIVIDU (Total = 1.0)
+            ("Ketertiban Administrasi dan Laporan", 5.0, FactorType.core, 0.25, "individual"),
+            ("Tingkat Kesesuaian administrasi kepegawaian", 5.0, FactorType.core, 0.25, "individual"),
+            ("Tingkat kesesuaian administrasi fix asset", 5.0, FactorType.core, 0.20, "individual"),
+            ("Tingkat ketepatan laporan BPJS/DPLK", 5.0, FactorType.core, 0.20, "individual"),
+            ("Pencapaian waktu pembelajaran", 1.0, FactorType.secondary, 0.10, "individual"),
+            
+            # KINERJA TAMBAHAN / TIM (Total = 1.0)
+            ("Kecepatan Pemenuhan Kebutuhan SDM", 5.0, FactorType.core, 0.40, "additional"),
+            ("Tingkat Turn-Over Karyawan (Retensi)", 1.0, FactorType.core, 0.40, "additional"),
+            ("Inisiatif Program Employee Engagement", 5.0, FactorType.secondary, 0.20, "additional"),
         ]
     }
 
@@ -248,7 +233,7 @@ def seed_master(db: Session):
 
         # C. Upsert GroupCriteria & DivisionCriteriaWeight
         criteria_list = criteria_data.get(grp_name, [])
-        for crit_name, target, ftype, weight in criteria_list:
+        for crit_name, target, ftype, weight, ctype in criteria_list:
             # Upsert GroupCriteria
             gc = db.query(GroupCriteria).filter_by(
                 group_id=div_group.id, 
@@ -261,6 +246,7 @@ def seed_master(db: Session):
                     name=crit_name,
                     target_value=target,
                     factor_type=ftype,
+                    container_type=ctype, # <-- INJEKSI CONTAINER TYPE BARU
                     description=f"Parameter {ftype.value} untuk {grp_name}"
                 )
                 db.add(gc)
@@ -268,6 +254,8 @@ def seed_master(db: Session):
             else:
                 gc.target_value = target
                 gc.factor_type = ftype
+                gc.container_type = ctype # <-- UPDATE JIKA SUDAH ADA
+                db.flush()
 
             # Bind bobot (DivisionCriteriaWeight) ke setiap Sub-Divisi di bawah rumpun ini
             for div_obj in active_divisions:

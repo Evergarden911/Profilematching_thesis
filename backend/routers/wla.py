@@ -74,6 +74,38 @@ def simulate_rotation(
     return wla_service.simulate_rotation(db, source_division_id, target_division_id, period)
 
 # =====================================================================
+# ENDPOINT BARU: GET DIVISI SURPLUS AKTIF (Sourcing Donor Kandidat)
+# =====================================================================
+@router.get("/overstaffed")
+def list_overstaffed_divisions(
+    db: Session = Depends(get_db),
+    _=Depends(require_role("kepala_hrd", "admin_hrd", "super_admin")),
+):
+    """
+    Mengambil daftar divisi yang saat ini berstatus SURPLUS (WLA < 1.0)
+    berdasarkan rekam WLA terbaru masing-masing divisi.
+
+    Endpoint ini digunakan oleh antarmuka wla.html untuk merender
+    tombol 'Jadikan Donor' yang menginisiasi alur sourcing surplus.
+    Hanya bisa diakses HRD dan Super Admin (keputusan operasional sensitif).
+    """
+    overstaffed = wla_service.get_active_overstaffed_divisions(db)
+    return [
+        {
+            "division_id": item.division_id,
+            "division_name": item.division_name,
+            "division_code": item.division_code,
+            "wla_value": item.wla_value,
+            "wla_percent": round(item.wla_value * 100),
+            "headcount": item.headcount,
+            "period": item.period,
+            "surplus_capacity": item.surplus_capacity,
+        }
+        for item in overstaffed
+    ]
+
+
+# =====================================================================
 # PENAMBAHAN ENDPOINT BARU: DELETE (Penyebab utama error CRUD di UI)
 # =====================================================================
 @router.delete("/{wla_id}", status_code=status.HTTP_200_OK)

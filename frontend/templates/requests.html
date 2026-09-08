@@ -18,9 +18,9 @@
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
   <div class="tabs" id="request-status-tabs">
     <a href="/requests" class="tab {% if not current_filter or current_filter == 'all' %}active{% endif %}">Semua</a>
-    <a href="/requests?status=pending" class="tab {% if current_filter == 'pending' %}active{% endif %}">Menunggu</a>
-    <a href="/requests?status=under_review" class="tab {% if current_filter == 'under_review' %}active{% endif %}">Diproses</a>
-    <a href="/requests?status=matched" class="tab {% if current_filter == 'matched' %}active{% endif %}">Selesai</a>
+    <a href="/requests?status=pending{% if donor_division_id %}&donor_division={{ donor_division_id }}{% endif %}" class="tab {% if current_filter == 'pending' %}active{% endif %}">Menunggu</a>
+    <a href="/requests?status=under_review{% if donor_division_id %}&donor_division={{ donor_division_id }}{% endif %}" class="tab {% if current_filter == 'under_review' %}active{% endif %}">Diproses</a>
+    <a href="/requests?status=matched{% if donor_division_id %}&donor_division={{ donor_division_id }}{% endif %}" class="tab {% if current_filter == 'matched' %}active{% endif %}">Selesai</a>
   </div>
   
   <div class="search-bar" style="width: 260px;">
@@ -28,6 +28,27 @@
     <input type="text" id="reqSearch" placeholder="Cari ID atau Divisi..." value="{{ search_query or '' }}">
   </div>
 </div>
+
+{# =========================================================================
+   BANNER MODE SOURCING SURPLUS (hanya muncul jika donor_division_id ada)
+   ========================================================================= #}
+{% if donor_division_id %}
+<div id="surplusBanner"
+  style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1px solid #fde68a; border-left: 5px solid #d97706; padding: 16px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <div style="font-size: 24px; background: #fde68a; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">⚠️</div>
+    <div>
+      <h4 style="margin: 0 0 3px 0; font-size: 14px; font-weight: 700; color: #92400e;">Mode Sourcing Surplus Aktif</h4>
+      <p style="margin: 0; font-size: 12.5px; color: #b45309; line-height: 1.4;">
+        Divisi Donor: <strong>{{ donor_division_name or ('ID ' ~ donor_division_id) }}</strong> —
+        Saat Anda mengklik <em>Ajukan Kandidat</em>, sistem hanya akan menampilkan karyawan dari divisi ini.
+        <a href="/requests" style="color: #92400e; text-decoration: underline; margin-left: 8px; font-weight: 600;">✕ Batalkan Mode Surplus</a>
+      </p>
+    </div>
+  </div>
+  <span style="background: #d97706; color: white; font-size: 11px; font-weight: 700; padding: 5px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;">SURPLUS SOURCING</span>
+</div>
+{% endif %}
 
 <div class="card">
   <div class="table-responsive">
@@ -178,7 +199,7 @@
         </div>
         
         <div id="detail_content" style="display: none; padding: 24px;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div class="form-grid-2col">
                 <div>
                     <p style="margin: 0 0 4px 0; font-size: 12px; color: var(--ink-60); text-transform: uppercase;">Divisi Target</p>
                     <p style="margin: 0; font-weight: 600; color: var(--ink);" id="detail_div_target">-</p>
@@ -291,6 +312,14 @@
 
 {% block extra_js %}
 <script>
+    // =========================================================================
+    // 0. INJEKSI KONTEKS SERVER: Mode Sourcing Surplus
+    // =========================================================================
+    // Dikirim dari main.py view_requests() berdasarkan query param ?donor_division=ID
+    // Null jika alur reguler (tidak ada filter kandidat)
+    const donorDivisionId   = {{ donor_division_id | default(0) | int }}; // 0 berarti tidak aktif
+    const donorDivisionName = {{ (donor_division_name or '') | tojson }};
+
     // =========================================================================
     // 1. LOGIKA MODAL PEMBUATAN PENGAJUAN
     // =========================================================================
@@ -468,7 +497,7 @@
     }
 
     // =========================================================================
-    // 4. (UPDATED) LOGIKA BATCH SELECTION KANDIDAT & GATES
+    // 4. (UPDATED) LOGIKA BATCH SELECTION KANDIDAT & GATES — DENGAN MODE SURPLUS
     // =========================================================================
     async function bukaModalKandidat(reqId) {
         document.getElementById('modalKandidat').style.display = 'flex';
@@ -478,12 +507,34 @@
         document.getElementById('filter_kandidat_input').value = '';
         document.getElementById('selectAllCand').checked = false;
 
+        // ─── Indikator Mode Surplus di Header Modal ────────────────────────────
+        const existingBanner = document.getElementById('surplus_modal_banner');
+        if (existingBanner) existingBanner.remove();
+
+        if (donorDivisionId) {
+            // Sisipkan banner info di bagian atas body modal
+            const modalBody = document.querySelector('#modalKandidat > div > div:nth-child(2)');
+            const bannerEl = document.createElement('div');
+            bannerEl.id = 'surplus_modal_banner';
+            bannerEl.style.cssText = 'background: #fef3c7; border: 1px solid #fde68a; border-left: 4px solid #d97706; padding: 10px 16px; border-radius: 6px; margin-bottom: 4px; font-size: 12.5px; color: #92400e;';
+            bannerEl.innerHTML = `⚠️ <strong>Mode Sourcing Surplus:</strong> Kandidat dikunci dari divisi <strong>${donorDivisionName || 'Donor'}</strong> saja. Anda tidak dapat memilih karyawan dari divisi lain.`;
+            if (modalBody) modalBody.prepend(bannerEl);
+        }
+        // ──────────────────────────────────────────────────────────────────────
+
         const tbody = document.getElementById('tbody_kandidat_list');
         tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 24px; color: var(--ink-60);">Memuat daftar karyawan...</td></tr>';
 
         try {
+            // Tentukan URL fetch karyawan berdasarkan mode:
+            // - Mode Surplus → filter absolut ke divisi donor
+            // - Mode Reguler → semua karyawan aktif
+            const employeeUrl = donorDivisionId
+                ? `/api/employees/?division_id=${donorDivisionId}`
+                : '/api/employees/';
+
             const [empRes, divRes, eduRes] = await Promise.all([
-                fetch('/api/employees/', { credentials: 'same-origin' }),
+                fetch(employeeUrl, { credentials: 'same-origin' }),
                 fetch('/api/divisions/', { credentials: 'same-origin' }),
                 fetch('/api/divisions/education-fields/', { credentials: 'same-origin' })
             ]);
@@ -503,7 +554,10 @@
             tbody.innerHTML = '';
             
             if (employees.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 24px; color: var(--ink-60);">Tidak ada karyawan aktif yang tersedia.</td></tr>';
+                const emptyMsg = donorDivisionId
+                    ? `Tidak ada karyawan aktif di divisi donor <strong>${donorDivisionName}</strong> yang tersedia untuk dirotasi.`
+                    : 'Tidak ada karyawan aktif yang tersedia.';
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 24px; color: var(--ink-60);">${emptyMsg}</td></tr>`;
                 return;
             }
 
