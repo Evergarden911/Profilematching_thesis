@@ -1,7 +1,7 @@
 """
 ORM Models — Single Source of Truth for the Database Schema
 ==========================================================
-Sistem Relasi Basis Data Terintegrasi Pramita Lab.
+Sistem Relasi Basis Data Terintegrasi XYZ Lab.
 Menghilangkan dualisme kriteria lama dan menyatukan seluruh sub-divisi
 ke bawah arsitektur GroupCriteria dan EmployeeScore yang baru.
 """
@@ -124,7 +124,7 @@ class DivisionGroup(Base):
 
 class Division(Base):
     """
-    Sub-Divisi Aktual atau Stasiun Kerja Riil di Pramita Lab.
+    Sub-Divisi Aktual atau Stasiun Kerja Riil di XYZ Lab.
     Memiliki alokasi anggaran finansial operasional bulanan mandiri.
     """
     __tablename__ = "divisions"

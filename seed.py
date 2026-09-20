@@ -1,5 +1,5 @@
 """
-seed.py — Master Seeder Data Pramita Lab
+seed.py — Master Seeder Data XYZ Lab
 ========================================
 Menghasilkan lingkungan data yang siap untuk demonstrasi Sidang Skripsi:
   - Standardisasi Grouping Divisi (Lab, Penunjang Medis, Manajemen)
@@ -104,7 +104,7 @@ DEFAULT_USERS = [
 def seed():
     db = SessionLocal()
     try:
-        print("Membangun ulang ekosistem data Pramita Lab...")
+        print("Membangun ulang ekosistem data XYZ Lab...")
 
         # 1. GENERATE PENDIDIKAN (Education Fields)
         print(" -> Menyuntikkan Jurusan Pendidikan...")

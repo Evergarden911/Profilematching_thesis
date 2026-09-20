@@ -1,5 +1,5 @@
 /**
- * Pramita Lab - MPA Frontend Controller
+ * XYZ Lab - MPA Frontend Controller
  * Kode ini telah dibersihkan dari logika SPA routing.
  * Tugas file ini murni hanya untuk kontrol UI sekunder (Modal, Toast, Logout).
  */

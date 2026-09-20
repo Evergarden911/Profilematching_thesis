@@ -1,7 +1,7 @@
 """
 WLA Service — Workload Analysis
 ================================
-Implements the Workload Analysis formula used by Pramita Lab:
+Implements the Workload Analysis formula used by XYZ Lab:
 
   WLA = Total Workload Hours / Total Capacity Hours
 

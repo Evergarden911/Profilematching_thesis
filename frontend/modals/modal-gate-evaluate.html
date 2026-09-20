@@ -32,7 +32,7 @@
           <div id="gate-result-status" style="font-size:15px;font-weight:600;margin-bottom:6px;"></div>
           <div id="gate-result-notes" style="font-size:13px;color:var(--ink-60);line-height:1.5;"></div>
           <div id="gate-interview-notice" style="display:none;margin-top:12px;padding:10px 12px;background:#EDE9FE;border-radius:var(--radius-sm);font-size:12.5px;color:#5B21B6;">
-            ⚠ Kandidat perlu menjalani <strong>interview + tes</strong> (Gate B) sebelum Profile Matching. Gunakan menu "Input Nilai Interview" di halaman Rotation Gates.
+             Kandidat perlu menjalani <strong>interview + tes</strong> (Gate B) sebelum Profile Matching. Gunakan menu "Input Nilai Interview" di halaman Rotation Gates.
           </div>
         </div>
       </div>
@@ -82,7 +82,7 @@ const GateEvalModal = {
     const statusMap = {
       passed:           { text: '✓ Gate A Lulus', color: '#065F46' },
       failed:           { text: '✕ Gate A Gagal', color: 'var(--red)' },
-      interview_pending:{ text: '⚠ Perlu Interview', color: '#5B21B6' },
+      interview_pending:{ text: ' Perlu Interview', color: '#5B21B6' },
     };
     const s = statusMap[gate.education_gate_status] || { text: gate.education_gate_status, color: 'var(--ink)' };
     statusEl.textContent  = s.text;

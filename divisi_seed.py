@@ -1,5 +1,5 @@
 """
-seed_org_and_criteria.py — Seeder Master Terintegrasi Pramita Lab (REVISI)
+seed_org_and_criteria.py — Seeder Master Terintegrasi XYZ Lab (REVISI)
 ==========================================================================
 Menyuntikkan data:
 1. Rumpun Divisi Besar (DivisionGroup) beserta bobot standar CF/SF
@@ -30,7 +30,7 @@ from backend.models import (
 )
 
 def seed_master(db: Session):
-    print("🌱 Memulai Seeder Terintegrasi Pramita Lab (ORM Models Terbaru)...")
+    print(" Memulai Seeder Terintegrasi XYZ Lab (ORM Models Terbaru)...")
 
     # ==========================================
     # 1. DATA MASTER: STRUKTUR ORGANISASI
@@ -189,7 +189,7 @@ def seed_master(db: Session):
     # 3. PROSES INJEKSI KE DATABASE
     # ==========================================
     for grp_name, grp_info in org_data.items():
-        print(f"\n📁 Memproses DivisionGroup: {grp_name} ({grp_info['code']})")
+        print(f"\n Memproses DivisionGroup: {grp_name} ({grp_info['code']})")
         
         # A. Upsert DivisionGroup
         div_group = db.query(DivisionGroup).filter_by(code=grp_info['code']).first()
@@ -199,7 +199,7 @@ def seed_master(db: Session):
                 code=grp_info['code'],
                 cf_weight=grp_info['cf_weight'],
                 sf_weight=grp_info['sf_weight'],
-                description=f"Rumpun Divisi {grp_name} Pramita Lab"
+                description=f"Rumpun Divisi {grp_name} XYZ Lab"
             )
             db.add(div_group)
             db.flush()
@@ -275,7 +275,7 @@ def seed_master(db: Session):
                     div_weight.weight = weight
 
     db.commit()
-    print("\n✅ Seeder Master Terintegrasi Selesai Dijalankan!")
+    print("\n Seeder Master Terintegrasi Selesai Dijalankan!")
 
 if __name__ == "__main__":
     db = SessionLocal()
@@ -283,6 +283,6 @@ if __name__ == "__main__":
         seed_master(db)
     except Exception as e:
         db.rollback()
-        print(f"❌ Terjadi kesalahan: {e}")
+        print(f" Terjadi kesalahan: {e}")
     finally:
         db.close()

@@ -1,5 +1,5 @@
 """
-seed_users.py — Seeder Pengguna Sistem & RBAC Pramita Lab
+seed_users.py — Seeder Pengguna Sistem & RBAC XYZ Lab
 =========================================================
 Membentuk akun standar untuk seluruh hierarki peran:
 1. Super Admin (Akses penuh sistem IT)
@@ -41,8 +41,8 @@ def seed_users(db: Session):
             print(f"[Peringatan] Divisi dengan kode '{code}' tidak ditemukan di database.")
 
     # 2. Definisi Master Pengguna (Username, Password Raw, Full Name, Role, Division Code)
-    # Password default set seragam untuk kemudahan testing awal: "Pramita2026!"
-    default_password = "Pramita2026!"
+    # Password default set seragam untuk kemudahan testing awal: "XYZ2026!"
+    default_password = "XYZ2026!"
     
     users_schema = [
         # --- ROLES TANPA KETERIKATAN DIVISI SPESIFIK ---

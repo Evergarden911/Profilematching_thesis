@@ -1,30 +1,58 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cetak Surat Tugas - Pramita Lab</title>
+    <title>Cetak Surat Tugas - XYZ Lab</title>
     <style>
         /* RESET & PENGATURAN KERTAS A4 */
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.5; color: #000; background: #525659; }
-        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            color: #000;
+            background: #525659;
+        }
+
         .page-container {
             width: 210mm;
             min-height: 297mm;
-            padding: 25mm 25mm 25mm 30mm; /* Margin standar surat resmi */
+            padding: 25mm 25mm 25mm 30mm;
+            /* Margin standar surat resmi */
             margin: 10mm auto;
             background: #fff;
-            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
             position: relative;
         }
 
         /* ATURAN KHUSUS PRINTER */
         @media print {
-            body { background: transparent; }
-            .page-container { margin: 0; padding: 25mm 25mm 25mm 30mm; box-shadow: none; width: 100%; min-height: auto; }
-            .no-print { display: none !important; }
-            .page-break { page-break-after: always; }
+            body {
+                background: transparent;
+            }
+
+            .page-container {
+                margin: 0;
+                padding: 25mm 25mm 25mm 30mm;
+                box-shadow: none;
+                width: 100%;
+                min-height: auto;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .page-break {
+                page-break-after: always;
+            }
         }
 
         /* KOP SURAT */
@@ -34,25 +62,62 @@
             padding-bottom: 15px;
             margin-bottom: 25px;
         }
-        .kop-surat h1 { font-size: 16pt; font-weight: bold; letter-spacing: 1px; color: #990000; }
-        .kop-surat p { font-size: 10pt; font-family: Arial, sans-serif; }
+
+        .kop-surat h1 {
+            font-size: 16pt;
+            font-weight: bold;
+            letter-spacing: 1px;
+            color: #990000;
+        }
+
+        .kop-surat p {
+            font-size: 10pt;
+            font-family: Arial, sans-serif;
+        }
 
         /* JUDUL SURAT */
-        .judul-surat { text-align: center; margin-bottom: 25px; }
-        .judul-surat h2 { font-size: 14pt; font-weight: bold; text-decoration: underline; letter-spacing: 4px; }
-        .judul-surat p { font-size: 11pt; margin-top: 5px; }
+        .judul-surat {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .judul-surat h2 {
+            font-size: 14pt;
+            font-weight: bold;
+            text-decoration: underline;
+            letter-spacing: 4px;
+        }
+
+        .judul-surat p {
+            font-size: 11pt;
+            margin-top: 5px;
+        }
 
         /* ISI SURAT */
-        .isi-surat { text-align: justify; margin-bottom: 20px; }
-        
+        .isi-surat {
+            text-align: justify;
+            margin-bottom: 20px;
+        }
+
         .tabel-identitas {
             width: 100%;
             margin: 15px 0 20px 20px;
             border-collapse: collapse;
         }
-        .tabel-identitas td { padding: 4px 0; vertical-align: top; }
-        .tabel-identitas td.label { width: 150px; }
-        .tabel-identitas td.sep { width: 20px; text-align: center; }
+
+        .tabel-identitas td {
+            padding: 4px 0;
+            vertical-align: top;
+        }
+
+        .tabel-identitas td.label {
+            width: 150px;
+        }
+
+        .tabel-identitas td.sep {
+            width: 20px;
+            text-align: center;
+        }
 
         /* TANDA TANGAN & TEMBUSAN */
         .ttd-container {
@@ -61,13 +126,32 @@
             margin-top: 40px;
             margin-bottom: 40px;
         }
-        .ttd-box { text-align: left; width: 250px; }
-        .ttd-space { height: 70px; }
-        .ttd-nama { font-weight: bold; text-decoration: underline; }
 
-        .tembusan { font-size: 10pt; margin-top: 30px; }
-        .tembusan ul { list-style-type: none; padding-left: 15px; margin-top: 5px; }
-        
+        .ttd-box {
+            text-align: left;
+            width: 250px;
+        }
+
+        .ttd-space {
+            height: 70px;
+        }
+
+        .ttd-nama {
+            font-weight: bold;
+            text-decoration: underline;
+        }
+
+        .tembusan {
+            font-size: 10pt;
+            margin-top: 30px;
+        }
+
+        .tembusan ul {
+            list-style-type: none;
+            padding-left: 15px;
+            margin-top: 5px;
+        }
+
         /* TOMBOL MELAYANG DI LAYAR */
         .floating-btn {
             position: fixed;
@@ -81,22 +165,26 @@
             font-weight: bold;
             border-radius: 6px;
             cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
             z-index: 1000;
         }
-        .floating-btn:hover { background: #1d4ed8; }
+
+        .floating-btn:hover {
+            background: #1d4ed8;
+        }
     </style>
 </head>
+
 <body>
 
-    <button onclick="window.print()" class="floating-btn no-print">🖨️ Cetak Surat Tugas Sekarang</button>
+    <button onclick="window.print()" class="floating-btn no-print"> Cetak Surat Tugas Sekarang</button>
 
     {% for surat in surat_list %}
     <div class="page-container {% if not loop.last %}page-break{% endif %}">
-        
-        <!-- KOP SURAT PRAMITA -->
+
+        <!-- KOP SURAT XYZ -->
         <div class="kop-surat">
-            <h1>LABORATORIUM KLINIK PRAMITA</h1>
+            <h1>LABORATORIUM KLINIK XYZ</h1>
             <p>Cabang Kebon Jeruk · Layanan Diagnostik Medis & Klinik Terpadu</p>
         </div>
 
@@ -108,7 +196,7 @@
 
         <!-- PEMBUKA[cite: 12] -->
         <div class="isi-surat">
-            <p>Kepala Cabang Laboratorium Klinik Pramita Cabang Kebon Jeruk, memberikan tugas kepada :</p>
+            <p>Kepala Cabang Laboratorium Klinik XYZ Cabang Kebon Jeruk, memberikan tugas kepada :</p>
 
             <table class="tabel-identitas">
                 <tr>
@@ -135,7 +223,9 @@
 
             <!-- PERINTAH PENUGASAN[cite: 12] -->
             <p>
-                Untuk bertugas di <strong>Laboratorium Klinik Pramita Cabang Kebon Jeruk</strong> sebagai <strong>{{ surat.divisi_tujuan | upper }}</strong>, mulai hari tanggal <strong>{{ surat.tanggal_mulai }}</strong> sampai dengan <strong>{{ surat.tanggal_selesai }}</strong>.
+                Untuk bertugas di <strong>Laboratorium Klinik XYZ Cabang Kebon Jeruk</strong> sebagai <strong>{{
+                    surat.divisi_tujuan | upper }}</strong>, mulai hari tanggal <strong>{{ surat.tanggal_mulai
+                    }}</strong> sampai dengan <strong>{{ surat.tanggal_selesai }}</strong>.
             </p>
             <br>
             <p>
@@ -148,7 +238,7 @@
             <div class="ttd-box">
                 <p>Kebon Jeruk, {{ tanggal_cetak }}</p>
                 <p>Hormat kami,</p>
-                <p>Laboratorium Klinik Pramita Cabang Kebon Jeruk</p>
+                <p>Laboratorium Klinik XYZ Cabang Kebon Jeruk</p>
                 <div class="ttd-space"></div>
                 <p class="ttd-nama">{{ pimpinan }}</p>
                 <p>{{ jabatan_pimpinan }}</p>
@@ -159,7 +249,7 @@
         <div class="tembusan">
             <p><strong>Tembusan Yth;</strong></p>
             <ul>
-                <li>1. Spv SDM dan Umum Laboratorium Klinik Pramita</li>
+                <li>1. Spv SDM dan Umum Laboratorium Klinik XYZ</li>
                 <li>2. Arsip</li>
             </ul>
         </div>
@@ -177,4 +267,5 @@
         });
     </script>
 </body>
+
 </html>

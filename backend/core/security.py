@@ -1,5 +1,5 @@
 """
-Pramita Lab — Security & Authorization Core
+XYZ Lab — Security & Authorization Core
 ===========================================
 Mengelola enkripsi kata sandi, pembuatan JSON Web Token (JWT), 
 serta ekstraksi otentikasi hibrida (Header + Cookie) untuk mendukung MPA.

@@ -1,5 +1,5 @@
 -- ============================================================
--- Pramita Lab SDM DSS — PostgreSQL Setup Script
+-- XYZ Lab SDM DSS — PostgreSQL Setup Script
 -- Run as PostgreSQL superuser (postgres)
 -- ============================================================
 

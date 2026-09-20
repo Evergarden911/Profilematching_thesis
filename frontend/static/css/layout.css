@@ -1,4 +1,4 @@
-/* Pramita Lab — Core Layout Shell */
+/* XYZ Lab — Core Layout Shell */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -327,4 +327,4 @@ body.sidebar-open .sidebar-toggle span:nth-child(3) {
   .topbar {
     padding: 0 24px;
   }
-}
+}

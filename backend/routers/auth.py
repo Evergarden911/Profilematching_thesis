@@ -137,7 +137,7 @@ def get_all_users(
             "role": role_val,
             "is_active": u.is_active,
             # Pemetaan fallback cerdas agar tabel UI tidak kosong/error
-            "email": u.username if "@" in u.username else f"{u.username}@pramita.co.id",
+            "email": u.username if "@" in u.username else f"{u.username}@XYZ.co.id",
             "nik": f"EMP-{u.id:04d}"
         })
     return result
@@ -190,7 +190,7 @@ def get_password_recovery_queue(
 
     result = []
     for idx, u in enumerate(users):
-        email_mapped = u.username if "@" in u.username else f"{u.username}@pramita.co.id"
+        email_mapped = u.username if "@" in u.username else f"{u.username}@XYZ.co.id"
         
         # Variasi waktu dinamis berdasarkan urutan data SQL agar terlihat seperti antrean aktif
         time_labels = ["10 menit lalu", "1 jam lalu", "3 jam lalu", "Kemarin"]

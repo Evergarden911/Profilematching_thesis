@@ -6,7 +6,7 @@
 <!-- RBAC Security Guard Notice (Muncul jika unauthorized) -->
 <div id="unauthorizedNotice"
     style="display: none; text-align: center; padding: 60px 20px; background: var(--white); border-radius: var(--radius-lg); border: 1px solid var(--red-mid);">
-    <div style="font-size: 48px; margin-bottom: 16px;">🚫</div>
+    <div style="font-size: 48px; margin-bottom: 16px;"></div>
     <h3 style="color: var(--red-dark); margin: 0 0 8px 0; font-size: 20px;">Akses Ditolak (Unauthorized Access)</h3>
     <p style="color: var(--ink-60); font-size: 14px; max-width: 450px; margin: 0 auto 20px;">Halaman Administrasi Sistem
         hanya dapat diakses oleh pengguna dengan hak akses <strong>Manajer HRD</strong> atau <strong>Super
@@ -53,7 +53,7 @@
                     <label
                         style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-80); margin-bottom: 6px;">Username
                         / Email Login</label>
-                    <input type="text" id="reg_username" required placeholder="budi.hrd atau budi@pramita.co.id"
+                    <input type="text" id="reg_username" required placeholder="budi.hrd atau budi@XYZ.co.id"
                         style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-mid); border-radius: var(--radius-sm); font-size: 13.5px; outline: none;">
                 </div>
 
@@ -212,10 +212,10 @@
                 berkala untuk melindungi riwayat rotasi, transaksi skor wla, dan nilai evaluasi kriteria.</p>
             <div style="display: flex; gap: 12px;">
                 <button onclick="triggerBackup()" class="btn btn-primary"
-                    style="flex: 1; background: var(--ink); color: white; padding: 10px; border-radius: var(--radius-sm); border: none; cursor: pointer;">📦
+                    style="flex: 1; background: var(--ink); color: white; padding: 10px; border-radius: var(--radius-sm); border: none; cursor: pointer;">
                     Unduh Backup SQL</button>
                 <button onclick="alert('Fitur Restore membutuhkan otentikasi 2FA Super Admin.')" class="btn btn-outline"
-                    style="flex: 1; padding: 10px; border-radius: var(--radius-sm); cursor: pointer;">🔄 Restore
+                    style="flex: 1; padding: 10px; border-radius: var(--radius-sm); cursor: pointer;"> Restore
                     DB</button>
             </div>
         </div>
@@ -226,7 +226,7 @@
             <p style="color: var(--ink-60); font-size: 13px; margin-bottom: 20px; line-height: 1.5;">Alat pemeliharaan
                 untuk mereset data evaluasi skripsi kembali ke kondisi awal (awal simulasi Gate A & B).</p>
             <button onclick="resetSimulationData()" class="btn"
-                style="width: 100%; background: #DC2626; color: white; padding: 10px; border-radius: var(--radius-sm); border: none; font-weight: 600; cursor: pointer;">⚠️
+                style="width: 100%; background: #DC2626; color: white; padding: 10px; border-radius: var(--radius-sm); border: none; font-weight: 600; cursor: pointer;">
                 Reset Data Simulasi Skripsi</button>
         </div>
     </div>
@@ -498,7 +498,7 @@
     }
 
     async function resetSimulationData() {
-        if (!confirm('⚠️ PERINGATAN: Semua transaksi simulasi (evaluasi, tiket rotasi, skor Gate B) akan dihapus dan dikembalikan ke kondisi awal seeder. Lanjutkan?')) return;
+        if (!confirm(' PERINGATAN: Semua transaksi simulasi (evaluasi, tiket rotasi, skor Gate B) akan dihapus dan dikembalikan ke kondisi awal seeder. Lanjutkan?')) return;
         try {
             const res = await fetch('/api/system/reset-simulation', { method: 'POST' });
             if (!res.ok) throw new Error('Gagal mereset data simulasi.');

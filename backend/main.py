@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI):
         logger.info("Database tables initialized (create_all)")
     yield
 
-app = FastAPI(title="Pramita Lab DSS", lifespan=lifespan)
+app = FastAPI(title="XYZ Lab DSS", lifespan=lifespan)
 
 # ---------------------------------------------------------------------------
 # KONFIGURASI ASET STATIS & JINJA2 TEMPLATES

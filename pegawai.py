@@ -1,5 +1,5 @@
 """
-seed_employees_and_scores.py — Seeder Karyawan & Matriks Nilai Kompetensi Pramita Lab
+seed_employees_and_scores.py — Seeder Karyawan & Matriks Nilai Kompetensi XYZ Lab
 ====================================================================================
 Menyuntikkan 39 data pegawai riil dari Excel beserta 17 rincian bidang pendidikan,
 serta menggenerasi nilai evaluasi (EmployeeScore) adaptif sesuai parameter target divisi.
@@ -25,7 +25,7 @@ from backend.models import (
 )
 
 def seed_employees_and_scores(db: Session):
-    print("🌱 Memulai Injeksi Data Karyawan & Generasi Nilai Kompetensi...")
+    print(" Memulai Injeksi Data Karyawan & Generasi Nilai Kompetensi...")
 
     # =========================================================================
     # 1. DATA MASTER: BIDANG PENDIDIKAN (17 Kategori dari Excel)
@@ -61,7 +61,7 @@ def seed_employees_and_scores(db: Session):
         edu_map[name] = edu_obj.id
 
     # =========================================================================
-    # 2. DATA MASTER: PEGAWAI PRAMITA LAB (39 Pegawai dari Excel)
+    # 2. DATA MASTER: PEGAWAI XYZ LAB (39 Pegawai dari Excel)
     # =========================================================================
     # Format: (NIP, NAMA, DIVISI_CODE, POSISI, PENDIDIKAN_TERAKHIR, BASE_SALARY)
     employees_data = [
@@ -71,39 +71,39 @@ def seed_employees_and_scores(db: Session):
         ("04.0204.0130", "SUTIYONO BIN SARJONO", "LAB-PJ", "Manager Laboratorium", "D4 - ANALIS KESEHATAN", 9500000.0),
         ("04.0307.0168", "BEN MUSTIKA FIRDAUS", "SDM-MGR", "Manager SDM & Umum", "S1 - ILMU HUBUNGAN INTERNASIONAL", 9000000.0),
         ("06.1912.2889", "NISA NURFAIDAH SYA'ADAH", "LAB-SPV", "Spv. Laboratorium", "D3 - TEKNOLOGI LABORATORIUM MEDIS", 7000000.0),
-        ("06.1402.1611", "ABDURRAHIM", "GA-SEC", "STAFF (Pramita)", "SMK - BISNIS DAN MANAJEMEN", 4500000.0),
-        ("06.2301.3665", "AGIF DWI PANGESTU", "KEU-KSR", "STAFF (Pramita)", "S1 - AKUNTANSI", 4800000.0),
-        ("06.1111.1381", "AGUS YUNIOKO", "GA-SEC", "STAFF (Pramita)", "SMK - TEKNIK PEMESINAN", 4500000.0),
-        ("06.1408.1694", "ASFIAH NURYATI", "EDG-ECG", "STAFF (Pramita)", "D3 - KEPERAWATAN", 5200000.0),
-        ("06.2107.3333", "AYU SHINTA PERMANA", "LAB-ADM", "STAFF (Pramita)", "D3 - TEKNOLOGI LABORATORIUM MEDIS", 4900000.0),
-        ("04.0502.0231", "BUDIONO", "GA-SEC", "STAFF (Pramita)", "SMA - IPA", 4500000.0),
-        ("06.1310.1452", "DENI ARIANI", "LAB-PJ", "STAFF (Pramita)", "S1 - KEDOKTERAN", 11000000.0),
-        ("06.1408.1690", "DWI INDAH LESTARI", "EDG-IMG", "STAFF (Pramita)", "D3 - RADIODIAGNOSTIK DAN RADIOTERAPI", 5300000.0),
-        ("06.2112.3461", "ELI FITRIANI", "LAB-HEM", "STAFF (Pramita)", "D3 - ANALIS KESEHATAN", 5000000.0),
-        ("06.2110.3407", "FRANSISKA FRIDOLIN WEA", "EDG-IMG", "STAFF (Pramita)", "D3 - RADIODIAGNOSTIK DAN RADIOTERAPI", 5300000.0),
-        ("06.2211.3649", "IDCHAM NAUFAL HAVIDZ", "LAB-KIM", "STAFF (Pramita)", "D3 - TEKNOLOGI LABORATORIUM MEDIS", 5000000.0),
-        ("06.1405.1695", "ILHAM SEPTIAN", "GA-PBU", "STAFF (Pramita)", "SMK - PERHOTELAN", 4300000.0),
-        ("06.1707.2417", "IVAN JATI PRASETYO", "GA-LOG", "STAFF (Pramita)", "SMK - BISNIS DAN MANAJEMEN", 4600000.0),
-        ("06.1707.2297", "JENNY ROHMAWATI", "CS-PEL", "STAFF (Pramita)", "D3 - KEPERAWATAN", 4900000.0),
-        ("06.2009.2994", "LAILATUL FITRI", "EDG-AUD", "STAFF (Pramita)", "S1 - KEPERAWATAN / NERS", 5400000.0),
-        ("06.1509.1982", "M.FADILAH", "GA-PBU", "STAFF (Pramita)", "SMK - BISNIS DAN MANAJEMEN", 4300000.0),
-        ("06.1910.2834", "NURUL FITRI GUSTIANAWATI", "LAB-IMM", "STAFF (Pramita)", "D3 - TEKNOLOGI LABORATORIUM MEDIS", 5000000.0),
-        ("06.2208.3620", "OKTA NOVANDA VILANO", "EDG-ECHO", "STAFF (Pramita)", "D3 - KEPERAWATAN", 5200000.0),
-        ("06.2107.3309", "QUEENTA HEHANUSSA", "CS-PEL", "STAFF (Pramita)", "S1 - KESEHATAN MASYARAKAT", 5000000.0),
-        ("06.2107.3335", "RAVINA SEFTIYANINGRUM", "LAB-ADM", "STAFF (Pramita)", "D3 - TEKNOLOGI LABORATORIUM MEDIS", 4900000.0),
-        ("06.1611.2220", "RUKMINI", "CS-PEL", "STAFF (Pramita)", "S1 - KEPERAWATAN / NERS", 5100000.0),
-        ("06.1210.1382", "RUSLY", "GA-SPR", "STAFF (Pramita)", "SMK - SEKRETARIS", 4500000.0),
-        ("06.2506.3923", "SAGIANSYAH RIZKY ZULKARNAIN", "EDG-ECG", "STAFF (Pramita)", "D3 - KEPERAWATAN", 5100000.0),
-        ("06.1609.2416", "SANDY", "GA-PBU", "STAFF (Pramita)", "SMK - BISNIS DAN MANAJEMEN", 4300000.0),
-        ("06.0707.0427", "SITI MAESAROH", "EDG-AUD", "STAFF (Pramita)", "D3 - KEPERAWATAN", 5300000.0),
-        ("06.2011.3049", "SITI NURJANAH", "LAB-RUT", "STAFF (Pramita)", "D3 - TEKNOLOGI LABORATORIUM MEDIS", 5000000.0),
-        ("06.0711.0694", "SITI SOLEHA", "GA-PBU", "STAFF (Pramita)", "SMK - AKUNTANSI & KEUANGAN LEMBAGA", 4400000.0),
-        ("06.1508.1917", "SUPRIADI", "EDG-IMG", "STAFF (Pramita)", "D3 - RADIODIAGNOSTIK DAN RADIOTERAPI", 5400000.0),
-        ("06.1808.2523", "SYARAH MAULIDIYA", "CS-PEL", "STAFF (Pramita)", "S1 - EKONOMI", 4900000.0),
-        ("06.1404.1610", "TRIS KIYANAH", "CS-CARE", "STAFF (Pramita)", "S1 - KEPERAWATAN / NERS", 5200000.0),
-        ("06.1109.1015", "WILLY DANA KUSUMA", "EDG-IMG", "STAFF (Pramita)", "D3 - RADIODIAGNOSTIK DAN RADIOTERAPI", 5400000.0),
-        ("09.0505.0492", "WINDRIAH DIAH WARDANI", "SDM-ADM", "STAFF (Pramita)", "S1 - AKUNTANSI", 4800000.0),
-        ("06.1003.1136", "YUNUS", "GA-PBU", "STAFF (Pramita)", "SMK - TEKNIK PEMESINAN", 4300000.0),
+        ("06.1402.1611", "ABDURRAHIM", "GA-SEC", "STAFF (XYZ)", "SMK - BISNIS DAN MANAJEMEN", 4500000.0),
+        ("06.2301.3665", "AGIF DWI PANGESTU", "KEU-KSR", "STAFF (XYZ)", "S1 - AKUNTANSI", 4800000.0),
+        ("06.1111.1381", "AGUS YUNIOKO", "GA-SEC", "STAFF (XYZ)", "SMK - TEKNIK PEMESINAN", 4500000.0),
+        ("06.1408.1694", "ASFIAH NURYATI", "EDG-ECG", "STAFF (XYZ)", "D3 - KEPERAWATAN", 5200000.0),
+        ("06.2107.3333", "AYU SHINTA PERMANA", "LAB-ADM", "STAFF (XYZ)", "D3 - TEKNOLOGI LABORATORIUM MEDIS", 4900000.0),
+        ("04.0502.0231", "BUDIONO", "GA-SEC", "STAFF (XYZ)", "SMA - IPA", 4500000.0),
+        ("06.1310.1452", "DENI ARIANI", "LAB-PJ", "STAFF (XYZ)", "S1 - KEDOKTERAN", 11000000.0),
+        ("06.1408.1690", "DWI INDAH LESTARI", "EDG-IMG", "STAFF (XYZ)", "D3 - RADIODIAGNOSTIK DAN RADIOTERAPI", 5300000.0),
+        ("06.2112.3461", "ELI FITRIANI", "LAB-HEM", "STAFF (XYZ)", "D3 - ANALIS KESEHATAN", 5000000.0),
+        ("06.2110.3407", "FRANSISKA FRIDOLIN WEA", "EDG-IMG", "STAFF (XYZ)", "D3 - RADIODIAGNOSTIK DAN RADIOTERAPI", 5300000.0),
+        ("06.2211.3649", "IDCHAM NAUFAL HAVIDZ", "LAB-KIM", "STAFF (XYZ)", "D3 - TEKNOLOGI LABORATORIUM MEDIS", 5000000.0),
+        ("06.1405.1695", "ILHAM SEPTIAN", "GA-PBU", "STAFF (XYZ)", "SMK - PERHOTELAN", 4300000.0),
+        ("06.1707.2417", "IVAN JATI PRASETYO", "GA-LOG", "STAFF (XYZ)", "SMK - BISNIS DAN MANAJEMEN", 4600000.0),
+        ("06.1707.2297", "JENNY ROHMAWATI", "CS-PEL", "STAFF (XYZ)", "D3 - KEPERAWATAN", 4900000.0),
+        ("06.2009.2994", "LAILATUL FITRI", "EDG-AUD", "STAFF (XYZ)", "S1 - KEPERAWATAN / NERS", 5400000.0),
+        ("06.1509.1982", "M.FADILAH", "GA-PBU", "STAFF (XYZ)", "SMK - BISNIS DAN MANAJEMEN", 4300000.0),
+        ("06.1910.2834", "NURUL FITRI GUSTIANAWATI", "LAB-IMM", "STAFF (XYZ)", "D3 - TEKNOLOGI LABORATORIUM MEDIS", 5000000.0),
+        ("06.2208.3620", "OKTA NOVANDA VILANO", "EDG-ECHO", "STAFF (XYZ)", "D3 - KEPERAWATAN", 5200000.0),
+        ("06.2107.3309", "QUEENTA HEHANUSSA", "CS-PEL", "STAFF (XYZ)", "S1 - KESEHATAN MASYARAKAT", 5000000.0),
+        ("06.2107.3335", "RAVINA SEFTIYANINGRUM", "LAB-ADM", "STAFF (XYZ)", "D3 - TEKNOLOGI LABORATORIUM MEDIS", 4900000.0),
+        ("06.1611.2220", "RUKMINI", "CS-PEL", "STAFF (XYZ)", "S1 - KEPERAWATAN / NERS", 5100000.0),
+        ("06.1210.1382", "RUSLY", "GA-SPR", "STAFF (XYZ)", "SMK - SEKRETARIS", 4500000.0),
+        ("06.2506.3923", "SAGIANSYAH RIZKY ZULKARNAIN", "EDG-ECG", "STAFF (XYZ)", "D3 - KEPERAWATAN", 5100000.0),
+        ("06.1609.2416", "SANDY", "GA-PBU", "STAFF (XYZ)", "SMK - BISNIS DAN MANAJEMEN", 4300000.0),
+        ("06.0707.0427", "SITI MAESAROH", "EDG-AUD", "STAFF (XYZ)", "D3 - KEPERAWATAN", 5300000.0),
+        ("06.2011.3049", "SITI NURJANAH", "LAB-RUT", "STAFF (XYZ)", "D3 - TEKNOLOGI LABORATORIUM MEDIS", 5000000.0),
+        ("06.0711.0694", "SITI SOLEHA", "GA-PBU", "STAFF (XYZ)", "SMK - AKUNTANSI & KEUANGAN LEMBAGA", 4400000.0),
+        ("06.1508.1917", "SUPRIADI", "EDG-IMG", "STAFF (XYZ)", "D3 - RADIODIAGNOSTIK DAN RADIOTERAPI", 5400000.0),
+        ("06.1808.2523", "SYARAH MAULIDIYA", "CS-PEL", "STAFF (XYZ)", "S1 - EKONOMI", 4900000.0),
+        ("06.1404.1610", "TRIS KIYANAH", "CS-CARE", "STAFF (XYZ)", "S1 - KEPERAWATAN / NERS", 5200000.0),
+        ("06.1109.1015", "WILLY DANA KUSUMA", "EDG-IMG", "STAFF (XYZ)", "D3 - RADIODIAGNOSTIK DAN RADIOTERAPI", 5400000.0),
+        ("09.0505.0492", "WINDRIAH DIAH WARDANI", "SDM-ADM", "STAFF (XYZ)", "S1 - AKUNTANSI", 4800000.0),
+        ("06.1003.1136", "YUNUS", "GA-PBU", "STAFF (XYZ)", "SMK - TEKNIK PEMESINAN", 4300000.0),
     ]
 
     # Pre-fetch seluruh divisi untuk efisiensi
@@ -197,7 +197,7 @@ def seed_employees_and_scores(db: Session):
             total_scores_upserted += 1
 
     db.commit()
-    print("\n✅ Injeksi Karyawan & Generasi Nilai Selesai!")
+    print("\n Injeksi Karyawan & Generasi Nilai Selesai!")
     print(f"   - Karyawan baru ditambahkan : {total_emp_inserted}")
     print(f"   - Karyawan diperbarui       : {total_emp_updated}")
     print(f"   - Total rekam nilai (Scores): {total_scores_upserted}")
@@ -208,6 +208,6 @@ if __name__ == "__main__":
         seed_employees_and_scores(db)
     except Exception as e:
         db.rollback()
-        print(f"❌ Terjadi kesalahan saat seeding: {e}")
+        print(f" Terjadi kesalahan saat seeding: {e}")
     finally:
         db.close()

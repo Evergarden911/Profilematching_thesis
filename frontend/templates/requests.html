@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Permintaan SDM | Pramita Lab{% endblock %}
+{% block title %}Permintaan SDM | XYZ Lab{% endblock %}
 
 {% block page_title %}Permintaan SDM{% endblock %}
 {% block page_subtitle %}Manajemen pengajuan rotasi dan alokasi antar divisi operasional{% endblock %}
@@ -24,7 +24,7 @@
   </div>
   
   <div class="search-bar" style="width: 260px;">
-    <span class="search-icon" style="color: var(--ink-40);">🔍</span>
+    <span class="search-icon" style="color: var(--ink-40);"></span>
     <input type="text" id="reqSearch" placeholder="Cari ID atau Divisi..." value="{{ search_query or '' }}">
   </div>
 </div>
@@ -36,7 +36,7 @@
 <div id="surplusBanner"
   style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1px solid #fde68a; border-left: 5px solid #d97706; padding: 16px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
   <div style="display: flex; align-items: center; gap: 14px;">
-    <div style="font-size: 24px; background: #fde68a; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">⚠️</div>
+    <div style="font-size: 24px; background: #fde68a; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 50%;"></div>
     <div>
       <h4 style="margin: 0 0 3px 0; font-size: 14px; font-weight: 700; color: #92400e;">Mode Sourcing Surplus Aktif</h4>
       <p style="margin: 0; font-size: 12.5px; color: #b45309; line-height: 1.4;">
@@ -270,7 +270,7 @@
             <!-- Kotak Pencarian Cepat Dalam Modal -->
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <span style="font-size: 13px; font-weight: 600; color: var(--ink-80);">Pilih Karyawan Aktif (<span id="selected_counter">0</span> terpilih):</span>
-              <input type="text" id="filter_kandidat_input" placeholder="🔍 Filter nama atau divisi..." onkeyup="filterTabelKandidat()" style="padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12.5px; width: 220px;">
+              <input type="text" id="filter_kandidat_input" placeholder=" Filter nama atau divisi..." onkeyup="filterTabelKandidat()" style="padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12.5px; width: 220px;">
             </div>
 
             <!-- Tabel Daftar Kandidat dengan Scroll Container -->
@@ -303,7 +303,7 @@
         <div style="padding: 16px 24px; border-top: 1px solid var(--border-mid); background-color: #f8fafc; display: flex; justify-content: flex-end; gap: 8px;">
             <button type="button" onclick="tutupModalKandidat()" class="btn btn-outline" style="padding: 8px 16px; cursor: pointer;">Batal</button>
             <button type="button" onclick="prosesBatchEvaluasiKandidat()" id="btnSubmitKandidat" class="btn btn-primary" style="padding: 8px 20px; cursor: pointer;">
-              🚀 Kirim Kandidat Terpilih ke Gates
+               Kirim Kandidat Terpilih ke Gates
             </button>
         </div>
     </div>
@@ -517,7 +517,7 @@
             const bannerEl = document.createElement('div');
             bannerEl.id = 'surplus_modal_banner';
             bannerEl.style.cssText = 'background: #fef3c7; border: 1px solid #fde68a; border-left: 4px solid #d97706; padding: 10px 16px; border-radius: 6px; margin-bottom: 4px; font-size: 12.5px; color: #92400e;';
-            bannerEl.innerHTML = `⚠️ <strong>Mode Sourcing Surplus:</strong> Kandidat dikunci dari divisi <strong>${donorDivisionName || 'Donor'}</strong> saja. Anda tidak dapat memilih karyawan dari divisi lain.`;
+            bannerEl.innerHTML = ` <strong>Mode Sourcing Surplus:</strong> Kandidat dikunci dari divisi <strong>${donorDivisionName || 'Donor'}</strong> saja. Anda tidak dapat memilih karyawan dari divisi lain.`;
             if (modalBody) modalBody.prepend(bannerEl);
         }
         // ──────────────────────────────────────────────────────────────────────
@@ -571,7 +571,7 @@
                 const eduName = eduMap[emp.education_field_id] || `Pendidikan ID: ${emp.education_field_id}`;
                 
                 const sanctionBadge = isSanctioned 
-                  ? '<span style="background: #fee2e2; color: #dc2626; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; border: 1px solid #fca5a5;">⚠️ Sanksi Aktif</span>' 
+                  ? '<span style="background: #fee2e2; color: #dc2626; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; border: 1px solid #fca5a5;"> Sanksi Aktif</span>' 
                   : '<span style="background: #dcfce7; color: #16a34a; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px;">Bersih (Eligible)</span>';
 
                 tbody.innerHTML += `
@@ -693,7 +693,7 @@
             alert(error.message);
         } finally {
             btn.disabled = false;
-            btn.innerText = '🚀 Kirim Kandidat Terpilih ke Gates';
+            btn.innerText = ' Kirim Kandidat Terpilih ke Gates';
         }
     }
     
